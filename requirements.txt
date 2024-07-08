@@ -1,0 +1,8 @@
+ipykernel
+pandas
+numpy
+scikit-learn
+torch==2.3.0
+evaluate
+accelerate
+transformers
