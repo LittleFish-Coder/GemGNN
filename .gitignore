@@ -1,0 +1,11 @@
+# data folder
+dataset/Fake_News_TFG/*/
+
+# OS
+.DS_Store
+.vscode
+.__pycache__/
+
+# logs
+*.out
+
