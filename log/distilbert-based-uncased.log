@@ -1,0 +1,23 @@
+[train log]
+Epoch	Training Loss	Validation Loss	Accuracy
+1	No log	0.029287	0.988173
+2	0.027300	0.026964	0.989528
+3	0.014000	0.037436	0.988543
+4	0.005400	0.046067	0.989775
+5	0.005400	0.047978	0.989651
+
+[val log]
+{'eval_loss': 0.026963941752910614,
+ 'eval_accuracy': 0.9895281507946285,
+ 'eval_f1': 0.9895307340322579,
+ 'eval_runtime': 42.0778,
+ 'eval_samples_per_second': 192.905,
+ 'eval_steps_per_second': 3.018}
+
+[test log]
+{'eval_loss': 0.033429332077503204,
+ 'eval_accuracy': 0.986940988049772,
+ 'eval_f1': 0.9869431100874569,
+ 'eval_runtime': 42.345,
+ 'eval_samples_per_second': 191.688,
+ 'eval_steps_per_second': 2.999}
