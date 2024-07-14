@@ -1,5 +1,6 @@
 # data folder
-dataset/Fake_News_TFG/*/
+datasets/
+checkpoints/
 
 # OS
 .DS_Store
