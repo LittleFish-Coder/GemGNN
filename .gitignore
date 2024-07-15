@@ -9,4 +9,5 @@ checkpoints/
 
 # logs
 *.out
+*.log
 
