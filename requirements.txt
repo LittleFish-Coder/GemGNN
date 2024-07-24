@@ -1,5 +1,6 @@
 ipykernel
 pandas
+matplotlib
 numpy
 scikit-learn
 torch==2.3.0
