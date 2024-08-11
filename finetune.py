@@ -29,7 +29,7 @@ def handle_id_label(dataset_name: str = "fake_news_tfg"):
     print(f"label2id: {label2id}")
 
 
-def fetch_dataset(dataset_name: str = "fake_news_tfg"):
+def fetch_dataset(dataset_name: str = "fake_news_tfg", dataset_size: str = "full"):
     # load data
     print("Loading dataset...")
 
@@ -49,6 +49,27 @@ def fetch_dataset(dataset_name: str = "fake_news_tfg"):
         dataset_name = "LittleFish-Coder/Fake-News-Detection-Challenge-KDD-2020"
 
     dataset = load_dataset(dataset_name, download_mode="reuse_cache_if_exists")
+
+    # select dataset size
+    if dataset_size == "full":
+        dataset["train"] = dataset["train"]
+    elif dataset_size == "5%":
+        dataset["train"] = dataset["train"].select(range(len(dataset["train"]) // 20))
+    elif dataset_size == "100":
+        # select the top 100 samples
+        dataset["train"] = dataset["train"].select(range(100))
+    else:
+        try:
+            # convert str to int
+            dataset_size = int(dataset_size)
+            dataset["train"] = dataset["train"].select(range(dataset_size))
+        except:
+            raise ValueError("Invalid dataset size")
+
+    print(f"Dataset size: ")
+    print(f"\tTrain: {len(dataset['train'])}")
+    print(f"\tValidation: {len(dataset['validation'])}")
+    print(f"\tTest: {len(dataset['test'])}")
 
     return dataset
 
@@ -176,8 +197,9 @@ if __name__ == "__main__":
         help="the bert model to use",
         choices=["bert-base-uncased", "distilbert-base-uncased", "roberta-base"],
     )
-    # select dataset
+    # dataset arguments
     parser.add_argument("--dataset_name", type=str, default="fake_news_tfg", help="dataset to use", choices=["fake_news_tfg", "kdd2020"])
+    parser.add_argument("--dataset_size", type=str, default="full", help="dataset size: full, 5%, 100 or integer")
 
     # training arguments
     parser.add_argument("--num_epochs", type=int, default=5, help="number of epochs")
@@ -187,10 +209,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     bert_model = args.bert_model
     dataset_name = args.dataset_name
+    dataset_size = args.dataset_size
     num_epochs = args.num_epochs
     batch_size = args.batch_size
     checkpoint_dir = args.checkpoint_dir
-    output_dir = f"{checkpoint_dir}/{dataset_name}/{bert_model}"
+    output_dir = f"{checkpoint_dir}/{dataset_name}_{dataset_size}/{bert_model}"
 
     # show arguments
     show_args(args, output_dir)
@@ -200,7 +223,7 @@ if __name__ == "__main__":
     print(f"Using {device} device")
 
     # load data
-    dataset = fetch_dataset(dataset_name)
+    dataset = fetch_dataset(dataset_name, dataset_size)
 
     # load tokenizer
     tokenizer = load_tokenizer(bert_model)
