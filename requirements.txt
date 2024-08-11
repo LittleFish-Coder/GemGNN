@@ -1,9 +1,11 @@
 ipykernel
+tqdm
 pandas
 matplotlib
 numpy
 scikit-learn
-torch==2.3.0
+torch
+torchvision
 evaluate
 accelerate
 transformers
