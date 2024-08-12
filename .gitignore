@@ -1,6 +1,7 @@
 # data folder
 dataset/
 checkpoints/
+log/
 
 # OS
 .DS_Store
