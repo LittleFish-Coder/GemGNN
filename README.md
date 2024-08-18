@@ -53,13 +53,16 @@
 We inspect the generalization of the models trained on one dataset and tested on another datase, the accuracy is used as the evaluation metric.
 
 - Train on GonzaloA/fake_news and test on KDD2020
-  | Model | In-dataset (GonzaloA/fake_news) | cross-dataset KDD2020|
-  | --- | --- | --- |
-  | bert-base-uncase | 0.9882961685351731 | 0.42685370741482964 |
-  | distilbert-base-uncased | 0.986694591597881 | 0.5150300601202404 |
-  | roberta-base | 0.986694591597881 | 0.503006012024048 |
+  | Model | Train Sample|In-dataset (GonzaloA/fake_news) | cross-dataset KDD2020|
+  | --- | --- | --- | --- |
+  | bert-base-uncase | full |0.9882961685351731 | 0.42685370741482964 |
+  | distilbert-base-uncased |full | 0.986694591597881 | 0.5150300601202404 |
+  | roberta-base | full |0.986694591597881 | 0.503006012024048 |
+  | distilbert-base-uncased | 10 | 0.48367623506221513 | 0.4088176352705411 |
+  | distilbert-base-uncased | 100 | 0.9275594431440187 | 0.46292585170340683 |
 
 - Train on KDD2020 and test on GonzaloA/fake_news
 
-  | Model | In-dataset (KDD2020) | cross-dataset GonzaloA/fake_news |
-  | ----- | -------------------- | -------------------------------- |
+  | Model                   | Train Sample | In-dataset (KDD2020) | cross-dataset GonzaloA/fake_news |
+  | ----------------------- | ------------ | -------------------- | -------------------------------- |
+  | distilbert-base-uncased | full         | 0.7655310621242485   | 0.42540347418997165              |
