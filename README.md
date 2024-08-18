@@ -47,3 +47,19 @@
 | ------- | ----------------------- | ---------------------- | ------------------ | ------------------ |
 | 10      | distilbert-base-uncased | 0.48367623506221513    | 0.3341564119711251 | 0.6532924771308899 |
 | 100     | distilbert-base-uncased | **0.9275594431440187** | 0.9273481720070647 | 0.5080302953720093 |
+
+### Model Generalization (Cross-dataset)
+
+We inspect the generalization of the models trained on one dataset and tested on another datase, the accuracy is used as the evaluation metric.
+
+- Train on GonzaloA/fake_news and test on KDD2020
+  | Model | In-dataset (GonzaloA/fake_news) | cross-dataset KDD2020|
+  | --- | --- | --- |
+  | bert-base-uncase | 0.9882961685351731 | 0.42685370741482964 |
+  | distilbert-base-uncased | 0.986694591597881 | 0.5150300601202404 |
+  | roberta-base | 0.986694591597881 | 0.503006012024048 |
+
+- Train on KDD2020 and test on GonzaloA/fake_news
+
+  | Model | In-dataset (KDD2020) | cross-dataset GonzaloA/fake_news |
+  | ----- | -------------------- | -------------------------------- |
