@@ -24,7 +24,9 @@
 
 | Model                   | Accuracy           | F1                 | Loss                |
 | ----------------------- | ------------------ | ------------------ | ------------------- |
+| bert-base-uncase        | 0.7835671342685371 | 0.7807691946073421 | 0.46070271730422974 |
 | distilbert-base-uncased | 0.7655310621242485 | 0.7673580407434882 | 0.46802181005477905 |
+| roberta-base            | 0.8156312625250501 | 0.8125283885140466 | 0.4082072079181671  |
 
 ### Fine-tuning on GonzaloA/fake_news
 
@@ -65,4 +67,8 @@ We inspect the generalization of the models trained on one dataset and tested on
 
   | Model                   | Train Sample | In-dataset (KDD2020) | cross-dataset GonzaloA/fake_news |
   | ----------------------- | ------------ | -------------------- | -------------------------------- |
+  | bert-base-uncase        | full         | 0.7835671342685371   | 0.37058026364420354              |
   | distilbert-base-uncased | full         | 0.7655310621242485   | 0.42540347418997165              |
+  | roberta-base            | full         | 0.8156312625250501   | 0.7220648022668473               |
+  | distilbert-base-uncased | 10           | 0.5591182364729459   | 0.3767401749414808               |
+  | distilbert-base-uncased | 100          | 0.591182364729459    | 0.5340643094739436               |
