@@ -20,6 +20,12 @@
 
 ## Results
 
+### Zero Shot Classification
+|Model| Dataset | Accuracy | Precision | Recall | F1 |
+|---|---|---|---|---|---|
+|bart-large-mnli|KDD2020|0.6232|0.6699|0.6232|0.5285|
+|bart-large-mnli|GonzaloA/fake_news|0.5461|0.5899|0.5461|0.4210|
+
 ### Fine-tuning on KDD2020
 
 | Model                   | Accuracy           | F1                 | Loss                |
