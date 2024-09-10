@@ -65,6 +65,10 @@
 | 100     | distilbert-base-uncased | 0.9275594431440187 | 0.9273481720070647 | 0.5080302953720093 |
 | 100     | roberta-base            | 0.9700628310952323 | 0.970072407552122 | 0.2685811221599579  |
 
+### Model Comparison on Different Dataset
+![GonzaloA](./src/GonzaloA.png)
+![KDD2020](./src/KDD2020.png)
+
 ### Model Generalization (Cross-dataset)
 
 We inspect the generalization of the models trained on one dataset and tested on another datase, the accuracy is used as the evaluation metric.
