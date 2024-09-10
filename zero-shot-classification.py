@@ -59,7 +59,7 @@ def load_model(model_name: str = "facebook/bart-large-mnli"):
     load the model
     """
     print(f"Loading {model_name} model...")
-    model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=device)
+    model = pipeline("zero-shot-classification", model=model_name, device=device)
 
     return model
 
@@ -111,6 +111,7 @@ if __name__ == "__main__":
         type=str,
         default="facebook/bart-large-mnli",
         help="the model to use",
+        choices=["facebook/bart-large-mnli", "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli"]
     )
     # dataset arguments
     parser.add_argument("--dataset_name", type=str, default="kdd2020", help="dataset to use", choices=["fake_news_tfg", "kdd2020"])
