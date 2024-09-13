@@ -1,5 +1,7 @@
 # Fake News Detection
 
+Check [installation guide](#installation) to run the code.
+
 ## Dataset
 
 ### KDD2020
@@ -93,3 +95,31 @@ We inspect the generalization of the models trained on one dataset and tested on
   | roberta-base            | full         | 0.8156312625250501   | 0.7220648022668473               |
   | distilbert-base-uncased | 10           | 0.5591182364729459   | 0.3767401749414808               |
   | distilbert-base-uncased | 100          | 0.591182364729459    | 0.5340643094739436               |
+
+## Installation
+
+- Create a new conda environment
+```bash
+conda create -n fakenews python=3.12
+conda activate fakenews
+```
+
+- Install cuda-toolkit
+```bash
+conda install nvidia/label/cuda-12.1.0::cuda-toolkit
+```
+
+- Install PyTorch (based on your CUDA version)
+```bash
+conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
+```
+
+- Install PyG
+```bash
+conda install pyg -c pyg
+```
+
+- Install other dependencies
+```bash
+pip install -r requirements.txt
+```
