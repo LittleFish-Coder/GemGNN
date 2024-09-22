@@ -9,3 +9,4 @@ torchvision
 evaluate
 accelerate
 transformers
+datasets
