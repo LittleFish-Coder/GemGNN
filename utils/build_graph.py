@@ -11,6 +11,7 @@ from sklearn.manifold import TSNE
 from torch_geometric.nn import GCNConv
 import torch.nn.functional as F
 from tqdm import tqdm
+import os
 
 def check_cuda():
     print("Check CUDA....")
@@ -275,7 +276,7 @@ class KNNGraphBuilder:
         return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, 
                     train_mask=train_mask, val_mask=val_mask, test_mask=test_mask)
 
-    def analyze_graph(self, graph):
+    def analyze_graph(self, graph,graph_info_path,train_size,val_size,test_size,k):
         """analyze the graph"""
         train_mask = graph.train_mask
         val_mask = graph.val_mask
@@ -309,28 +310,29 @@ class KNNGraphBuilder:
             elif test_mask[source] and test_mask[target]:
                 edge_types['test-test'] += 1
 
-        print(f"Total nodes: {total_nodes}")
-        print(f"Total edges: {total_edges}")
-        print(f"Training nodes: {train_nodes}")
-        print(f"Validation nodes: {val_nodes}")
-        print(f"Test nodes: {test_nodes}")
-        print("\nEdge types:")
-        for edge_type, count in edge_types.items():
-            print(f"{edge_type}: {count}")
+        with open(f"{graph_info_path}graph_info_{train_size}_{val_size}_{test_size}_k_{k}.txt",'w') as f:
+            f.write(f"Total nodes: {total_nodes}\n")
+            f.write(f"Total edges: {total_edges}\n")
+            f.write(f"Training nodes: {train_nodes}\n")
+            f.write(f"Validation nodes: {val_nodes}\n")
+            f.write(f"Test nodes: {test_nodes}\n")
+            f.write("\nEdge types:\n")
+            for edge_type, count in edge_types.items():
+                f.write(f"{edge_type}: {count}\n")
 
-def construct_graph_edge(graph_data,k):
+def construct_graph_edge(graph_data,k,graph_info_path,train_size,val_size,test_size):
     # Assuming x, y, train_mask, val_mask, test_mask are already defined
     builder = KNNGraphBuilder(k)
     graph = builder.build_graph(graph_data.x, graph_data.y, graph_data.train_mask, graph_data.val_mask, graph_data.test_mask,
                                 val_to_train=True, val_to_val=True,
                                 test_to_test=True, test_to_train=True)
 
-    builder.analyze_graph(graph)
+    builder.analyze_graph(graph,graph_info_path,train_size,val_size,test_size,k)
     return graph
 
 
 
-def visualize_graph(data, show_num_nodes,train_size,val_size,test_size,k):
+def visualize_graph(data, show_num_nodes,train_size,val_size,test_size,k,plot_path):
     edge_index = data.edge_index.cpu().numpy()
     G = nx.Graph()
     G.add_nodes_from(range(data.num_nodes))
@@ -365,7 +367,7 @@ def visualize_graph(data, show_num_nodes,train_size,val_size,test_size,k):
                loc='upper right')
 
     plt.title(f"Graph Visualization (showing {len(subgraph)} nodes)")
-    plt.savefig(f"../plot/Graph_Visualization_{train_size}_{val_size}_{test_size}_k_{k}_show_{len(subgraph)}_nodes.png")
+    plt.savefig(f"{plot_path}Graph_Visualization_{train_size}_{val_size}_{test_size}_k_{k}_show_{len(subgraph)}_nodes.png")
 
 
 
@@ -373,7 +375,7 @@ def visualize_graph(data, show_num_nodes,train_size,val_size,test_size,k):
 
 
 
-def plot_tsne(x, y, train_size,val_size,test_size,k=0,after_train=False,title="t-SNE visualization of node features"):
+def plot_tsne(x, y, train_size,val_size,test_size,k,plot_path,after_train=False,title="t-SNE visualization of node features"):
     print(f"x shape: {x.shape}")
     print(f"y shape: {y.shape}")
     
@@ -393,9 +395,11 @@ def plot_tsne(x, y, train_size,val_size,test_size,k=0,after_train=False,title="t
     plt.xlabel("t-SNE feature 1")
     plt.ylabel("t-SNE feature 2")
     if after_train==False:
-        plt.savefig(f"../plot/TSNE/TSNE_visualization_{train_size}_{val_size}_{test_size}.png")
+        os.makedirs(os.path.dirname(f"{plot_path}TSNE/"), exist_ok=True)
+        plt.savefig(f"{plot_path}TSNE/TSNE_visualization_{train_size}_{val_size}_{test_size}.png")
     else:
-        plt.savefig(f"../plot/result/TSNE/TSNE_visualization_{train_size}_{val_size}_{test_size}_k_{k}.png")
+        os.makedirs(os.path.dirname(f"{plot_path}TSNE/"), exist_ok=True)
+        plt.savefig(f"{plot_path}TSNE/TSNE_visualization_{train_size}_{val_size}_{test_size}_k_{k}.png")
 
 
 
@@ -463,7 +467,7 @@ def train_val_test(graph_data,model,criterion,optimizer):
     
 
 
-def plot_acc_loss(accuracy_record,loss_record, train_size,val_size,test_size,k):
+def plot_acc_loss(accuracy_record,loss_record, train_size,val_size,test_size,k,plot_path):
     # plot the accuracy and loss at same plot
     plt.figure(figsize=(12, 6))
     plt.plot(accuracy_record, label='Accuracy')
@@ -472,10 +476,10 @@ def plot_acc_loss(accuracy_record,loss_record, train_size,val_size,test_size,k):
     plt.ylabel('Accuracy/Loss')
     plt.title('Accuracy/Loss')
     plt.legend()
-    plt.savefig(f"../plot/result/acc_loss/acc_loss_{train_size}_{val_size}_{test_size}_k_{k}.png")
+    plt.savefig(f"{plot_path}acc_loss_{train_size}_{val_size}_{test_size}_k_{k}.png")
 
 
-def plot_k_vs_test_acc(k_range, test_result,train_size,val_size,test_size):
+def plot_k_vs_test_acc(k_range, test_result,train_size,val_size,test_size,plot_path):
     plt.figure(figsize=(8, 6))
     plt.plot(k_range, test_result, marker='o', linestyle='-', color='b', label="Test Accuracy")
     plt.xlabel('k')
@@ -483,7 +487,7 @@ def plot_k_vs_test_acc(k_range, test_result,train_size,val_size,test_size):
     plt.title('Test Accuracy vs. k')
     plt.grid(True)
     plt.legend()
-    plt.savefig(f"../plot/result/test_acc_vs_k_{train_size}_{val_size}_{test_size}.png")
+    plt.savefig(f"{plot_path}test_acc_vs_k_{train_size}_{val_size}_{test_size}.png")
 
 # # Assuming you've already trained your model
 def plot_tsne_after_train(graph_data,model,train_size,val_size,test_size,k):
@@ -501,25 +505,38 @@ if __name__=="__main__":
     test_size=len(test_dataset)
     embeddings_train_dataset,embeddings_val_dataset,embeddings_test_dataset=get_custom_dataset(train_dataset,val_dataset,test_dataset,train_size,val_size,test_size)
     G=generate_custom_graph(embeddings_train_dataset,embeddings_val_dataset,embeddings_test_dataset)
-    save_graph(G.get_graph(), f"../graph/custom_graph_{train_size}_{val_size}_{test_size}.pt")
+    graph_path=f"../graph/train_{train_size}_val_{val_size}_test_{test_size}/G/"
+    os.makedirs(os.path.dirname(graph_path), exist_ok=True)
+    save_graph(G.get_graph(), f"{graph_path}custom_graph_{train_size}_{val_size}_{test_size}.pt")
 
     #Load graph (if needed later)
-    loaded_G = load_graph(f"../graph/custom_graph_{train_size}_{val_size}_{test_size}.pt")
+    loaded_G = load_graph(f"{graph_path}custom_graph_{train_size}_{val_size}_{test_size}.pt")
     print(loaded_G)
-    plot_tsne(loaded_G.x, loaded_G.y,train_size,val_size,test_size)
+
+    plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}/"
+    os.makedirs(os.path.dirname(plot_path), exist_ok=True)
+    plot_tsne(loaded_G.x, loaded_G.y,train_size,val_size,test_size,0,plot_path)
 
     test_result=[]
-    k_range=range(5,16)
+    k_range=range(5,21)
     for k in tqdm(k_range, desc="Construct graph's edge..."):
-        graph=construct_graph_edge(loaded_G,k)
-        save_graph(graph,f"../graph/graph_{train_size}_{val_size}_{test_size}_k_{k}.pt")
-        visualize_graph(graph,500,train_size,val_size,test_size,k)
+        graph_info_path=f"../graph/train_{train_size}_val_{val_size}_test_{test_size}/graph_info/"
+        os.makedirs(os.path.dirname(graph_info_path), exist_ok=True)
+        graph=construct_graph_edge(loaded_G,k,graph_info_path,train_size,val_size,test_size)
+        save_graph(graph,f"{graph_path}graph_{train_size}_{val_size}_{test_size}_k_{k}.pt")
+        plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}/graph_visualization/"
+        os.makedirs(os.path.dirname(plot_path), exist_ok=True)
+        visualize_graph(graph,500,train_size,val_size,test_size,k,plot_path)
         model,criterion,optimizer=get_model_criterion_optimizer(graph)
         accuracy_record,loss_record,test_acc=train_val_test(graph,model,criterion,optimizer)
-        plot_acc_loss(accuracy_record,loss_record,train_size,val_size,test_size,k)
+        plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}/acc_loss/"
+        os.makedirs(os.path.dirname(plot_path), exist_ok=True)
+        plot_acc_loss(accuracy_record,loss_record,train_size,val_size,test_size,k,plot_path)
         test_result.append(test_acc)
         #plot_tsne_after_train(graph,model,train_size,val_size,test_size,k)
-    plot_k_vs_test_acc(k_range, test_result,train_size,val_size,test_size)
+    plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}/test_result/"
+    os.makedirs(os.path.dirname(plot_path), exist_ok=True)
+    plot_k_vs_test_acc(k_range, test_result,train_size,val_size,test_size,plot_path)
 
 
     

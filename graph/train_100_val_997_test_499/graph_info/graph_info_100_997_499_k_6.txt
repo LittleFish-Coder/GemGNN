@@ -1,0 +1,13 @@
+Total nodes: 1596
+Total edges: 5927
+Training nodes: 100
+Validation nodes: 997
+Test nodes: 499
+
+Edge types:
+train-train: 43
+train-val: 728
+train-test: 358
+val-val: 3833
+val-test: 0
+test-test: 965
