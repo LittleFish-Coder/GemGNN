@@ -475,18 +475,16 @@ def plot_acc_loss(accuracy_record,loss_record, train_size,val_size,test_size,k):
     plt.savefig(f"../plot/result/acc_loss/acc_loss_{train_size}_{val_size}_{test_size}_k_{k}.png")
 
 
-def plot_k_vs_test_acc(k_range, test_result):
+def plot_k_vs_test_acc(k_range, test_result,train_size,val_size,test_size):
     plt.figure(figsize=(8, 6))
     plt.plot(k_range, test_result, marker='o', linestyle='-', color='b', label="Test Accuracy")
-    
     plt.xlabel('k')
     plt.ylabel('Test Accuracy')
     plt.title('Test Accuracy vs. k')
-    
     plt.grid(True)
     plt.legend()
-
     plt.savefig(f"../plot/result/test_acc_vs_k_{train_size}_{val_size}_{test_size}.png")
+
 # # Assuming you've already trained your model
 def plot_tsne_after_train(graph_data,model,train_size,val_size,test_size,k):
     model.eval()
@@ -498,12 +496,12 @@ if __name__=="__main__":
     device=check_cuda()
     train_dataset,val_dataset,test_dataset=load_dataset_from_huggingface()
     load_pretrained_LLM_and_test()
-    train_size=len(train_dataset)
+    train_size=100
     val_size=len(val_dataset)
     test_size=len(test_dataset)
     embeddings_train_dataset,embeddings_val_dataset,embeddings_test_dataset=get_custom_dataset(train_dataset,val_dataset,test_dataset,train_size,val_size,test_size)
-    # G=generate_custom_graph(embeddings_train_dataset,embeddings_val_dataset,embeddings_test_dataset)
-    # save_graph(G.get_graph(), f"../graph/custom_graph_{train_size}_{val_size}_{test_size}.pt")
+    G=generate_custom_graph(embeddings_train_dataset,embeddings_val_dataset,embeddings_test_dataset)
+    save_graph(G.get_graph(), f"../graph/custom_graph_{train_size}_{val_size}_{test_size}.pt")
 
     #Load graph (if needed later)
     loaded_G = load_graph(f"../graph/custom_graph_{train_size}_{val_size}_{test_size}.pt")
@@ -521,7 +519,7 @@ if __name__=="__main__":
         plot_acc_loss(accuracy_record,loss_record,train_size,val_size,test_size,k)
         test_result.append(test_acc)
         #plot_tsne_after_train(graph,model,train_size,val_size,test_size,k)
-    plot_k_vs_test_acc(k_range, test_result)
+    plot_k_vs_test_acc(k_range, test_result,train_size,val_size,test_size)
 
 
     
