@@ -2,6 +2,7 @@
 dataset/
 checkpoints/
 log/
+graph/
 
 # OS
 .DS_Store
