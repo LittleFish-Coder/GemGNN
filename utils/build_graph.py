@@ -143,10 +143,11 @@ def get_custom_dataset(train_dataset,val_dataset,test_dataset,train_size,val_siz
 
 
 class CustomGraph:
-    def __init__(self, train_dataset, val_dataset, test_dataset):
+    def __init__(self, train_dataset, val_dataset, test_dataset,num_labeled):
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
         self.test_dataset = test_dataset
+        self.num_labeled=num_labeled
         
         self.num_nodes = len(train_dataset) + len(val_dataset) + len(test_dataset)
         self.num_features = train_dataset[0][0].shape[0]  # Assuming all embeddings have the same dimension
@@ -172,6 +173,8 @@ class CustomGraph:
             )
         ])
 
+        
+
         # Create masks
         train_mask = torch.zeros(self.num_nodes, dtype=torch.bool)
         val_mask = torch.zeros(self.num_nodes, dtype=torch.bool)
@@ -181,11 +184,17 @@ class CustomGraph:
         val_mask[len(self.train_dataset):len(self.train_dataset)+len(self.val_dataset)] = True
         test_mask[-len(self.test_dataset):] = True
 
+        # random choice labeled indices
+        random_indices = torch.randperm(len(self.train_dataset))[:self.num_labeled]
+        labeled_mask = torch.zeros(self.num_nodes, dtype=torch.bool)
+        labeled_mask[random_indices] = True
+
+
         # Create edge_index (placeholder, as we're not considering edges yet)
         edge_index = torch.empty((2, 0), dtype=torch.long)
 
         return Data(x=x, edge_index=edge_index, y=y, 
-                    train_mask=train_mask, val_mask=val_mask, test_mask=test_mask)
+                    train_mask=train_mask, val_mask=val_mask, test_mask=test_mask,labeled_mask=labeled_mask)
 
     def get_graph(self):
         return self.graph
@@ -202,9 +211,9 @@ class CustomGraph:
                f"validation_nodes={self.graph.val_mask.sum()}, " \
                f"test_nodes={self.graph.test_mask.sum()})"
     
-def generate_custom_graph(embeddings_train_dataset, embeddings_val_dataset, embeddings_test_dataset):
+def generate_custom_graph(embeddings_train_dataset, embeddings_val_dataset, embeddings_test_dataset,num_labeled):
     print("Generate custom graph...")
-    custom_graph = CustomGraph(embeddings_train_dataset, embeddings_val_dataset, embeddings_test_dataset)
+    custom_graph = CustomGraph(embeddings_train_dataset, embeddings_val_dataset, embeddings_test_dataset,num_labeled)
     graph_data = custom_graph.get_graph()
     print(f"Graph: {custom_graph}")
     print(f"Graph data: {graph_data}")
@@ -214,6 +223,16 @@ def generate_custom_graph(embeddings_train_dataset, embeddings_val_dataset, embe
     print(f"Number of training nodes: {graph_data.train_mask.sum()}")
     print(f"Number of validation nodes: {graph_data.val_mask.sum()}")
     print(f"Number of test nodes: {graph_data.test_mask.sum()}")
+    print(f"Number of labeled node: {graph_data.labeled_mask.sum()}")
+    print(f"len of train mask: {len(graph_data.train_mask)}")
+    print(f"len of val mask: {len(graph_data.val_mask)}")
+    print(f"len of test mask: {len(graph_data.test_mask)}")
+    print(f"len of labeled mask: {len(graph_data.labeled_mask)}")
+    print(f"len of train mask: {graph_data.train_mask}")
+    print(f"len of val mask: {graph_data.val_mask}")
+    print(f"len of test mask: {graph_data.test_mask}")
+    print(f"len of labeled mask: {graph_data.labeled_mask}")
+
     print("\n\n")
     return custom_graph
 
@@ -235,9 +254,9 @@ class KNNGraphBuilder:
     def __init__(self, k=5):
         self.k = k
 
-    def build_graph(self, x, y, train_mask, val_mask, test_mask,
+    def build_graph(self, x, y, train_mask, val_mask, test_mask,labeled_mask,
                     val_to_train=True, val_to_val=True,
-                    test_to_test=True, test_to_train=True):
+                    test_to_test=True, test_to_train=True,val_to_test=True):
         nn = NearestNeighbors(n_neighbors=self.k+1, metric='cosine')
         nn.fit(x)
         distances, indices = nn.kneighbors(x)
@@ -260,8 +279,12 @@ class KNNGraphBuilder:
                         add_edge = True
                     elif val_mask[neighbor] and val_to_val:
                         add_edge = True
+                    elif test_mask[neighbor] and val_to_test:
+                        add_edge = True
                 elif test_mask[i]:
                     if train_mask[neighbor] and test_to_train:
+                        add_edge = True
+                    elif val_mask[neighbor] and val_to_test:
                         add_edge = True
                     elif test_mask[neighbor] and test_to_test:
                         add_edge = True
@@ -274,13 +297,14 @@ class KNNGraphBuilder:
         edge_attr = torch.tensor(edge_attr).unsqueeze(1)
         
         return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, 
-                    train_mask=train_mask, val_mask=val_mask, test_mask=test_mask)
+                    train_mask=train_mask, val_mask=val_mask, test_mask=test_mask,labeled_mask=labeled_mask)
 
-    def analyze_graph(self, graph,graph_info_path,train_size,val_size,test_size,k):
+    def analyze_graph(self, graph,graph_info_path,train_size,val_size,test_size,labeled_num,k):
         """analyze the graph"""
         train_mask = graph.train_mask
         val_mask = graph.val_mask
         test_mask = graph.test_mask
+        labeled_mask=graph.labeled_mask
         edge_index = graph.edge_index
 
         total_nodes = graph.num_nodes
@@ -288,6 +312,7 @@ class KNNGraphBuilder:
         train_nodes = train_mask.sum().item()
         val_nodes = val_mask.sum().item()
         test_nodes = test_mask.sum().item()
+        labeled_nodes=labeled_mask.sum().item()
 
         # analyze the edge types
         edge_types = {
@@ -316,23 +341,24 @@ class KNNGraphBuilder:
             f.write(f"Training nodes: {train_nodes}\n")
             f.write(f"Validation nodes: {val_nodes}\n")
             f.write(f"Test nodes: {test_nodes}\n")
+            f.write(f"Labeled nodes: {labeled_nodes}\n")
             f.write("\nEdge types:\n")
             for edge_type, count in edge_types.items():
                 f.write(f"{edge_type}: {count}\n")
 
-def construct_graph_edge(graph_data,k,graph_info_path,train_size,val_size,test_size):
+def construct_graph_edge(graph_data,k,graph_info_path,train_size,val_size,test_size,labeled_num):
     # Assuming x, y, train_mask, val_mask, test_mask are already defined
     builder = KNNGraphBuilder(k)
-    graph = builder.build_graph(graph_data.x, graph_data.y, graph_data.train_mask, graph_data.val_mask, graph_data.test_mask,
+    graph = builder.build_graph(graph_data.x, graph_data.y, graph_data.train_mask, graph_data.val_mask, graph_data.test_mask,graph_data.labeled_mask,
                                 val_to_train=True, val_to_val=True,
-                                test_to_test=True, test_to_train=True)
+                                test_to_test=True, test_to_train=True,val_to_test=True)
 
-    builder.analyze_graph(graph,graph_info_path,train_size,val_size,test_size,k)
+    builder.analyze_graph(graph,graph_info_path,train_size,val_size,test_size,labeled_num,k)
     return graph
 
 
 
-def visualize_graph(data, show_num_nodes,train_size,val_size,test_size,k,plot_path):
+def visualize_graph(data, show_num_nodes,train_size,val_size,test_size,labeled_num,k,plot_path):
     edge_index = data.edge_index.cpu().numpy()
     G = nx.Graph()
     G.add_nodes_from(range(data.num_nodes))
@@ -367,7 +393,7 @@ def visualize_graph(data, show_num_nodes,train_size,val_size,test_size,k,plot_pa
                loc='upper right')
 
     plt.title(f"Graph Visualization (showing {len(subgraph)} nodes)")
-    plt.savefig(f"{plot_path}Graph_Visualization_{train_size}_{val_size}_{test_size}_k_{k}_show_{len(subgraph)}_nodes.png")
+    plt.savefig(f"{plot_path}Graph_Visualization_{train_size}_{val_size}_{test_size}_{labeled_num}_k_{k}_show_{len(subgraph)}_nodes.png")
 
 
 
@@ -375,7 +401,7 @@ def visualize_graph(data, show_num_nodes,train_size,val_size,test_size,k,plot_pa
 
 
 
-def plot_tsne(x, y, train_size,val_size,test_size,k,plot_path,after_train=False,title="t-SNE visualization of node features"):
+def plot_tsne(x, y, train_size,val_size,test_size,labeled_num,k,plot_path,after_train=False,title="t-SNE visualization of node features"):
     print(f"x shape: {x.shape}")
     print(f"y shape: {y.shape}")
     
@@ -396,10 +422,10 @@ def plot_tsne(x, y, train_size,val_size,test_size,k,plot_path,after_train=False,
     plt.ylabel("t-SNE feature 2")
     if after_train==False:
         os.makedirs(os.path.dirname(f"{plot_path}TSNE/"), exist_ok=True)
-        plt.savefig(f"{plot_path}TSNE/TSNE_visualization_{train_size}_{val_size}_{test_size}.png")
+        plt.savefig(f"{plot_path}TSNE/TSNE_visualization_{train_size}_{val_size}_{test_size}_{labeled_num}.png")
     else:
         os.makedirs(os.path.dirname(f"{plot_path}TSNE/"), exist_ok=True)
-        plt.savefig(f"{plot_path}TSNE/TSNE_visualization_{train_size}_{val_size}_{test_size}_k_{k}.png")
+        plt.savefig(f"{plot_path}TSNE/TSNE_visualization_{train_size}_{val_size}_{test_size}_{labeled_num}_k_{k}.png")
 
 
 
@@ -410,14 +436,18 @@ def plot_tsne(x, y, train_size,val_size,test_size,k,plot_path,after_train=False,
 class GCN(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels):
         super(GCN, self).__init__()
-        self.conv1 = GCNConv(in_channels, hidden_channels)
-        self.conv2 = GCNConv(hidden_channels, out_channels)
+        self.conv1 = GCNConv(in_channels, 256)
+        self.conv2 = GCNConv(256, hidden_channels)
+        self.conv3 = GCNConv(hidden_channels, out_channels)
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
         x = self.conv1(x, edge_index)
         x = F.relu(x)
         x = self.conv2(x, edge_index)
+        x = F.relu(x)
+        x = self.conv3(x, edge_index)
+        x = F.sigmoid(x)
         return x
     
 
@@ -427,7 +457,7 @@ class GCN(torch.nn.Module):
 def get_model_criterion_optimizer(graph_data):
     model = GCN(in_channels=graph_data.num_features, hidden_channels=16, out_channels=2)
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
     return model,criterion,optimizer
 
 
@@ -437,24 +467,34 @@ def train_val_test(graph_data,model,criterion,optimizer):
         model.train()
         optimizer.zero_grad()
         out = model(data)
-        loss = criterion(out[data.train_mask], data.y[data.train_mask])
+        loss = criterion(out[data.labeled_mask], data.y[data.labeled_mask])
         loss.backward()
         optimizer.step()
         return loss
 
+    def validate(data):
+        model.eval()
+        with torch.no_grad():
+            out = model(data)
+            pred = out.argmax(dim=1)
+            correct = pred[data.val_mask].eq(data.y[data.val_mask]).sum().item()
+            acc = correct / data.val_mask.sum().item()
+            return acc
+
     def test(data):
         model.eval()
-        out = model(data)
-        pred = out.argmax(dim=1)
-        correct = pred[data.test_mask].eq(data.y[data.test_mask]).sum().item()
-        acc = correct / data.test_mask.sum().item()
-        return acc
+        with torch.no_grad():
+            out = model(data)
+            pred = out.argmax(dim=1)
+            correct = pred[data.test_mask].eq(data.y[data.test_mask]).sum().item()
+            acc = correct / data.test_mask.sum().item()
+            return acc
     accuracy_record = []
     loss_record = []
     # Train the model
     for epoch in range(1, 201):
         loss = train(graph_data)
-        acc = test(graph_data)
+        acc = validate(graph_data)
         accuracy_record.append(acc)
         loss_record.append(loss.item())
         print(f'Epoch {epoch}, Loss: {loss.item():.4f}, Acc: {acc:.4f}')
@@ -467,7 +507,7 @@ def train_val_test(graph_data,model,criterion,optimizer):
     
 
 
-def plot_acc_loss(accuracy_record,loss_record, train_size,val_size,test_size,k,plot_path):
+def plot_acc_loss(accuracy_record,loss_record, train_size,val_size,test_size,labeled_num,k,plot_path):
     # plot the accuracy and loss at same plot
     plt.figure(figsize=(12, 6))
     plt.plot(accuracy_record, label='Accuracy')
@@ -476,10 +516,10 @@ def plot_acc_loss(accuracy_record,loss_record, train_size,val_size,test_size,k,p
     plt.ylabel('Accuracy/Loss')
     plt.title('Accuracy/Loss')
     plt.legend()
-    plt.savefig(f"{plot_path}acc_loss_{train_size}_{val_size}_{test_size}_k_{k}.png")
+    plt.savefig(f"{plot_path}acc_loss_{train_size}_{val_size}_{test_size}_{labeled_num}_k_{k}.png")
 
 
-def plot_k_vs_test_acc(k_range, test_result,train_size,val_size,test_size,plot_path):
+def plot_k_vs_test_acc(k_range, test_result,train_size,val_size,test_size,labeled_num,plot_path):
     plt.figure(figsize=(8, 6))
     plt.plot(k_range, test_result, marker='o', linestyle='-', color='b', label="Test Accuracy")
     plt.xlabel('k')
@@ -487,7 +527,7 @@ def plot_k_vs_test_acc(k_range, test_result,train_size,val_size,test_size,plot_p
     plt.title('Test Accuracy vs. k')
     plt.grid(True)
     plt.legend()
-    plt.savefig(f"{plot_path}test_acc_vs_k_{train_size}_{val_size}_{test_size}.png")
+    plt.savefig(f"{plot_path}test_acc_vs_k_{train_size}_{val_size}_{test_size}_{labeled_num}.png")
 
 # # Assuming you've already trained your model
 def plot_tsne_after_train(graph_data,model,train_size,val_size,test_size,k):
@@ -500,43 +540,46 @@ if __name__=="__main__":
     device=check_cuda()
     train_dataset,val_dataset,test_dataset=load_dataset_from_huggingface()
     load_pretrained_LLM_and_test()
-    train_size=100
+    train_size=len(train_dataset)
     val_size=len(val_dataset)
     test_size=len(test_dataset)
+    labeled_num=100
     embeddings_train_dataset,embeddings_val_dataset,embeddings_test_dataset=get_custom_dataset(train_dataset,val_dataset,test_dataset,train_size,val_size,test_size)
-    G=generate_custom_graph(embeddings_train_dataset,embeddings_val_dataset,embeddings_test_dataset)
-    graph_path=f"../graph/train_{train_size}_val_{val_size}_test_{test_size}/G/"
-    os.makedirs(os.path.dirname(graph_path), exist_ok=True)
-    save_graph(G.get_graph(), f"{graph_path}custom_graph_{train_size}_{val_size}_{test_size}.pt")
+    # G=generate_custom_graph(embeddings_train_dataset,embeddings_val_dataset,embeddings_test_dataset,labeled_num)
+    graph_path=f"../graph/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}/G/"
+    # os.makedirs(os.path.dirname(graph_path), exist_ok=True)
+    # save_graph(G.get_graph(), f"{graph_path}custom_graph_{train_size}_{val_size}_{test_size}_{labeled_num}.pt")
 
-    #Load graph (if needed later)
-    loaded_G = load_graph(f"{graph_path}custom_graph_{train_size}_{val_size}_{test_size}.pt")
+    # #Load graph (if needed later)
+    loaded_G = load_graph(f"{graph_path}custom_graph_{train_size}_{val_size}_{test_size}_{labeled_num}.pt")
     print(loaded_G)
 
-    plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}/"
+    plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}/"
     os.makedirs(os.path.dirname(plot_path), exist_ok=True)
-    plot_tsne(loaded_G.x, loaded_G.y,train_size,val_size,test_size,0,plot_path)
+    # plot_tsne(loaded_G.x, loaded_G.y,train_size,val_size,test_size,labeled_num,0,plot_path)
+
 
     test_result=[]
     k_range=range(5,21)
     for k in tqdm(k_range, desc="Construct graph's edge..."):
-        graph_info_path=f"../graph/train_{train_size}_val_{val_size}_test_{test_size}/graph_info/"
+        graph_info_path=f"../graph/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}/graph_info/"
         os.makedirs(os.path.dirname(graph_info_path), exist_ok=True)
-        graph=construct_graph_edge(loaded_G,k,graph_info_path,train_size,val_size,test_size)
-        save_graph(graph,f"{graph_path}graph_{train_size}_{val_size}_{test_size}_k_{k}.pt")
-        plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}/graph_visualization/"
+        graph=construct_graph_edge(loaded_G,k,graph_info_path,train_size,val_size,test_size,labeled_num)
+        save_graph(graph,f"{graph_path}graph_{train_size}_{val_size}_{test_size}_{labeled_num}_k_{k}.pt")
+        plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}/graph_visualization/"
         os.makedirs(os.path.dirname(plot_path), exist_ok=True)
-        visualize_graph(graph,500,train_size,val_size,test_size,k,plot_path)
+        visualize_graph(graph,500,train_size,val_size,test_size,labeled_num,k,plot_path)
+
         model,criterion,optimizer=get_model_criterion_optimizer(graph)
         accuracy_record,loss_record,test_acc=train_val_test(graph,model,criterion,optimizer)
-        plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}/acc_loss/"
+        plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}/acc_loss/"
         os.makedirs(os.path.dirname(plot_path), exist_ok=True)
-        plot_acc_loss(accuracy_record,loss_record,train_size,val_size,test_size,k,plot_path)
+        plot_acc_loss(accuracy_record,loss_record,train_size,val_size,test_size,labeled_num,k,plot_path)
         test_result.append(test_acc)
         #plot_tsne_after_train(graph,model,train_size,val_size,test_size,k)
-    plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}/test_result/"
+    plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}/test_result/"
     os.makedirs(os.path.dirname(plot_path), exist_ok=True)
-    plot_k_vs_test_acc(k_range, test_result,train_size,val_size,test_size,plot_path)
+    plot_k_vs_test_acc(k_range, test_result,train_size,val_size,test_size,labeled_num,plot_path)
 
 
     
