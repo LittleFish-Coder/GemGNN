@@ -211,6 +211,14 @@ class CustomGraph:
                f"validation_nodes={self.graph.val_mask.sum()}, " \
                f"test_nodes={self.graph.test_mask.sum()})"
     
+def random_choice_labeled_node(G,len_of_train_dataset,labeled_num):
+    # random choice labeled indices
+    random_indices = torch.randperm(len_of_train_dataset)[:labeled_num]
+    labeled_mask = torch.zeros(G.num_nodes, dtype=torch.bool)
+    labeled_mask[random_indices] = True
+    G.labeled_mask=labeled_mask
+    return G
+
 def generate_custom_graph(embeddings_train_dataset, embeddings_val_dataset, embeddings_test_dataset,num_labeled):
     print("Generate custom graph...")
     custom_graph = CustomGraph(embeddings_train_dataset, embeddings_val_dataset, embeddings_test_dataset,num_labeled)
@@ -457,7 +465,7 @@ class GCN(torch.nn.Module):
 def get_model_criterion_optimizer(graph_data):
     model = GCN(in_channels=graph_data.num_features, hidden_channels=16, out_channels=2)
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
     return model,criterion,optimizer
 
 
@@ -492,18 +500,20 @@ def train_val_test(graph_data,model,criterion,optimizer):
     accuracy_record = []
     loss_record = []
     # Train the model
-    for epoch in range(1, 201):
+    best_acc=0
+    for epoch in range(1, 301):
         loss = train(graph_data)
         acc = validate(graph_data)
         accuracy_record.append(acc)
         loss_record.append(loss.item())
         print(f'Epoch {epoch}, Loss: {loss.item():.4f}, Acc: {acc:.4f}')
+        best_acc=max(best_acc,acc)
 
     # Evaluate the model
     test_acc = test(graph_data)
     print(f'Test Accuracy: {test_acc:.4f}')
 
-    return accuracy_record,loss_record,test_acc
+    return accuracy_record,loss_record,test_acc,best_acc
     
 
 
@@ -519,15 +529,31 @@ def plot_acc_loss(accuracy_record,loss_record, train_size,val_size,test_size,lab
     plt.savefig(f"{plot_path}acc_loss_{train_size}_{val_size}_{test_size}_{labeled_num}_k_{k}.png")
 
 
-def plot_k_vs_test_acc(k_range, test_result,train_size,val_size,test_size,labeled_num,plot_path):
-    plt.figure(figsize=(8, 6))
-    plt.plot(k_range, test_result, marker='o', linestyle='-', color='b', label="Test Accuracy")
-    plt.xlabel('k')
-    plt.ylabel('Test Accuracy')
-    plt.title('Test Accuracy vs. k')
-    plt.grid(True)
-    plt.legend()
-    plt.savefig(f"{plot_path}test_acc_vs_k_{train_size}_{val_size}_{test_size}_{labeled_num}.png")
+def plot_k_vs_result(k_range, test_result,best_acc_result,train_size,val_size,test_size,labeled_num,plot_path):
+    fig, axs = plt.subplots(2, 1, figsize=(8, 18))  # 3 rows, 1 column
+
+    # k vs test accuracy
+    axs[0].plot(k_range, test_result, marker='o', linestyle='-', color='b', label="Test Accuracy")
+    axs[0].set_xlabel('k')
+    axs[0].set_ylabel('Test Accuracy')
+    axs[0].set_title('Test Accuracy vs. k')
+    axs[0].grid(True)
+    axs[0].legend()
+
+
+    # k vs best accuracy
+    axs[1].plot(k_range, best_acc_result, marker='o', linestyle='-', color='g', label="Best Accuracy")
+    axs[1].set_xlabel('k')
+    axs[1].set_ylabel('Best Accuracy')
+    axs[1].set_title('Best Accuracy vs. k')
+    axs[1].grid(True)
+    axs[1].legend()
+
+
+    plt.tight_layout()
+
+    plt.savefig(f"{plot_path}results_vs_k_{train_size}_{val_size}_{test_size}_{labeled_num}.png")
+
 
 # # Assuming you've already trained your model
 def plot_tsne_after_train(graph_data,model,train_size,val_size,test_size,k):
@@ -552,6 +578,7 @@ if __name__=="__main__":
 
     # #Load graph (if needed later)
     loaded_G = load_graph(f"{graph_path}custom_graph_{train_size}_{val_size}_{test_size}_{labeled_num}.pt")
+    loaded_G=random_choice_labeled_node(loaded_G,len(train_dataset),labeled_num)
     print(loaded_G)
 
     plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}/"
@@ -560,6 +587,7 @@ if __name__=="__main__":
 
 
     test_result=[]
+    best_acc_result=[]
     k_range=range(5,21)
     for k in tqdm(k_range, desc="Construct graph's edge..."):
         graph_info_path=f"../graph/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}/graph_info/"
@@ -571,15 +599,16 @@ if __name__=="__main__":
         visualize_graph(graph,500,train_size,val_size,test_size,labeled_num,k,plot_path)
 
         model,criterion,optimizer=get_model_criterion_optimizer(graph)
-        accuracy_record,loss_record,test_acc=train_val_test(graph,model,criterion,optimizer)
+        accuracy_record,loss_record,test_acc,best_acc=train_val_test(graph,model,criterion,optimizer)
         plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}/acc_loss/"
         os.makedirs(os.path.dirname(plot_path), exist_ok=True)
         plot_acc_loss(accuracy_record,loss_record,train_size,val_size,test_size,labeled_num,k,plot_path)
         test_result.append(test_acc)
+        best_acc_result.append(best_acc)
         #plot_tsne_after_train(graph,model,train_size,val_size,test_size,k)
     plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}/test_result/"
     os.makedirs(os.path.dirname(plot_path), exist_ok=True)
-    plot_k_vs_test_acc(k_range, test_result,train_size,val_size,test_size,labeled_num,plot_path)
+    plot_k_vs_result(k_range, test_result,best_acc_result,train_size,val_size,test_size,labeled_num,plot_path)
 
 
     
