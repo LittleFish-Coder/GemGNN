@@ -707,7 +707,7 @@ if __name__=="__main__":
     train_size=len(train_dataset)
     val_size=len(val_dataset)
     test_size=len(test_dataset)
-    labeled_num=100
+    labeled_num=len(train_dataset)
     EdgeConstructionPolicy="ThresholdKNN" ##"KNN","ThresholdKNN"
     embeddings_train_dataset,embeddings_val_dataset,embeddings_test_dataset=get_custom_dataset(train_dataset,val_dataset,test_dataset,train_size,val_size,test_size)
     # G=generate_custom_graph(embeddings_train_dataset,embeddings_val_dataset,embeddings_test_dataset,labeled_num)
