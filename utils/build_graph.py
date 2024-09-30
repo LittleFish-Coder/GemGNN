@@ -257,6 +257,133 @@ def load_graph(file_path):
     return graph_data
 
 
+class ThresholdKNNGraphBuilder:
+    def __init__(self, k=5, threshold_std_factor=1.0):
+        self.k = k
+        self.threshold_factor = threshold_std_factor
+
+    def build_graph(self, x, y, train_mask, val_mask, test_mask, labeled_mask,
+                    val_to_train=True, val_to_val=True,
+                    test_to_test=True, test_to_train=True, val_to_test=True):
+        nn = NearestNeighbors(n_neighbors=len(x), metric='cosine')
+        nn.fit(x)
+        distances, indices = nn.kneighbors(x)
+
+        
+        # 先計算全圖的 cosine similarity distance 統計
+        flattened_distances = distances[:, 1:].flatten()  # 去除自連邊
+        median_dist = np.median(flattened_distances)
+        mean_dist=np.mean(flattened_distances)
+        std_dist = np.std(flattened_distances)
+        min_dist = np.min(flattened_distances)
+        max_dist = np.max(flattened_distances)
+        threshold = np.percentile(flattened_distances,self.threshold_factor)  # 計算第 n 百分位數
+        
+        print(f"median = {median_dist}, mean = {mean_dist}, std = {std_dist}, min = {min_dist}, max = {max_dist}, threshold = {threshold}")
+        # input("Press enter to cont...")
+        edge_index = []
+        edge_attr = []
+
+        out_degree=[]
+        for i in tqdm(range(len(x)), desc="Building edges"):
+            # 計算這個點的有效鄰居數量（小於 threshold 的鄰居數）
+            valid_neighbors = [indices[i, j] for j in range(1, len(x)) if distances[i, j] < threshold]
+            # print(valid_neighbors)
+            if valid_neighbors:
+                avg_neighbors = int(np.sqrt(len(valid_neighbors)*self.k))
+                avg_neighbors = (len(valid_neighbors)+avg_neighbors)//2
+            else:
+                avg_neighbors = k  # 沒有小於 threshold 的鄰居就取 k
+            out_degree.append(avg_neighbors)
+            
+            # 根據新的鄰居數量進行建邊
+            for j in range(1, avg_neighbors + 1):
+                neighbor = indices[i, j]
+                add_edge = False
+
+                if train_mask[i] or train_mask[neighbor]:
+                    add_edge = True
+                elif val_mask[i]:
+                    if train_mask[neighbor] and val_to_train:
+                        add_edge = True
+                    elif val_mask[neighbor] and val_to_val:
+                        add_edge = True
+                    elif test_mask[neighbor] and val_to_test:
+                        add_edge = True
+                elif test_mask[i]:
+                    if train_mask[neighbor] and test_to_train:
+                        add_edge = True
+                    elif val_mask[neighbor] and val_to_test:
+                        add_edge = True
+                    elif test_mask[neighbor] and test_to_test:
+                        add_edge = True
+
+                if add_edge:
+                    edge_index.append([i, neighbor])
+                    edge_attr.append(1 - distances[i, j])  # 使用相似度作為邊的屬性
+        median_out_degree=np.median(out_degree)
+        mean_out_degree=np.mean(out_degree)
+        std_out_degree=np.std(out_degree)
+        min_out_degree=np.min(out_degree)
+        max_out_degree=np.max(out_degree)
+        quantile_out_degree=[np.percentile(out_degree,i) for i in range(0,101,10)]
+        str_stat_out_degree=f"median = {median_out_degree}, mean = {mean_out_degree}, std = {std_out_degree}, min = {min_out_degree}, max = {max_out_degree}, quantile = {quantile_out_degree}"
+        # input("Press enter to cont...")
+        edge_index = torch.tensor(edge_index).t().contiguous()
+        edge_attr = torch.tensor(edge_attr).unsqueeze(1)
+        
+        return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, 
+                    train_mask=train_mask, val_mask=val_mask, test_mask=test_mask, labeled_mask=labeled_mask),str_stat_out_degree
+    
+    def analyze_graph(self, graph,graph_info_path,train_size,val_size,test_size,labeled_num,k,str_stat_out_degree):
+        """analyze the graph"""
+        train_mask = graph.train_mask
+        val_mask = graph.val_mask
+        test_mask = graph.test_mask
+        labeled_mask=graph.labeled_mask
+        edge_index = graph.edge_index
+
+        total_nodes = graph.num_nodes
+        total_edges = graph.num_edges
+        train_nodes = train_mask.sum().item()
+        val_nodes = val_mask.sum().item()
+        test_nodes = test_mask.sum().item()
+        labeled_nodes=labeled_mask.sum().item()
+
+        # analyze the edge types
+        edge_types = {
+            'train-train': 0, 'train-val': 0, 'train-test': 0,
+            'val-val': 0, 'val-test': 0, 'test-test': 0
+        }
+
+        for edge in tqdm(edge_index.t(), desc="Analyzing edges"):
+            source, target = edge
+            if train_mask[source] and train_mask[target]:
+                edge_types['train-train'] += 1
+            elif (train_mask[source] and val_mask[target]) or (val_mask[source] and train_mask[target]):
+                edge_types['train-val'] += 1
+            elif (train_mask[source] and test_mask[target]) or (test_mask[source] and train_mask[target]):
+                edge_types['train-test'] += 1
+            elif val_mask[source] and val_mask[target]:
+                edge_types['val-val'] += 1
+            elif (val_mask[source] and test_mask[target]) or (test_mask[source] and val_mask[target]):
+                edge_types['val-test'] += 1
+            elif test_mask[source] and test_mask[target]:
+                edge_types['test-test'] += 1
+
+        with open(f"{graph_info_path}graph_info_{train_size}_{val_size}_{test_size}_k_{k}.txt",'w') as f:
+            f.write(f"Total nodes: {total_nodes}\n")
+            f.write(f"Total edges: {total_edges}\n")
+            f.write(f"Training nodes: {train_nodes}\n")
+            f.write(f"Validation nodes: {val_nodes}\n")
+            f.write(f"Test nodes: {test_nodes}\n")
+            f.write(f"Labeled nodes: {labeled_nodes}\n")
+            f.write("\nEdge types:\n")
+            for edge_type, count in edge_types.items():
+                f.write(f"{edge_type}: {count}\n")
+            f.write("\nStat of Out degree:\n")
+            f.write(str_stat_out_degree)
+
 
 class KNNGraphBuilder:
     def __init__(self, k=5):
@@ -354,14 +481,25 @@ class KNNGraphBuilder:
             for edge_type, count in edge_types.items():
                 f.write(f"{edge_type}: {count}\n")
 
-def construct_graph_edge(graph_data,k,graph_info_path,train_size,val_size,test_size,labeled_num):
+def construct_graph_edge(graph_data,k,graph_info_path,train_size,val_size,test_size,labeled_num,EdgeConstructionPolicy):
     # Assuming x, y, train_mask, val_mask, test_mask are already defined
-    builder = KNNGraphBuilder(k)
-    graph = builder.build_graph(graph_data.x, graph_data.y, graph_data.train_mask, graph_data.val_mask, graph_data.test_mask,graph_data.labeled_mask,
+    builder=None
+    graph=None
+    if EdgeConstructionPolicy=="KNN":
+        builder = KNNGraphBuilder(k)
+        graph = builder.build_graph(graph_data.x, graph_data.y, graph_data.train_mask, graph_data.val_mask, graph_data.test_mask,graph_data.labeled_mask,
                                 val_to_train=True, val_to_val=True,
                                 test_to_test=True, test_to_train=True,val_to_test=True)
+        builder.analyze_graph(graph,graph_info_path,train_size,val_size,test_size,labeled_num,k)
+    elif EdgeConstructionPolicy=="ThresholdKNN":
+        threshold_factor=1
+        builder = ThresholdKNNGraphBuilder(k,threshold_factor)
+        graph,str_stat_out_degree = builder.build_graph(graph_data.x, graph_data.y, graph_data.train_mask, graph_data.val_mask, graph_data.test_mask,graph_data.labeled_mask,
+                                val_to_train=True, val_to_val=True,
+                                test_to_test=True, test_to_train=True,val_to_test=True)
+    
 
-    builder.analyze_graph(graph,graph_info_path,train_size,val_size,test_size,labeled_num,k)
+        builder.analyze_graph(graph,graph_info_path,train_size,val_size,test_size,labeled_num,k,str_stat_out_degree)
     return graph
 
 
@@ -570,6 +708,7 @@ if __name__=="__main__":
     val_size=len(val_dataset)
     test_size=len(test_dataset)
     labeled_num=100
+    EdgeConstructionPolicy="ThresholdKNN" ##"KNN","ThresholdKNN"
     embeddings_train_dataset,embeddings_val_dataset,embeddings_test_dataset=get_custom_dataset(train_dataset,val_dataset,test_dataset,train_size,val_size,test_size)
     # G=generate_custom_graph(embeddings_train_dataset,embeddings_val_dataset,embeddings_test_dataset,labeled_num)
     graph_path=f"../graph/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}/G/"
@@ -590,23 +729,26 @@ if __name__=="__main__":
     best_acc_result=[]
     k_range=range(5,21)
     for k in tqdm(k_range, desc="Construct graph's edge..."):
-        graph_info_path=f"../graph/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}/graph_info/"
+        graph_info_path=f"../graph/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}_policy_{EdgeConstructionPolicy}/graph_info/"
         os.makedirs(os.path.dirname(graph_info_path), exist_ok=True)
-        graph=construct_graph_edge(loaded_G,k,graph_info_path,train_size,val_size,test_size,labeled_num)
+        graph=construct_graph_edge(loaded_G,k,graph_info_path,train_size,val_size,test_size,labeled_num,EdgeConstructionPolicy)
+        graph_path=f"../graph/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}_policy_{EdgeConstructionPolicy}/G/"
+        os.makedirs(os.path.dirname(graph_path), exist_ok=True)
         save_graph(graph,f"{graph_path}graph_{train_size}_{val_size}_{test_size}_{labeled_num}_k_{k}.pt")
-        plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}/graph_visualization/"
+        plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}_policy_{EdgeConstructionPolicy}/graph_visualization/"
         os.makedirs(os.path.dirname(plot_path), exist_ok=True)
         visualize_graph(graph,500,train_size,val_size,test_size,labeled_num,k,plot_path)
 
         model,criterion,optimizer=get_model_criterion_optimizer(graph)
         accuracy_record,loss_record,test_acc,best_acc=train_val_test(graph,model,criterion,optimizer)
-        plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}/acc_loss/"
+        plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}_policy_{EdgeConstructionPolicy}/acc_loss/"
         os.makedirs(os.path.dirname(plot_path), exist_ok=True)
         plot_acc_loss(accuracy_record,loss_record,train_size,val_size,test_size,labeled_num,k,plot_path)
         test_result.append(test_acc)
         best_acc_result.append(best_acc)
         #plot_tsne_after_train(graph,model,train_size,val_size,test_size,k)
-    plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}/test_result/"
+        # input("Press enter to continue...")
+    plot_path=f"../plot/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}_policy_{EdgeConstructionPolicy}/test_result/"
     os.makedirs(os.path.dirname(plot_path), exist_ok=True)
     plot_k_vs_result(k_range, test_result,best_acc_result,train_size,val_size,test_size,labeled_num,plot_path)
 
