@@ -727,7 +727,7 @@ if __name__=="__main__":
 
     test_result=[]
     best_acc_result=[]
-    k_range=range(5,21)
+    k_range=range(5,26)
     for k in tqdm(k_range, desc="Construct graph's edge..."):
         graph_info_path=f"../graph/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_num}_policy_{EdgeConstructionPolicy}/graph_info/"
         os.makedirs(os.path.dirname(graph_info_path), exist_ok=True)
