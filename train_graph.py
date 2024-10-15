@@ -1,12 +1,10 @@
 import os
 import torch
 import matplotlib.pyplot as plt
-import numpy as np
 from sklearn.manifold import TSNE
-from traitlets import Bool
 from model.gnn import GCN, GAT
 from argparse import ArgumentParser
-import torch.optim as optim
+from torch.optim import Adam  # type: ignore
 
 
 def show_args(args, model_name):
@@ -31,7 +29,7 @@ def get_model_criterion_optimizer(graph_data, base_model: str, dropout: bool):
     elif base_model == "GAT":
         model = GAT(in_channels=graph_data.num_features, hidden_channels=16, out_channels=2, add_dropout=dropout)
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.0005)
+    optimizer = Adam(model.parameters(), lr=0.0005)
     return model, criterion, optimizer
 
 def train_val_test(graph_data, model, criterion, optimizer, n_epochs=300, output_dir='weights', model_name='model'):
