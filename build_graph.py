@@ -264,7 +264,7 @@ if __name__ == "__main__":
     parser.add_argument("--labeled_size", type=str, default="100", help="number to mask the training nodes")
     parser.add_argument("--output_dir", type=str, default="graph", help="path to save the graph")
     parser.add_argument("--edge_policy", type=str, default="thresholdnn", help="edge construction policy", choices=["knn", "thresholdnn"])
-    parser.add_argument("--threshold_factor", type=float, default=1.0, help="threshold factor for threshold knn")
+    parser.add_argument("--threshold_factor", type=int, default=1, help="threshold factor for threshold knn")
     parser.add_argument("--k", type=int, default=5, help="number of neighbors for knn")
     parser.add_argument("--prebuilt_graph", type=str, default=None, help="path to prebuilt graph")
     parser.add_argument("--plot", action="store_true", help="Enable plotting") 
