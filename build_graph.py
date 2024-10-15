@@ -56,9 +56,9 @@ def fetch_dataset(dataset_name: str):
     dataset = load_dataset(dataset_name)
 
     print(f"Original Dataset size: ")
-    print(f"\tTrain: {len(dataset['train'])}")
-    print(f"\tValidation: {len(dataset['validation'])}")
-    print(f"\tTest: {len(dataset['test'])}")
+    print(f"\tTrain: {len(dataset['train'])}")  # type: ignore
+    print(f"\tValidation: {len(dataset['validation'])}")    # type: ignore
+    print(f"\tTest: {len(dataset['test'])}")    # type: ignore
 
     return dataset
 
@@ -73,11 +73,11 @@ def load_dataset_from_huggingface():
     )
     print(f"Dataset Type: {type(dataset)}")
     print(f"{dataset}")
-    print(f"Dataset keys: {dataset.keys()}")
+    print(f"Dataset keys: {dataset.keys()}")    # type: ignore
 
-    train_dataset = dataset["train"]
-    val_dataset = dataset["validation"]
-    test_dataset = dataset["test"]
+    train_dataset = dataset["train"]    # type: ignore
+    val_dataset = dataset["validation"]   # type: ignore
+    test_dataset = dataset["test"]  # type: ignore
     print(f"Train dataset type: {type(train_dataset)}")
     print(f"Validation dataset type: {type(val_dataset)}")
     print(f"Test dataset type: {type(test_dataset)}")
@@ -327,7 +327,7 @@ if __name__ == "__main__":
         exit()
 
     dataset = fetch_dataset(dataset_name)
-    train_dataset, val_dataset, test_dataset = dataset["train"], dataset["validation"], dataset["test"]
+    train_dataset, val_dataset, test_dataset = dataset["train"], dataset["validation"], dataset["test"] # type: ignore
 
     # reasign the dataset size
     train_size = int(train_size) if train_size.isdigit() else len(train_dataset)
