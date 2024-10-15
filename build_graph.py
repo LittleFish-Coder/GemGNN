@@ -92,20 +92,11 @@ def load_dataset_from_huggingface():
 
 def get_embeddings_dataset(dataset_name, dataset, size):
     if dataset_name == "kdd2020":
-        embeddings_dataset = EmbeddingsDataset(texts=dataset["text"], labels=dataset["label"], embeddings=dataset["embeddings"], size=size, dataset_name=dataset_name,)
+        embeddings_dataset = EmbeddingsDataset(texts=dataset["text"], labels=dataset["label"], embeddings=dataset["bert_embeddings"], size=size, dataset_name=dataset_name,)
     else:
         embeddings_dataset = EmbeddingsDataset(texts=dataset["text"], labels=dataset["label"], size=size, dataset_name=dataset_name)
     print(f"Custom Embeddings Dataset length: {len(embeddings_dataset)}")
     return embeddings_dataset
-
-
-# def random_choice_labeled_node(G, len_of_train_dataset, labeled_size):
-#     # random choice labeled indices
-#     random_indices = torch.randperm(len_of_train_dataset)[:labeled_size]
-#     labeled_mask = torch.zeros(G.num_nodes, dtype=torch.bool)
-#     labeled_mask[random_indices] = True
-#     G.labeled_mask = labeled_mask
-#     return G
 
 
 def generate_embeddings_graph(embeddings_train_dataset, embeddings_val_dataset, embeddings_test_dataset, labeled_size):
