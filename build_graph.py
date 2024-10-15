@@ -175,12 +175,12 @@ def analyze_graph(graph, output_dir: str, graph_info_path: str):
         f.write("\nEdge types:\n")
         for edge_type, count in edge_types.items():
             f.write(f"{edge_type}: {count}\n")
-
         try: 
             f.write("\nStat of Graph Metrics:\n")
             f.write(f"{graph_metric}")
         except Exception as e:
             pass
+    print(f"Graph info saved to {graph_info_path}")
 
 
 def construct_graph_edge(graph_data, k, edge_policy, theshold_factor=1.0):
@@ -267,6 +267,7 @@ if __name__ == "__main__":
     parser.add_argument("--threshold_factor", type=float, default=1.0, help="threshold factor for threshold knn")
     parser.add_argument("--k", type=int, default=5, help="number of neighbors for knn")
     parser.add_argument("--prebuilt_graph", type=str, default=None, help="path to prebuilt graph")
+    parser.add_argument("--plot", action="store_true", help="Enable plotting") 
 
     args = parser.parse_args()
     dataset_name = args.dataset_name
@@ -279,6 +280,7 @@ if __name__ == "__main__":
     threshold_factor = args.threshold_factor
     k = args.k
     prebuilt_graph = args.prebuilt_graph
+    plot = args.plot
 
     # show arguments
     show_args(args, output_dir)
@@ -312,8 +314,9 @@ if __name__ == "__main__":
         analyze_graph(G, graph_root_dir_path, graph_info_path=f"{output_dir}/{dataset_name}/{graph_name}.txt")
 
         # visualize the graph
-        plot_dir = f"plot/{dataset_name}"
-        visualize_graph(G, show_num_nodes='full', plot_dir=plot_dir, graph_name=graph_name)
+        if plot:
+            plot_dir = f"plot/{dataset_name}"
+            visualize_graph(G, show_num_nodes='full', plot_dir=plot_dir, graph_name=graph_name)
 
         exit()
 
@@ -355,5 +358,6 @@ if __name__ == "__main__":
     analyze_graph(G, graph_root_dir_path, graph_info_path=f"{output_dir}/{dataset_name}/{graph_name}.txt")
 
     # visualize the graph
-    plot_dir = f"plot/{dataset_name}"
-    visualize_graph(G, show_num_nodes='full', plot_dir=plot_dir, graph_name=graph_name)
+    if plot:
+        plot_dir = f"plot/{dataset_name}"
+        visualize_graph(G, show_num_nodes='full', plot_dir=plot_dir, graph_name=graph_name)

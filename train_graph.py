@@ -114,6 +114,15 @@ def test(model, graph_data):
         test_acc = test_correct / graph_data.test_mask.sum().item()
     return test_acc
 
+def save_results(train_accs, train_losses, val_accs, val_losses, last_test_acc, inference_test_acc, model_name, output_dir):
+    with open(f"{output_dir}/{model_name}_results.txt", "w") as f:
+        f.write(f"Train Accuracy: {train_accs}\n")
+        f.write(f"Train Loss: {train_losses}\n")
+        f.write(f"Validation Accuracy: {val_accs}\n")
+        f.write(f"Validation Loss: {val_losses}\n")
+        f.write(f"Test Accuracy (with last epoch model): {last_test_acc}\n")
+        f.write(f"Test Accuracy (with best model): {inference_test_acc}\n")
+
 def plot_acc_loss(train_accs, train_losses, val_accs, val_losses, model_name, output_dir):
     # plot the accuracy and loss at same plot
     plt.figure(figsize=(12, 6))
@@ -150,7 +159,7 @@ def plot_tsne(graph_data, model, model_name):
     axes[1].scatter(transformed_features[:, 0], transformed_features[:, 1], c=graph_data.y.cpu(), cmap='coolwarm', s=3)
     axes[1].set_title("After Training")
 
-    plt.title(f"t-SNE of {model_name.replace('_', ' ')}")
+    fig.suptitle(f"t-SNE of {model_name.replace('_', ' ')}")
     plt.savefig(f"tsne/{model_name}.png")
 
 if __name__ == "__main__":
@@ -184,14 +193,17 @@ if __name__ == "__main__":
     model, criterion, optimizer = get_model_criterion_optimizer(graph, base_model, dropout)
 
     # train, validate, test
-    train_accs, train_losses, val_accs, val_losses, test_acc = train_val_test(graph, model, criterion, optimizer, n_epochs, output_dir, model_name)
+    train_accs, train_losses, val_accs, val_losses, last_test_acc = train_val_test(graph, model, criterion, optimizer, n_epochs, output_dir, model_name)
 
     # load the best model
     model.load_state_dict(torch.load(f"{output_dir}/{model_name}.pt", weights_only=True))
 
     # test the best model
-    test_acc = test(model, graph)
-    print(f"Test accuracy (Best Model): {test_acc}")
+    inference_test_acc = test(model, graph)
+    print(f"Test accuracy (with best model): {inference_test_acc}")
+
+    # save results
+    save_results(train_accs, train_losses, val_accs, val_losses, last_test_acc, inference_test_acc, model_name, output_dir)
 
     # plot the accuracy and loss at same plot
     plot_acc_loss(train_accs, train_losses, val_accs, val_losses, model_name, output_dir)
