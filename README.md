@@ -104,20 +104,24 @@ conda create -n fakenews python=3.12
 conda activate fakenews
 ```
 
-- Install cuda-toolkit
-```bash
-conda install nvidia/label/cuda-12.1.0::cuda-toolkit
-```
-
 - Install PyTorch (based on your CUDA version)
+[(Official Doc)](https://pytorch.org/get-started/locally/)
 ```bash
 conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
 ```
 
-- Install PyG
+- Install PyTorch Geometric [(Official Doc)](https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html)
+
 ```bash
-conda install pyg -c pyg
+pip install torch-geometric
 ```
+
+3. Install Additional Libraries for GNN (Based on your torch version)
+
+```bash
+pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.4.0+cu121.html
+```
+
 
 - Install other dependencies
 ```bash

@@ -6,6 +6,7 @@ numpy
 scikit-learn
 torch
 torchvision
+torch-geometric
 evaluate
 accelerate
 transformers
