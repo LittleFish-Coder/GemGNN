@@ -96,6 +96,41 @@ We inspect the generalization of the models trained on one dataset and tested on
   | distilbert-base-uncased | 10           | 0.5591182364729459   | 0.3767401749414808               |
   | distilbert-base-uncased | 100          | 0.591182364729459    | 0.5340643094739436               |
 
+
+## Graph Neural Network Pipeline
+1. Fetch Text-based dataser from Huggingface
+2. Embed the text using BERT encoder
+3. Create an empty graph - embeddings are nodes (but no edges)
+4. Build edges between nodes based on the cosine similarity of embeddings
+  - KNN Builder: each node is connected to its k-nearest neighbors
+  - ThresholdNN Builder: each node is connected to {quantile_factor} of its neighbors
+5. Train a GNN model on the graph (with only labeled_masked nodes)
+
+### Run the GNN pipeline
+1. build the embeddings graph (this should build an empty graph with only embeddings as nodes)
+
+dataset_name currently only supports `kdd2020` 
+```bash
+python build_graph.py --dataset_name $dataset_name
+```
+if you have a pre-built graph, you can use the `--graph` argument to load the graph
+```bash
+python build_graph.py --prebuilt_graph graph.pt
+```
+choose the `edge_policy` from `knn` or `thresholdnn` (default is `thresholdnn`)
+```bash
+python build_graph.py --prebuilt_graph graph.pt --edge_policy thresholdnn --threshold_factor $factor
+```
+
+2. Train the GNN model
+```bash
+python train_graph.py --graph graph.pt
+```
+example:
+```bash
+train_graph.py --graph ./graph/kdd2020/train_full_val_full_test_full_labeled_100_knn_$k.pt
+```
+
 ## Installation
 
 - Create a new conda environment
