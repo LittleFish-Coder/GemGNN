@@ -97,9 +97,15 @@ class ThresholdNNGraphBuilder:
 
         out_degree = []
         for i in tqdm(range(len(x)), desc="Building edges"):
-            # 計算這個點的有效鄰居數量（小於 threshold 的鄰居數）
             valid_neighbors = [indices[i, j] for j in range(1, len(x)) if distances[i, j] < threshold]
-            out_degree.append(len(valid_neighbors))
+            
+            if len(valid_neighbors) == 0:
+                out_degree.append(1)    # self-loop
+                edge_index.append([i, i])   # add self-loop
+                edge_attr.append(1.0)
+            else:
+                out_degree.append(len(valid_neighbors))
+
 
             for j in range(1, len(valid_neighbors)+1):  # skip self
                 neighbor = indices[i, j]
