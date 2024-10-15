@@ -1,3 +1,4 @@
+from os import name
 from sklearn.neighbors import NearestNeighbors
 import torch
 from torch_geometric.data import Data
@@ -55,13 +56,14 @@ class KNNGraphBuilder:
 
         edge_index = torch.tensor(edge_index).t().contiguous()
         edge_attr = torch.tensor(edge_attr).unsqueeze(1)
+        graph_metric = f"Every node has {self.k} neighbors"
 
-        return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, train_mask=train_mask, val_mask=val_mask, test_mask=test_mask, labeled_mask=labeled_mask, graph_metric="")
+        return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, train_mask=train_mask, val_mask=val_mask, test_mask=test_mask, labeled_mask=labeled_mask, graph_metric=graph_metric)
     
 class ThresholdNNGraphBuilder:
     def __init__(self, graph, k=5, threshold_factor=1.0):
         self.graph = graph
-        self.k = k
+        self.k = k    # not used
         self.threshold_factor = threshold_factor
 
     def build_graph(self, val_to_train=True, val_to_val=True, test_to_test=True, test_to_train=True, val_to_test=True):
@@ -76,17 +78,20 @@ class ThresholdNNGraphBuilder:
         nn.fit(x)
         distances, indices = nn.kneighbors(x)
 
-        # 先計算全圖的 cosine similarity distance 統計
-        flattened_distances = distances[:, 1:].flatten()  # 去除自連邊
-        median_dist = np.median(flattened_distances)
-        mean_dist = np.mean(flattened_distances)
-        std_dist = np.std(flattened_distances)
-        min_dist = np.min(flattened_distances)
-        max_dist = np.max(flattened_distances)
-        threshold = np.percentile(flattened_distances, self.threshold_factor)  # 計算第 n 百分位數
+        # calculate the statistics of the distances
+        flattened_distances = distances[:, 1:].flatten()  # skip self
+        # median_dist = np.median(flattened_distances)
+        # mean_dist = np.mean(flattened_distances)
+        # std_dist = np.std(flattened_distances)
+        # min_dist = np.min(flattened_distances)
+        # max_dist = np.max(flattened_distances)
+        threshold = np.percentile(flattened_distances, self.threshold_factor)  # calculate {threshold}-th quantile
+        # print(flattened_distances)
+        # print(self.threshold_factor)
+        # print(f"Final threshold: {threshold}")
 
-        print(f"median = {median_dist}, mean = {mean_dist}, std = {std_dist}, min = {min_dist}, max = {max_dist}, threshold = {threshold}")
-        # input("Press enter to cont...")
+        # print(f"Distance statistics:")
+        # print(f"median = {median_dist}, mean = {mean_dist}, std = {std_dist}, min = {min_dist}, max = {max_dist}, threshold = {threshold}")
         edge_index = []
         edge_attr = []
 
@@ -94,16 +99,9 @@ class ThresholdNNGraphBuilder:
         for i in tqdm(range(len(x)), desc="Building edges"):
             # 計算這個點的有效鄰居數量（小於 threshold 的鄰居數）
             valid_neighbors = [indices[i, j] for j in range(1, len(x)) if distances[i, j] < threshold]
-            # print(valid_neighbors)
-            if valid_neighbors:
-                avg_neighbors = int(np.sqrt(len(valid_neighbors) * self.k))
-                avg_neighbors = (len(valid_neighbors) + avg_neighbors) // 2
-            else:
-                avg_neighbors = 0
-            out_degree.append(avg_neighbors)
+            out_degree.append(len(valid_neighbors))
 
-            # 根據新的鄰居數量進行建邊
-            for j in range(1, avg_neighbors + 1):
+            for j in range(1, len(valid_neighbors)+1):  # skip self
                 neighbor = indices[i, j]
                 add_edge = False
 
@@ -126,16 +124,57 @@ class ThresholdNNGraphBuilder:
 
                 if add_edge:
                     edge_index.append([i, neighbor])
-                    edge_attr.append(1 - distances[i, j])  # 使用相似度作為邊的屬性
-        median_out_degree = np.median(out_degree)
-        mean_out_degree = np.mean(out_degree)
-        std_out_degree = np.std(out_degree)
-        min_out_degree = np.min(out_degree)
-        max_out_degree = np.max(out_degree)
-        quantile_out_degree = [np.percentile(out_degree, i) for i in range(0, 101, 10)]
+                    edge_attr.append(1 - distances[i, j])  # use similarity as the edge attribute
+        
+        median_out_degree = np.median(out_degree).item()
+        mean_out_degree = np.mean(out_degree).item()
+        std_out_degree = np.std(out_degree).item()
+        min_out_degree = np.min(out_degree).item()
+        max_out_degree = np.max(out_degree).item()
+        quantile_out_degree = [np.percentile(out_degree, i).item() for i in range(0, 101, 10)]
         graph_metric = f"median = {median_out_degree}, mean = {mean_out_degree}, std = {std_out_degree}, min = {min_out_degree}, max = {max_out_degree}, quantile = {quantile_out_degree}"
         
         edge_index = torch.tensor(edge_index).t().contiguous()
         edge_attr = torch.tensor(edge_attr).unsqueeze(1)
 
         return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, train_mask=train_mask, val_mask=val_mask, test_mask=test_mask, labeled_mask=labeled_mask, graph_metric=graph_metric)
+    
+
+# debug
+if __name__ == "__main__":
+    import os
+
+    def construct_graph_edge(graph_data, k, edge_policy, theshold_factor=1.0):
+        if edge_policy == "knn":
+            graph_builder = KNNGraphBuilder(graph=graph_data, k=k)
+        elif edge_policy == "thresholdnn":
+            graph_builder = ThresholdNNGraphBuilder(graph=graph_data, k=k, threshold_factor=theshold_factor)
+        custom_graph = graph_builder.build_graph()
+        return custom_graph
+
+    G = torch.load('../graph/kdd2020/train_3490_val_997_test_499_labeled_100.pt', weights_only=False)
+    print(f"Graph loaded: {G}")
+
+    k = 5
+    edge_policy = "thresholdnn"
+    threshold_factor = 1.0
+
+    custom_graph = construct_graph_edge(G, k=k, edge_policy=edge_policy, theshold_factor=threshold_factor)
+    print(f"Custom graph constructed: {custom_graph}")
+
+    # info
+    total_nodes = custom_graph.num_nodes
+    total_edges = custom_graph.num_edges
+    train_nodes = custom_graph.train_mask.sum().item()
+    val_nodes = custom_graph.val_mask.sum().item()
+    test_nodes = custom_graph.test_mask.sum().item()
+    labeled_nodes = custom_graph.labeled_mask.sum().item()
+    graph_metric = custom_graph.graph_metric
+
+    print(f"Total nodes: {total_nodes}")
+    print(f"Total edges: {total_edges}")
+    print(f"Training nodes: {train_nodes}")
+    print(f"Validation nodes: {val_nodes}")
+    print(f"Test nodes: {test_nodes}")
+    print(f"Labeled nodes: {labeled_nodes}")
+    print(f"{graph_metric}")
