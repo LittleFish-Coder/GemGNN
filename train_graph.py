@@ -169,6 +169,7 @@ if __name__ == "__main__":
     parser.add_argument("--dropout", action="store_true", help="Enable dropout")
     parser.add_argument("--no-dropout", dest="dropout", action="store_false", help="Disable dropout")
     parser.add_argument("--n_epochs", type=int, default=300, help="number of epochs")
+    parser.add_argument("--train_all", action="store_true", help="train all data (ignore labeled_mask)")
     parser.add_argument("--output_dir", type=str, default="weights", help="path to save the weights")
 
     args = parser.parse_args()
@@ -176,10 +177,13 @@ if __name__ == "__main__":
     base_model = args.base_model
     dropout = args.dropout
     n_epochs = args.n_epochs
+    train_all = args.train_all
     output_dir = args.output_dir
 
     # show arguments
     model_name = f"{base_model}_{graph.split('/')[-1].split('.')[0]}"
+    if train_all:
+        model_name = f"{model_name}_train_all"
     show_args(args, model_name)
 
     # device
@@ -188,6 +192,10 @@ if __name__ == "__main__":
 
     # load graph
     graph = load_graph(graph)
+
+    if train_all:
+        print("Training all training nodes (ignoring labeled_mask)")
+        graph.labeled_mask = graph.train_mask
 
     # get model, criterion, optimizer
     model, criterion, optimizer = get_model_criterion_optimizer(graph, base_model, dropout)
