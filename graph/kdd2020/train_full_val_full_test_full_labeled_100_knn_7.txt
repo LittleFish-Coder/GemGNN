@@ -1,0 +1,17 @@
+Total nodes: 4986
+Total edges: 34902
+Training nodes: 3490
+Validation nodes: 997
+Test nodes: 499
+Labeled nodes: 100
+
+Edge types:
+train-train: 17242
+train-val: 9594
+train-test: 4941
+val-val: 1394
+val-test: 1361
+test-test: 370
+
+Stat of Graph Metrics:
+Every node has 7 neighbors
