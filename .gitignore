@@ -4,6 +4,9 @@ checkpoints/
 log/
 graph/*/G/
 
+# graph pt
+*.pt
+
 # OS
 .DS_Store
 .vscode
