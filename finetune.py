@@ -29,7 +29,7 @@ def handle_id_label(dataset_name: str = "fake_news_tfg"):
     print(f"label2id: {label2id}")
 
 
-def fetch_dataset(dataset_name: str = "fake_news_tfg", dataset_size: str = "full"):
+def fetch_dataset(dataset_name: str = "fake_news_tfg", dataset_size = "full"):
     # load data
     print("Loading dataset...")
 
