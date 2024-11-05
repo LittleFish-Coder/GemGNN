@@ -4,21 +4,24 @@ Check [installation guide](#installation) to run the code.
 
 ## Dataset
 
+- text: str
+- embeddings: BERT embeddings of the text
+- label: 
+  - 0: real
+  - 1: fake
+
 ### KDD2020
+[Fake_News_KDD2020](https://huggingface.co/datasets/LittleFish-Coder/Fake_News_KDD2020)
 
-[Fake News Detection Challenge KDD 2020](https://www.kaggle.com/competitions/fakenewskdd2020/overview)
+### TFG
 
-- train: 3491
-- validation: 997
-- test: 499
+[Fake_News_TFG](https://huggingface.co/datasets/LittleFish-Coder/Fake_News_TFG)
 
-### GonzaloA/fake_news
+### GossipCop
+[Fake_News_GossipCop](https://huggingface.co/datasets/LittleFish-Coder/Fake_News_GossipCop)
 
-[fake_news](https://huggingface.co/datasets/GonzaloA/fake_news)
-
-- train: 24353
-- validation: 8117
-- test: 8117
+### PolitiFact
+[Fake_News_PolitiFact](https://huggingface.co/datasets/LittleFish-Coder/Fake_News_PolitiFact)
 
 ## Results
 
