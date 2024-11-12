@@ -1,6 +1,7 @@
 import random
+from scipy.__config__ import show
 import torch
-from datasets import load_dataset
+from datasets import load_dataset, DatasetDict
 from model.edgebuilder import KNNGraphBuilder, ThresholdNNGraphBuilder
 from model.customdataset import EmbeddingsDataset, EmbeddingsGraph
 from matplotlib.patches import Patch
@@ -35,100 +36,83 @@ def save_graph(graph, output_dir: str, graph_path: str):
 
 
 def fetch_dataset(dataset_name: str):
+    
+    # datasetname = ['kdd2020', 'tfg', 'gossipcop', 'politifact']
+    
     # load data
     print("Loading dataset...")
 
-    ## GonzaloA/fake_news & LittleFish-Coder/Fake-News-Detection-Challenge-KDD-2020
+    ## Fake News Dataset from HuggingFace based on LittleFish-Coder
     """
-    use the [`GonzaloA/fake_news`](https://huggingface.co/datasets/GonzaloA/fake_news) dataset from huggingface datasets library
-    - 0: fake news
-    - 1: real news
-
-    use the [`LittleFish-Coder/Fake-News-Detection-Challenge-KDD-2020`](https://huggingface.co/datasets/LittleFish-Coder/Fake-News-Detection-Challenge-KDD-2020) dataset from huggingface datasets library
-    - 1: fake news
-    - 0: real news
+    use the [`LittleFish-Coder/Fake_News_KDD2020`](https://huggingface.co/datasets/LittleFish-Coder/Fake_News_KDD2020) dataset
+    use the [`LittleFish-Coder/Fake_News_TFG`](https://huggingface.co/datasets/LittleFish-Coder/Fake_News_TFG) dataset
+    use the [`LittleFish-Coder/Fake_News_GossipCop`](https://huggingface.co/datasets/LittleFish-Coder/Fake_News_GossipCop) dataset
+    use the [`LittleFish-Coder/Fake_News_PolitiFact`](https://huggingface.co/datasets/LittleFish-Coder/Fake_News_PolitiFact) dataset
+    - text: text of the article (str)
+    - embeddings: BERT embeddings (768, )
+    - Label:
+        - 1: fake news
+        - 0: real news
     """
-    if dataset_name == "fake_news_tfg":
-        dataset_name = "GonzaloA/fake_news"
-    elif dataset_name == "kdd2020":
-        dataset_name = "LittleFish-Coder/Fake-News-Detection-Challenge-KDD-2020"
+    if dataset_name == "kdd2020":
+        dataset_name = "LittleFish-Coder/Fake_News_KDD2020"
+    elif dataset_name == "tfg":
+        dataset_name = "LittleFish-Coder/Fake_News_TFG"
+    elif dataset_name == "gossipcop":
+        dataset_name = "LittleFish-Coder/Fake_News_GossipCop"
+    elif dataset_name == "politifact":
+        dataset_name = "LittleFish-Coder/Fake_News_PolitiFact"
+    else:
+        raise ValueError(f"Invalid dataset name: {dataset_name}")
 
     dataset = load_dataset(dataset_name)
 
     print(f"Original Dataset size: ")
     print(f"\tTrain: {len(dataset['train'])}")  # type: ignore
-    print(f"\tValidation: {len(dataset['validation'])}")    # type: ignore
     print(f"\tTest: {len(dataset['test'])}")    # type: ignore
 
     return dataset
 
 
-def load_dataset_from_huggingface():
-    # load and download the dataset from huggingface
-    print("Load and download the dataset from huggingface...")
-    dataset = load_dataset(
-        "LittleFish-Coder/Fake-News-Detection-Challenge-KDD-2020",
-        download_mode="reuse_cache_if_exists",
-        cache_dir="dataset",
-    )
-    print(f"Dataset Type: {type(dataset)}")
-    print(f"{dataset}")
-    print(f"Dataset keys: {dataset.keys()}")    # type: ignore
-
-    train_dataset = dataset["train"]    # type: ignore
-    val_dataset = dataset["validation"]   # type: ignore
-    test_dataset = dataset["test"]  # type: ignore
-    print(f"Train dataset type: {type(train_dataset)}")
-    print(f"Validation dataset type: {type(val_dataset)}")
-    print(f"Test dataset type: {type(test_dataset)}")
-
-    # First element of the train dataset
-    print(f"{train_dataset[0].keys()}")
-    print(f"Text: {train_dataset[0]['text']}")
-    print(f"Label: {train_dataset[0]['label']}")
-    print("\n\n")
-    return train_dataset, val_dataset, test_dataset
-
-
 def get_embeddings_dataset(dataset_name, dataset, size):
-    if dataset_name == "kdd2020":
-        embeddings_dataset = EmbeddingsDataset(texts=dataset["text"], labels=dataset["label"], embeddings=dataset["bert_embeddings"], size=size, dataset_name=dataset_name,)
-    else:
+    try:
+        embeddings_dataset = EmbeddingsDataset(texts=dataset["text"], labels=dataset["label"], embeddings=dataset["embeddings"], size=size, dataset_name=dataset_name,)
+    except:
         embeddings_dataset = EmbeddingsDataset(texts=dataset["text"], labels=dataset["label"], size=size, dataset_name=dataset_name)
     print(f"Custom Embeddings Dataset length: {len(embeddings_dataset)}")
     return embeddings_dataset
 
+def show_graph_info(graph):
+    print(f"Graph: {graph}")
+    print(f"Number of nodes: {graph.num_nodes}")
+    print(f"Number of features: {graph.num_features}")
+    print(f"Number of edges: {graph.num_edges}")
+    print(f"Number of training nodes: {graph.train_mask.sum()}")
+    print(f"Number of test nodes: {graph.test_mask.sum()}")
+    print(f"Number of labeled node: {graph.labeled_mask.sum()}")
+    print(f"len of train mask: {len(graph.train_mask)}")
+    print(f"len of test mask: {len(graph.test_mask)}")
+    print(f"len of labeled mask: {len(graph.labeled_mask)}")
+    print()
 
-def generate_embeddings_graph(embeddings_train_dataset, embeddings_val_dataset, embeddings_test_dataset, labeled_size):
+def generate_embeddings_graph(embeddings_train_dataset, embeddings_test_dataset, labeled_size):
     print("Generate custom graph...")
-    custom_graph = EmbeddingsGraph(embeddings_train_dataset, embeddings_val_dataset, embeddings_test_dataset, labeled_size)
+    custom_graph = EmbeddingsGraph(embeddings_train_dataset, embeddings_test_dataset, labeled_size)
     graph_data = custom_graph.get_graph()
-    print()
-    print(f"Graph: {custom_graph}")
-    print(f"Graph data: {graph_data}")
-    print(f"Number of nodes: {graph_data.num_nodes}")
-    print(f"Number of features: {graph_data.num_features}")
-    print(f"Number of edges: {graph_data.num_edges}")
-    print(f"Number of training nodes: {graph_data.train_mask.sum()}")
-    print(f"Number of validation nodes: {graph_data.val_mask.sum()}")
-    print(f"Number of test nodes: {graph_data.test_mask.sum()}")
-    print(f"Number of labeled node: {graph_data.labeled_mask.sum()}")
-    print(f"len of train mask: {len(graph_data.train_mask)}")
-    print(f"len of val mask: {len(graph_data.val_mask)}")
-    print(f"len of test mask: {len(graph_data.test_mask)}")
-    print(f"len of labeled mask: {len(graph_data.labeled_mask)}")
-    print()
+    show_graph_info(graph_data)
 
     return custom_graph
 
 
 def analyze_graph(graph, output_dir: str, graph_info_path: str):
+    """analyze the graph"""
+
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     
-    """analyze the graph"""
+    show_graph_info(graph)
+
     train_mask = graph.train_mask
-    val_mask = graph.val_mask
     test_mask = graph.test_mask
     labeled_mask = graph.labeled_mask
     edge_index = graph.edge_index
@@ -136,32 +120,21 @@ def analyze_graph(graph, output_dir: str, graph_info_path: str):
     total_nodes = graph.num_nodes
     total_edges = graph.num_edges
     train_nodes = train_mask.sum().item()
-    val_nodes = val_mask.sum().item()
     test_nodes = test_mask.sum().item()
     labeled_nodes = labeled_mask.sum().item()
     graph_metric = graph.graph_metric
 
     # analyze the edge types
-    edge_types = {"train-train": 0, "train-val": 0, "train-test": 0, "val-val": 0, "val-test": 0, "test-test": 0,}
+    edge_types = {"train-train": 0, "train-test": 0, "test-test": 0,}
 
     for edge in tqdm(edge_index.t(), desc="Analyzing edges"):
         source, target = edge
         if train_mask[source] and train_mask[target]:
             edge_types["train-train"] += 1
-        elif (train_mask[source] and val_mask[target]) or (
-            val_mask[source] and train_mask[target]
-        ):
-            edge_types["train-val"] += 1
         elif (train_mask[source] and test_mask[target]) or (
             test_mask[source] and train_mask[target]
         ):
             edge_types["train-test"] += 1
-        elif val_mask[source] and val_mask[target]:
-            edge_types["val-val"] += 1
-        elif (val_mask[source] and test_mask[target]) or (
-            test_mask[source] and val_mask[target]
-        ):
-            edge_types["val-test"] += 1
         elif test_mask[source] and test_mask[target]:
             edge_types["test-test"] += 1
 
@@ -169,7 +142,6 @@ def analyze_graph(graph, output_dir: str, graph_info_path: str):
         f.write(f"Total nodes: {total_nodes}\n")
         f.write(f"Total edges: {total_edges}\n")
         f.write(f"Training nodes: {train_nodes}\n")
-        f.write(f"Validation nodes: {val_nodes}\n")
         f.write(f"Test nodes: {test_nodes}\n")
         f.write(f"Labeled nodes: {labeled_nodes}\n")
         f.write("\nEdge types:\n")
@@ -184,15 +156,15 @@ def analyze_graph(graph, output_dir: str, graph_info_path: str):
 
 
 def construct_graph_edge(graph_data, k, edge_policy, theshold_factor=1.0):
-    # Assuming x, y, train_mask, val_mask, test_mask are already defined
+    print("Constructing graph edge...")
     builder = None
     graph = None
     if edge_policy == "knn":
         builder = KNNGraphBuilder(graph=graph_data, k=k)
     elif edge_policy == "thresholdnn":
-        builder = ThresholdNNGraphBuilder(graph=graph_data, k=k, threshold_factor=theshold_factor)
+        builder = ThresholdNNGraphBuilder(graph=graph_data, threshold_factor=theshold_factor)
     else:   # default set edge policy as thresholdnn
-        builder = ThresholdNNGraphBuilder(graph=graph_data, k=k, threshold_factor=theshold_factor)
+        builder = ThresholdNNGraphBuilder(graph=graph_data, threshold_factor=theshold_factor)
 
     graph = builder.build_graph(graph_data)
 
@@ -214,12 +186,10 @@ def visualize_graph(graph_data, show_num_nodes='full', plot_dir="plot", graph_na
 
     train_mask = graph_data.train_mask.numpy()
     test_mask = graph_data.test_mask.numpy()
-    val_mask = graph_data.val_mask.numpy()
     labeled_mask = graph_data.labeled_mask.numpy()
 
     color_map = {
-        "train": "orange",
-        "val": "blue",
+        "train": "blue",
         "test": "red",
         "labeled": "green"
     }
@@ -235,15 +205,12 @@ def visualize_graph(graph_data, show_num_nodes='full', plot_dir="plot", graph_na
             node_colors.append(color_map["train"])
         elif test_mask[i]:
             node_colors.append(color_map["test"])
-        elif val_mask[i]:
-            node_colors.append(color_map["val"])
         else:
             node_colors.append("gray")  # Default color for nodes outside the masks
 
     nx.draw_networkx(G, with_labels=False, node_color=node_colors, edge_color='gray', node_size = 3, alpha=0.7)
     legend_elements = [
-        Patch(facecolor='orange', label='train'),
-        Patch(facecolor='blue', label='val'),
+        Patch(facecolor='blue', label='train'),
         Patch(facecolor='red', label='test'),
         Patch(facecolor='green', label='labeled')
     ]
@@ -257,9 +224,8 @@ if __name__ == "__main__":
 
     parser = ArgumentParser(description="Build graph for fake news detection")
     # dataset arguments
-    parser.add_argument("--dataset_name", type=str, default="kdd2020", help="dataset to use", choices=["fake_news_tfg", "kdd2020"])
+    parser.add_argument("--dataset_name", type=str, default="kdd2020", help="dataset to use", choices=["tfg", "kdd2020", "gossipcop", "politifact"])
     parser.add_argument("--train_size", type=str, default="full", help="dataset size: full, 5%, 100 or integer")
-    parser.add_argument("--val_size", type=str, default="full", help="dataset size: full, 5%, 100 or integer")
     parser.add_argument("--test_size", type=str, default="full", help="dataset size: full, 5%, 100 or integer")
     parser.add_argument("--labeled_size", type=str, default="100", help="number to mask the training nodes")
     parser.add_argument("--output_dir", type=str, default="graph", help="path to save the graph")
@@ -272,7 +238,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     dataset_name = args.dataset_name
     train_size = args.train_size
-    val_size = args.val_size
     test_size = args.test_size
     labeled_size = args.labeled_size
     output_dir = args.output_dir
@@ -301,7 +266,7 @@ if __name__ == "__main__":
         G = construct_graph_edge(G, k=k, edge_policy=edge_policy, theshold_factor=threshold_factor)
 
         graph_root_dir_path = f"{output_dir}/{dataset_name}"
-        graph_name = f"train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_size}"
+        graph_name = f"train_{train_size}_test_{test_size}_labeled_{labeled_size}"
         if edge_policy == "knn":
             graph_name = f"{graph_name}_knn_{k}"
         elif edge_policy == "thresholdnn":
@@ -321,31 +286,29 @@ if __name__ == "__main__":
         exit()
 
     dataset = fetch_dataset(dataset_name)
-    train_dataset, val_dataset, test_dataset = dataset["train"], dataset["validation"], dataset["test"] # type: ignore
+    train_dataset, test_dataset = dataset["train"], dataset["test"] # type: ignore
 
     # reasign the dataset size
     train_size = int(train_size) if train_size.isdigit() else len(train_dataset)
-    val_size = int(val_size) if val_size.isdigit() else len(val_dataset)
     test_size = int(test_size) if test_size.isdigit() else len(test_dataset)
     labeled_size = int(labeled_size) if labeled_size.isdigit() else len(train_dataset)
 
     # embedd the dataset (pre-trained model: BERT)
     embeddings_train_dataset = get_embeddings_dataset(dataset_name, train_dataset, train_size)
-    embeddings_val_dataset = get_embeddings_dataset(dataset_name, val_dataset, val_size)
     embeddings_test_dataset = get_embeddings_dataset(dataset_name, test_dataset, test_size)
 
     # generate empty graph with nodes but no edges
-    G = generate_embeddings_graph(embeddings_train_dataset, embeddings_val_dataset, embeddings_test_dataset, labeled_size)
+    G = generate_embeddings_graph(embeddings_train_dataset, embeddings_test_dataset, labeled_size)
 
     graph_root_dir_path = f"{output_dir}/{dataset_name}"
-    empty_graph_path = f"{output_dir}/{dataset_name}/train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_size}.pt"
+    empty_graph_path = f"{output_dir}/{dataset_name}/train_{train_size}_test_{test_size}_labeled_{labeled_size}.pt"
     save_graph(G.get_graph(), graph_root_dir_path, empty_graph_path)
 
     # construct graph edge
     G = construct_graph_edge(G.get_graph(), k=k, edge_policy=edge_policy, theshold_factor=threshold_factor)
 
     graph_root_dir_path = f"{output_dir}/{dataset_name}"
-    graph_name = f"train_{train_size}_val_{val_size}_test_{test_size}_labeled_{labeled_size}"
+    graph_name = f"train_{train_size}_test_{test_size}_labeled_{labeled_size}"
     if edge_policy == "knn":
         graph_name = f"{graph_name}_knn_{k}"
     elif edge_policy == "thresholdnn":

@@ -10,11 +10,10 @@ class KNNGraphBuilder:
         self.graph = graph
         self.k = k
 
-    def build_graph(self, val_to_train=True, val_to_val=True, test_to_test=True, test_to_train=True, val_to_test=True):
+    def build_graph(self, test_to_test=True, test_to_train=True):
         x = self.graph.x
         y = self.graph.y
         train_mask = self.graph.train_mask
-        val_mask = self.graph.val_mask
         test_mask = self.graph.test_mask
         labeled_mask = self.graph.labeled_mask
         
@@ -35,17 +34,8 @@ class KNNGraphBuilder:
                 if train_mask[i] or train_mask[neighbor]:
                     # train nodes can always connect to each other
                     add_edge = True
-                elif val_mask[i]:
-                    if train_mask[neighbor] and val_to_train:
-                        add_edge = True
-                    elif val_mask[neighbor] and val_to_val:
-                        add_edge = True
-                    elif test_mask[neighbor] and val_to_test:
-                        add_edge = True
                 elif test_mask[i]:
                     if train_mask[neighbor] and test_to_train:
-                        add_edge = True
-                    elif val_mask[neighbor] and val_to_test:
                         add_edge = True
                     elif test_mask[neighbor] and test_to_test:
                         add_edge = True
@@ -58,19 +48,17 @@ class KNNGraphBuilder:
         edge_attr = torch.tensor(edge_attr).unsqueeze(1)
         graph_metric = f"Every node has {self.k} neighbors"
 
-        return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, train_mask=train_mask, val_mask=val_mask, test_mask=test_mask, labeled_mask=labeled_mask, graph_metric=graph_metric)
+        return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, train_mask=train_mask, test_mask=test_mask, labeled_mask=labeled_mask, graph_metric=graph_metric)
     
 class ThresholdNNGraphBuilder:
-    def __init__(self, graph, k=5, threshold_factor=1.0):
+    def __init__(self, graph, threshold_factor=1.0):
         self.graph = graph
-        self.k = k    # not used
         self.threshold_factor = threshold_factor
 
-    def build_graph(self, val_to_train=True, val_to_val=True, test_to_test=True, test_to_train=True, val_to_test=True):
+    def build_graph(self, test_to_test=True, test_to_train=True):
         x = self.graph.x
         y = self.graph.y
         train_mask = self.graph.train_mask
-        val_mask = self.graph.val_mask
         test_mask = self.graph.test_mask
         labeled_mask = self.graph.labeled_mask
 
@@ -113,17 +101,8 @@ class ThresholdNNGraphBuilder:
 
                 if train_mask[i] or train_mask[neighbor]:
                     add_edge = True
-                elif val_mask[i]:
-                    if train_mask[neighbor] and val_to_train:
-                        add_edge = True
-                    elif val_mask[neighbor] and val_to_val:
-                        add_edge = True
-                    elif test_mask[neighbor] and val_to_test:
-                        add_edge = True
                 elif test_mask[i]:
                     if train_mask[neighbor] and test_to_train:
-                        add_edge = True
-                    elif val_mask[neighbor] and val_to_test:
                         add_edge = True
                     elif test_mask[neighbor] and test_to_test:
                         add_edge = True
@@ -143,7 +122,7 @@ class ThresholdNNGraphBuilder:
         edge_index = torch.tensor(edge_index).t().contiguous()
         edge_attr = torch.tensor(edge_attr).unsqueeze(1)
 
-        return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, train_mask=train_mask, val_mask=val_mask, test_mask=test_mask, labeled_mask=labeled_mask, graph_metric=graph_metric)
+        return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, train_mask=train_mask, test_mask=test_mask, labeled_mask=labeled_mask, graph_metric=graph_metric)
     
 
 # debug
@@ -158,7 +137,7 @@ if __name__ == "__main__":
         custom_graph = graph_builder.build_graph()
         return custom_graph
 
-    G = torch.load('../graph/kdd2020/train_3490_val_997_test_499_labeled_100.pt', weights_only=False)
+    G = torch.load('../graph/kdd2020/train_3490_test_499_labeled_100.pt', weights_only=False)
     print(f"Graph loaded: {G}")
 
     k = 5
@@ -172,7 +151,6 @@ if __name__ == "__main__":
     total_nodes = custom_graph.num_nodes
     total_edges = custom_graph.num_edges
     train_nodes = custom_graph.train_mask.sum().item()
-    val_nodes = custom_graph.val_mask.sum().item()
     test_nodes = custom_graph.test_mask.sum().item()
     labeled_nodes = custom_graph.labeled_mask.sum().item()
     graph_metric = custom_graph.graph_metric
@@ -180,7 +158,6 @@ if __name__ == "__main__":
     print(f"Total nodes: {total_nodes}")
     print(f"Total edges: {total_edges}")
     print(f"Training nodes: {train_nodes}")
-    print(f"Validation nodes: {val_nodes}")
     print(f"Test nodes: {test_nodes}")
     print(f"Labeled nodes: {labeled_nodes}")
     print(f"{graph_metric}")

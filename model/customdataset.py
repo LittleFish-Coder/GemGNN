@@ -22,8 +22,8 @@ class EmbeddingsDataset(Dataset):
             self.labels = labels
             self.embeddings = embeddings
 
-        # Only initialize tokenizer and model if the dataset_name is not 'kdd2020'
-        if self.dataset_name != "kdd2020":
+        # if embeddings are not provided, load the model
+        if not self.embeddings:
             self.tokenizer = AutoTokenizer.from_pretrained(model_name, clean_up_tokenization_spaces=True)
             self.model = AutoModel.from_pretrained(model_name).to(device)
 
@@ -35,7 +35,7 @@ class EmbeddingsDataset(Dataset):
         label = self.labels[idx]
 
         # If the dataset is 'kdd2020', directly use the precomputed embeddings
-        if self.dataset_name == "kdd2020":
+        if self.embeddings:
             embeddings = torch.tensor(self.embeddings[idx])
         else:
             # Tokenize the text
@@ -60,9 +60,8 @@ class EmbeddingsDataset(Dataset):
         return embeddings, label
     
 class EmbeddingsGraph:
-    def __init__(self, train_dataset, val_dataset, test_dataset, labeled_size):
+    def __init__(self, train_dataset, test_dataset, labeled_size):
         self.train_dataset = train_dataset
-        self.val_dataset = val_dataset
         self.test_dataset = test_dataset
         self.labeled_size = labeled_size
         try:
@@ -70,7 +69,7 @@ class EmbeddingsGraph:
         except:
             self.labeled_size = len(train_dataset)
 
-        self.num_nodes = len(train_dataset) + len(val_dataset) + len(test_dataset)
+        self.num_nodes = len(train_dataset) + len(test_dataset)
         self.num_features = train_dataset[0][0].shape[0]  # Assuming all embeddings have the same dimension
 
         self.graph = self._build_graph()
@@ -80,7 +79,7 @@ class EmbeddingsGraph:
         x = torch.cat(
             [
                 torch.stack([item[0] for item in tqdm(dataset, desc=f"Processing {name} dataset")])
-                for dataset, name in zip((self.train_dataset, self.val_dataset, self.test_dataset), ("train", "val", "test"))
+                for dataset, name in zip((self.train_dataset, self.test_dataset), ("train", "test"))
             ]
         )
 
@@ -88,17 +87,15 @@ class EmbeddingsGraph:
         y = torch.cat(
             [
                 torch.tensor([item[1] for item in tqdm(dataset, desc=f"Processing labels for {name} dataset")])
-                for dataset, name in zip((self.train_dataset, self.val_dataset, self.test_dataset), ("train", "val", "test"))
+                for dataset, name in zip((self.train_dataset, self.test_dataset), ("train", "test"))
             ]
         )
 
         # Create masks
         train_mask = torch.zeros(self.num_nodes, dtype=torch.bool)
-        val_mask = torch.zeros(self.num_nodes, dtype=torch.bool)
         test_mask = torch.zeros(self.num_nodes, dtype=torch.bool)
 
         train_mask[:len(self.train_dataset)] = True
-        val_mask[len(self.train_dataset): len(self.train_dataset) + len(self.val_dataset)] = True
         test_mask[-len(self.test_dataset):] = True
 
         # random choice labeled indices
@@ -109,7 +106,7 @@ class EmbeddingsGraph:
         # Create edge_index (placeholder, as we're not considering edges yet)
         edge_index = torch.empty((2, 0), dtype=torch.long)
 
-        return Data(x=x, edge_index=edge_index, y=y, train_mask=train_mask, val_mask=val_mask, test_mask=test_mask, labeled_mask=labeled_mask,)
+        return Data(x=x, edge_index=edge_index, y=y, train_mask=train_mask, test_mask=test_mask, labeled_mask=labeled_mask)
 
     def get_graph(self):
         return self.graph
@@ -118,7 +115,6 @@ class EmbeddingsGraph:
         return (
             f"CustomGraph(num_nodes={self.num_nodes}, num_features={self.num_features}, "
             f"training_nodes={self.graph.train_mask.sum()}, "
-            f"validation_nodes={self.graph.val_mask.sum()}, "
             f"test_nodes={self.graph.test_mask.sum()}, "
             f"labeled_nodes={self.graph.labeled_mask.sum()})"
         )
@@ -127,7 +123,6 @@ class EmbeddingsGraph:
         return (
             f"CustomGraph(num_nodes={self.num_nodes}, num_features={self.num_features}, "
             f"training_nodes={self.graph.train_mask.sum()}, "
-            f"validation_nodes={self.graph.val_mask.sum()}, "
             f"test_nodes={self.graph.test_mask.sum()}, "
             f"labeled_nodes={self.graph.labeled_mask.sum()})"
         )
