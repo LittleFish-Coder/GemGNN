@@ -1,0 +1,20 @@
+========================================
+Arguments:
+	graph: graph/gossipcop/train_9988_test_2672_labeled_100_thresholdnn_1.pt
+========================================
+Using cuda device
+Graph loaded from graph/gossipcop/train_9988_test_2672_labeled_100_thresholdnn_1.pt
+Data(x=[12660, 768], edge_index=[2, 1604073], edge_attr=[1604073, 1], y=[12660], train_mask=[12660], test_mask=[12660], labeled_mask=[12660], graph_metric='median = 32.0, mean = 126.70402843601896, std = 211.8386107346574, min = 1, max = 1929, quantile = [1.0, 1.0, 3.0, 7.0, 16.0, 32.0, 59.0, 107.29999999999927, 203.0, 401.0, 1929.0]')
+Graph information:
+Number of nodes: 12660
+Number of edges: 1604073
+Number of features: 768
+Number of classes: 2
+Class distribution:
+	Class 0: 10124 instances
+	Class 1: 2536 instances
+Total edges: 1604073
+Fake to fake edges: 135777
+Real to real edges: 964155
+Homophilic(same class) edges: 1099932
+Heterophilic(different class) edges: 504141

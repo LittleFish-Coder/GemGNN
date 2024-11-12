@@ -1,0 +1,20 @@
+========================================
+Arguments:
+	graph: graph/tfg/train_24353_test_8117_labeled_100_thresholdnn_1.pt
+========================================
+Using cuda device
+Graph loaded from graph/tfg/train_24353_test_8117_labeled_100_thresholdnn_1.pt
+Data(x=[32470, 768], edge_index=[2, 10544660], edge_attr=[10544660, 1], y=[32470], train_mask=[32470], test_mask=[32470], labeled_mask=[32470], graph_metric='median = 96.0, mean = 324.75084693563286, std = 495.6318607935568, min = 1, max = 3762, quantile = [1.0, 2.0, 9.0, 24.0, 51.0, 96.0, 176.0, 321.0, 572.0, 997.0, 3762.0]')
+Graph information:
+Number of nodes: 32470
+Number of edges: 10544660
+Number of features: 768
+Number of classes: 2
+Class distribution:
+	Class 0: 17530 instances
+	Class 1: 14940 instances
+Total edges: 10544660
+Fake to fake edges: 5722895
+Real to real edges: 4455873
+Homophilic(same class) edges: 10178768
+Heterophilic(different class) edges: 365892

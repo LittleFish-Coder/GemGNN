@@ -1,0 +1,20 @@
+========================================
+Arguments:
+	graph: graph/kdd2020/train_4487_test_499_labeled_100_knn_9.pt
+========================================
+Using cuda device
+Graph loaded from graph/kdd2020/train_4487_test_499_labeled_100_knn_9.pt
+Data(x=[4986, 768], edge_index=[2, 44874], edge_attr=[44874, 1], y=[4986], train_mask=[4986], test_mask=[4986], labeled_mask=[4986], graph_metric='Every node has 9 neighbors')
+Graph information:
+Number of nodes: 4986
+Number of edges: 44874
+Number of features: 768
+Number of classes: 2
+Class distribution:
+	Class 0: 2972 instances
+	Class 1: 2014 instances
+Total edges: 44874
+Fake to fake edges: 10268
+Real to real edges: 18338
+Homophilic(same class) edges: 28606
+Heterophilic(different class) edges: 16268

@@ -1,0 +1,20 @@
+========================================
+Arguments:
+	graph: graph/tfg/train_24353_test_8117_labeled_100_knn_5.pt
+========================================
+Using cuda device
+Graph loaded from graph/tfg/train_24353_test_8117_labeled_100_knn_5.pt
+Data(x=[32470, 768], edge_index=[2, 162350], edge_attr=[162350, 1], y=[32470], train_mask=[32470], test_mask=[32470], labeled_mask=[32470], graph_metric='Every node has 5 neighbors')
+Graph information:
+Number of nodes: 32470
+Number of edges: 162350
+Number of features: 768
+Number of classes: 2
+Class distribution:
+	Class 0: 17530 instances
+	Class 1: 14940 instances
+Total edges: 162350
+Fake to fake edges: 69605
+Real to real edges: 84893
+Homophilic(same class) edges: 154498
+Heterophilic(different class) edges: 7852

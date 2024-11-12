@@ -1,0 +1,20 @@
+========================================
+Arguments:
+	graph: graph/gossipcop/train_9988_test_2672_labeled_100_knn_9.pt
+========================================
+Using cuda device
+Graph loaded from graph/gossipcop/train_9988_test_2672_labeled_100_knn_9.pt
+Data(x=[12660, 768], edge_index=[2, 113940], edge_attr=[113940, 1], y=[12660], train_mask=[12660], test_mask=[12660], labeled_mask=[12660], graph_metric='Every node has 9 neighbors')
+Graph information:
+Number of nodes: 12660
+Number of edges: 113940
+Number of features: 768
+Number of classes: 2
+Class distribution:
+	Class 0: 10124 instances
+	Class 1: 2536 instances
+Total edges: 113940
+Fake to fake edges: 9929
+Real to real edges: 78003
+Homophilic(same class) edges: 87932
+Heterophilic(different class) edges: 26008

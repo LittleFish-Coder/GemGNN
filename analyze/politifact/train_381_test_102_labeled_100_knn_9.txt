@@ -1,0 +1,20 @@
+========================================
+Arguments:
+	graph: graph/politifact/train_381_test_102_labeled_100_knn_9.pt
+========================================
+Using cuda device
+Graph loaded from graph/politifact/train_381_test_102_labeled_100_knn_9.pt
+Data(x=[483, 768], edge_index=[2, 4347], edge_attr=[4347, 1], y=[483], train_mask=[483], test_mask=[483], labeled_mask=[483], graph_metric='Every node has 9 neighbors')
+Graph information:
+Number of nodes: 483
+Number of edges: 4347
+Number of features: 768
+Number of classes: 2
+Class distribution:
+	Class 0: 319 instances
+	Class 1: 164 instances
+Total edges: 4347
+Fake to fake edges: 866
+Real to real edges: 2428
+Homophilic(same class) edges: 3294
+Heterophilic(different class) edges: 1053
