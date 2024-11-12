@@ -29,7 +29,7 @@ def get_model_criterion_optimizer(graph_data, base_model: str, dropout: bool):
     elif base_model == "GAT":
         model = GAT(in_channels=graph_data.num_features, hidden_channels=16, out_channels=2, add_dropout=dropout)
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = Adam(model.parameters(), lr=0.0005)
+    optimizer = Adam(model.parameters(), lr=0.0001)
     return model, criterion, optimizer
 
 def train_val_test(graph_data, model, criterion, optimizer, n_epochs=300, output_dir='weights', model_name='model'):
@@ -58,10 +58,10 @@ def train_val_test(graph_data, model, criterion, optimizer, n_epochs=300, output
         model.eval()
         with torch.no_grad():
             out = model(graph_data.x, graph_data.edge_index)
-            val_loss = criterion(out[graph_data.val_mask], graph_data.y[graph_data.val_mask])
-            val_pred = out[graph_data.val_mask].argmax(dim=1)
-            val_correct = (val_pred == graph_data.y[graph_data.val_mask]).sum().item()
-            val_acc = val_correct / graph_data.val_mask.sum().item()
+            val_loss = criterion(out[graph_data.test_mask], graph_data.y[graph_data.test_mask])
+            val_pred = out[graph_data.test_mask].argmax(dim=1)
+            val_correct = (val_pred == graph_data.y[graph_data.test_mask]).sum().item()
+            val_acc = val_correct / graph_data.test_mask.sum().item()
         return val_acc, val_loss.item()
 
     def test(graph_data):
@@ -124,16 +124,24 @@ def save_results(train_accs, train_losses, val_accs, val_losses, last_test_acc, 
         f.write(f"Test Accuracy (with best model): {inference_test_acc}\n")
 
 def plot_acc_loss(train_accs, train_losses, val_accs, val_losses, model_name, output_dir):
-    # plot the accuracy and loss at same plot
-    plt.figure(figsize=(12, 6))
-    plt.plot(train_accs, label='Train Accuracy')
-    plt.plot(train_losses, label='Train Loss')
-    plt.plot(val_accs, label='Validation Accuracy')
-    plt.plot(val_losses, label='Validation Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy/Loss')
-    plt.title('Accuracy/Loss')
-    plt.legend()
+    # plot the accuracy and loss in two subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+
+    # Plot accuracy
+    ax1.plot(train_accs, label='Train Accuracy')
+    ax1.plot(val_accs, label='Validation Accuracy')
+    ax1.set_xlabel('Epoch')
+    ax1.set_ylabel('Accuracy')
+    ax1.set_title('Accuracy')
+    ax1.legend()
+
+    # Plot loss
+    ax2.plot(train_losses, label='Train Loss')
+    ax2.plot(val_losses, label='Validation Loss')
+    ax2.set_xlabel('Epoch')
+    ax2.set_ylabel('Loss')
+    ax2.set_title('Loss')
+    ax2.legend()
     plt.title(f"Accuracy and Loss of {model_name.replace('_', ' ')}")
     plt.savefig(f"{output_dir}/{model_name}_acc_loss.png")
 
