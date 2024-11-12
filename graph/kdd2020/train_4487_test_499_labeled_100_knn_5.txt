@@ -1,0 +1,13 @@
+Total nodes: 4986
+Total edges: 24930
+Training nodes: 4487
+Test nodes: 499
+Labeled nodes: 100
+
+Edge types:
+train-train: 20334
+train-test: 4326
+test-test: 270
+
+Stat of Graph Metrics:
+Every node has 5 neighbors

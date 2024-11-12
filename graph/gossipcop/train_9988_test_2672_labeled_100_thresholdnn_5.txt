@@ -1,0 +1,13 @@
+Total nodes: 12660
+Total edges: 8013462
+Training nodes: 9988
+Test nodes: 2672
+Labeled nodes: 100
+
+Edge types:
+train-train: 5033351
+train-test: 2636183
+test-test: 343928
+
+Stat of Graph Metrics:
+median = 324.0, mean = 632.9748815165876, std = 739.9117390051066, min = 1, max = 4314, quantile = [1.0, 11.0, 43.0, 101.0, 191.0, 324.0, 515.0, 790.0, 1190.0, 1782.0, 4314.0]
