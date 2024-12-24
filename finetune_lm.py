@@ -10,6 +10,7 @@ from transformers import pipeline
 from datasets import load_dataset, DatasetDict
 from argparse import ArgumentParser, Namespace
 from typing import Dict
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 
 
 def parse_arguments() -> Namespace:
@@ -180,36 +181,26 @@ def compute_metrics(eval_pred):
     Computes evaluation metrics including accuracy, F1, precision, and recall.
 
     Args:
-
+        eval_pred: A tuple containing predictions and true labels.
 
     Returns:
-
+        A dictionary with accuracy, F1, precision, and recall scores.
     """
-
-    accuracy = evaluate.load("accuracy")
-    precision = evaluate.load("precision")
-    recall = evaluate.load("recall")
-    f1 = evaluate.load("f1")
-
     predictions, labels = eval_pred
     predictions = np.argmax(predictions, axis=-1)
 
-    acc = accuracy.compute(predictions=predictions, references=labels)
+    # Compute metrics using sklearn
+    acc = accuracy_score(labels, predictions)
+    f1 = f1_score(labels, predictions, average="weighted")
+    pre = precision_score(labels, predictions, average="weighted")
+    rec = recall_score(labels, predictions, average="weighted")
 
-    f1_score = f1.compute(
-        predictions=predictions, references=labels, average="weighted"
-    )
-    pre = precision.compute(
-        predictions=predictions, references=labels, average="weighted"
-    )
-    rec = recall.compute(predictions=predictions, references=labels, average="weighted")
-
-    # Handle potential None values
+    # Return the results as a dictionary
     results = {
-        "accuracy": acc["accuracy"] if acc else None,
-        "f1": f1_score["f1"] if f1_score else None,
-        "precision": pre["precision"] if pre else None,
-        "recall": rec["recall"] if rec else None,
+        "accuracy": acc,
+        "f1": f1,
+        "precision": pre,
+        "recall": rec,
     }
     return results
 
@@ -284,6 +275,79 @@ def set_trainer(
     return trainer
 
 
+def execute_training(
+    trainer: Trainer, tokenizer: AutoTokenizer, output_dir: str
+) -> None:
+    """
+    Trains the model and saves the best model along with the tokenizer.
+
+    Args:
+        trainer (Trainer): Hugging Face Trainer instance for managing training.
+        tokenizer (AutoTokenizer): Tokenizer used for preprocessing.
+        output_dir (str): Directory to save the trained model and tokenizer.
+    """
+
+    print("Starting training process...\n")
+    trainer.train()
+
+    # save the best model
+    trainer.save_model(f"{output_dir}/best_model")
+    # save the tokenizer
+    tokenizer.save_pretrained(f"{output_dir}/best_model")
+
+    print(f"\nTraining completed.")
+    print("\n========================================\n")
+    return
+
+
+def execute_evaluation(
+    trainer: Trainer, tokenized_dataset: DatasetDict, output_dir: str
+) -> None:
+    """
+    Evaluates the model on the test dataset and saves the results to a CSV file.
+
+    Args:
+        trainer (Trainer): Hugging Face Trainer instance for managing evaluation.
+        tokenized_dataset (DatasetDict): Tokenized dataset containing the "test" split.
+        output_dir (str): Directory to save the evaluation results.
+    """
+    print("Starting evaluation...\n")
+
+    test_result = trainer.evaluate(eval_dataset=tokenized_dataset["test"])
+
+    test_df = pd.DataFrame(test_result, index=[0])
+    test_df.to_csv(f"{output_dir}/test_result.csv", index=False)
+
+    print(f"\nEvaluation completed.")
+    print("\n========================================\n")
+    return
+
+
+def inference(dataset: DatasetDict, output_dir: str) -> None:
+    """
+    Performs inference using a fine-tuned text classification model on the test dataset.
+
+    Args:
+        dataset (DatasetDict): Dataset containing the "test" split for inference.
+        output_dir (str): Directory containing the trained model for inference.
+    """
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    test_dataset = dataset["test"]
+    text = test_dataset[0]["text"]
+    print(f"Sample text for inference: {text}\n")
+    classifier = pipeline(
+        "text-classification",
+        model=f"{output_dir}/best_model",
+        truncation=True,
+        device=device,
+    )
+    result = classifier(text)
+    print(f"\nInference result: {result}")
+    print("\n========================================\n")
+    return
+
+
 if __name__ == "__main__":
     import numpy
 
@@ -341,32 +405,16 @@ if __name__ == "__main__":
         tokenized_dataset=tokenized_dataset,
     )
 
-    print("Training model...")
-    trainer.train()
-    # # save the best model
-    # trainer.save_model(f"{output_dir}/best_model")
-    # # save the tokenizer
-    # tokenizer.save_pretrained(f"{output_dir}/best_model")
+    # train model
+    execute_training(trainer=trainer, tokenizer=tokenizer, output_dir=output_dir)
 
-    # # evaluate on test set
-    # test_result = trainer.evaluate(eval_dataset=tokenized_dataset["test"])
+    # evaluate model on testing data
+    execute_evaluation(
+        trainer=trainer, tokenized_dataset=tokenized_dataset, output_dir=output_dir
+    )
 
-    # test_df = pd.DataFrame(test_result, index=[0])
-    # test_df.to_csv(f"{output_dir}/test_result.csv", index=False)
-
-    # device = "cuda" if torch.cuda.is_available() else "cpu"
-    # print(f"Device: {device}")
-
-    # test_dataset = dataset["test"]
-    # text = test_dataset[0]["text"]
-    # print(f"Text: {text}")
-    # classifier = pipeline(
-    #     "text-classification",
-    #     model=f"{output_dir}/best_model",
-    #     truncation=True,
-    #     device=device,
-    # )
-    # classifier(text)
+    # inference
+    inference(dataset=dataset, output_dir=output_dir)
 
     # tokenizer = AutoTokenizer.from_pretrained(f"{output_dir}/best_model")
     # inputs = tokenizer(text, return_tensors="pt", truncation=True)
