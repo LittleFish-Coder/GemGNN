@@ -1,11 +1,14 @@
-import os
 import numpy as np
 import pandas as pd
 import torch
-import evaluate
-from torch.utils.data import DataLoader, Dataset
-from transformers import AutoTokenizer, DataCollatorWithPadding
-from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer
+import gc
+from torch.utils.data import Dataset
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+    TrainingArguments,
+    Trainer,
+)
 from transformers import pipeline
 from datasets import load_dataset, DatasetDict
 from argparse import ArgumentParser, Namespace
@@ -26,7 +29,7 @@ def parse_arguments() -> Namespace:
         type=str,
         default="bert-base-uncased",
         help="the model to use",
-        choices=["bert-base-uncased", "bart-base", "roberta-base"],
+        choices=["bert-base-uncased", "distilbert-base-uncased", "roberta-base"],
     )
     # dataset arguments
     parser.add_argument(
@@ -169,6 +172,7 @@ def load_model(
     """
 
     print(f"Loading {model_name} model...\n")
+
     model = AutoModelForSequenceClassification.from_pretrained(
         model_name, num_labels=num_labels, id2label=id2label, label2id=label2id
     )
@@ -349,9 +353,9 @@ def inference(dataset: DatasetDict, output_dir: str) -> None:
 
 
 if __name__ == "__main__":
-    import numpy
 
-    print(numpy.__version__)
+    torch.cuda.empty_cache()
+    gc.collect()
 
     args = parse_arguments()
 
@@ -415,18 +419,3 @@ if __name__ == "__main__":
 
     # inference
     inference(dataset=dataset, output_dir=output_dir)
-
-    # tokenizer = AutoTokenizer.from_pretrained(f"{output_dir}/best_model")
-    # inputs = tokenizer(text, return_tensors="pt", truncation=True)
-    # print(f"Input keys: {inputs.keys()}")
-    # print(f"Input: {inputs}")
-
-    # model = AutoModelForSequenceClassification.from_pretrained(
-    #     f"{output_dir}/best_model"
-    # )
-    # with torch.no_grad():
-    #     logits = model(**inputs).logits
-    # print(f"Logits: {logits}")
-
-    # predicted_class_id = logits.argmax().item()
-    # print(model.config.id2label[predicted_class_id])
