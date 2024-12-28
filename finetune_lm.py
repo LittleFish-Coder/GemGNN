@@ -14,6 +14,7 @@ from datasets import load_dataset, DatasetDict
 from argparse import ArgumentParser, Namespace
 from typing import Dict
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from datasets import Dataset as HF_Dataset
 
 
 def parse_arguments() -> Namespace:
@@ -39,6 +40,15 @@ def parse_arguments() -> Namespace:
         help="dataset to use",
         choices=["TFG", "KDD2020", "GossipCop", "PolitiFact"],
     )
+
+    parser.add_argument(
+        "--k_shots",
+        type=int,
+        default=None,
+        help="Number of samples to use for few-shot training.",
+        choices=[8, 16, 32, 100],
+    )
+
     # training arguments
     parser.add_argument("--num_epochs", type=int, default=5, help="number of epochs")
     parser.add_argument("--batch_size", type=int, default=64, help="batch size")
@@ -98,6 +108,48 @@ def fetch_dataset(dataset_name: str, dataset_size: str) -> DatasetDict:
     print("\n========================================\n")
 
     return dataset
+
+
+def sample_k_shots(dataset: DatasetDict, k: int) -> DatasetDict:
+    """
+    Samples K examples per class for a few-shot learning setup.
+
+    Args:
+        dataset (DatasetDict): The full dataset containing train and test splits.
+        k (int): The number of examples to sample per class.
+
+    Returns:
+        DatasetDict: A new dataset containing only K examples per class in the train split.
+    """
+
+    if k is None:
+        return dataset
+
+    print(f"Sampling {k}-shot data per class...")
+
+    train_data = dataset["train"]
+    sampled_data = {"text": [], "label": []}
+
+    labels = set(train_data["label"])
+    for label in labels:
+        label_data = train_data.filter(lambda x: x["label"] == label)
+        sampled_label_data = label_data.shuffle(seed=42).select(
+            range(min(k, len(label_data)))
+        )
+        sampled_data["text"].extend(sampled_label_data["text"])
+        sampled_data["label"].extend(sampled_label_data["label"])
+
+    sampled_dataset = DatasetDict(
+        {
+            "train": HF_Dataset.from_dict(sampled_data),
+            "test": dataset["test"],  # unchange
+        }
+    )
+
+    print("Few-shot sampling completed.")
+    print("\n========================================\n")
+
+    return sampled_dataset
 
 
 def load_tokenizer(model_name: str, dataset: Dataset) -> AutoTokenizer:
@@ -363,17 +415,22 @@ if __name__ == "__main__":
     model_name = args.model_name
     dataset_name = args.dataset_name
     dataset_size = "full"  # task default
+    k_shots = args.k_shots
     num_epochs = args.num_epochs
     batch_size = args.batch_size
     checkpoint_dir = args.checkpoint_dir
     logging_dir = "logs"
-    output_dir = f"{checkpoint_dir}/{dataset_name}_{dataset_size}/{model_name}"
+    # output_dir = f"{checkpoint_dir}/{dataset_name}_{dataset_size}/{model_name}"
+    output_dir = "test"
 
     # show arguments
     show_args(args=args, output_dir=output_dir)
 
     # load data
     dataset = fetch_dataset(dataset_name=dataset_name, dataset_size=dataset_size)
+
+    # sample few-shot data if k_shots is specified
+    dataset = sample_k_shots(dataset=dataset, k=k_shots)
 
     # load tokenizer
     tokenizer = load_tokenizer(model_name=model_name, dataset=dataset)
