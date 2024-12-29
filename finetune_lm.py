@@ -44,9 +44,9 @@ def parse_arguments() -> Namespace:
     parser.add_argument(
         "--k_shots",
         type=int,
-        default=None,
+        default=0,  # default full
         help="Number of samples to use for few-shot training.",
-        choices=[8, 16, 32, 100],
+        choices=[0, 8, 16, 32, 100],
     )
 
     # training arguments
@@ -77,19 +77,18 @@ def show_args(args: Namespace, output_dir: str) -> None:
     print("\n========================================\n")
 
 
-def fetch_dataset(dataset_name: str, dataset_size: str) -> DatasetDict:
+def fetch_dataset(dataset_name: str) -> DatasetDict:
     """
-    Fetches the dataset from a local directory based on the provided name and size.
+    Fetches the dataset from a local directory based on the provided name.
 
     Args:
         dataset_name (str): The name of the dataset to fetch (folder under `dataset/`).
-        dataset_size (str): The size of the dataset to load (e.g., "full", "10%", "100").
 
     Returns:
         DatasetDict: A dictionary-like object containing train, test, and optionally other splits.
     """
 
-    print(f"Fetching dataset '{dataset_name}' with size '{dataset_size}'...\n")
+    print(f"Fetching dataset '{dataset_name}'...\n")
 
     dataset: DatasetDict = load_dataset(
         f"LittleFish-Coder/Fake_News_{dataset_name}",
@@ -122,22 +121,22 @@ def sample_k_shots(dataset: DatasetDict, k: int) -> DatasetDict:
         DatasetDict: A new dataset containing only K examples per class in the train split.
     """
 
-    if k is None:
-        return dataset
+    if k == 0:
+        return dataset  # full dataset
 
-    print(f"Sampling {k}-shot data per class...")
+    print(f"Sampling {k}-shot data per class...\n")
 
     train_data = dataset["train"]
-    sampled_data = {"text": [], "label": []}
+    sampled_data = {key: [] for key in train_data.column_names}
 
-    labels = set(train_data["label"])
+    labels = set(train_data["label"])  # { 0 , 1 }
     for label in labels:
         label_data = train_data.filter(lambda x: x["label"] == label)
         sampled_label_data = label_data.shuffle(seed=42).select(
             range(min(k, len(label_data)))
         )
-        sampled_data["text"].extend(sampled_label_data["text"])
-        sampled_data["label"].extend(sampled_label_data["label"])
+        for key in train_data.column_names:
+            sampled_data[key].extend(sampled_label_data[key])
 
     sampled_dataset = DatasetDict(
         {
@@ -146,7 +145,9 @@ def sample_k_shots(dataset: DatasetDict, k: int) -> DatasetDict:
         }
     )
 
-    print("Few-shot sampling completed.")
+    print(sampled_dataset)
+
+    print("\nFew-shot sampling completed.")
     print("\n========================================\n")
 
     return sampled_dataset
@@ -414,20 +415,18 @@ if __name__ == "__main__":
     # Configuration
     model_name = args.model_name
     dataset_name = args.dataset_name
-    dataset_size = "full"  # task default
     k_shots = args.k_shots
     num_epochs = args.num_epochs
     batch_size = args.batch_size
     checkpoint_dir = args.checkpoint_dir
     logging_dir = "logs"
-    # output_dir = f"{checkpoint_dir}/{dataset_name}_{dataset_size}/{model_name}"
-    output_dir = "test"
+    output_dir = f"{checkpoint_dir}/{dataset_name}_{k_shots}/{model_name}"
 
     # show arguments
     show_args(args=args, output_dir=output_dir)
 
     # load data
-    dataset = fetch_dataset(dataset_name=dataset_name, dataset_size=dataset_size)
+    dataset = fetch_dataset(dataset_name=dataset_name)
 
     # sample few-shot data if k_shots is specified
     dataset = sample_k_shots(dataset=dataset, k=k_shots)
@@ -475,4 +474,4 @@ if __name__ == "__main__":
     )
 
     # inference
-    inference(dataset=dataset, output_dir=output_dir)
+    # inference(dataset=dataset, output_dir=output_dir)
