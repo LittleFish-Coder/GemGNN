@@ -1,16 +1,20 @@
-import os
 import numpy as np
 import pandas as pd
 import torch
-import evaluate
-from torch.utils.data import DataLoader, Dataset
-from transformers import AutoTokenizer, DataCollatorWithPadding
-from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer
+import gc
+from torch.utils.data import Dataset
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+    TrainingArguments,
+    Trainer,
+)
 from transformers import pipeline
 from datasets import load_dataset, DatasetDict
 from argparse import ArgumentParser, Namespace
 from typing import Dict
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from datasets import Dataset as HF_Dataset
 
 
 def parse_arguments() -> Namespace:
@@ -26,7 +30,7 @@ def parse_arguments() -> Namespace:
         type=str,
         default="bert-base-uncased",
         help="the model to use",
-        choices=["bert-base-uncased", "bart-base", "roberta-base"],
+        choices=["bert-base-uncased", "distilbert-base-uncased", "roberta-base"],
     )
     # dataset arguments
     parser.add_argument(
@@ -36,6 +40,15 @@ def parse_arguments() -> Namespace:
         help="dataset to use",
         choices=["TFG", "KDD2020", "GossipCop", "PolitiFact"],
     )
+
+    parser.add_argument(
+        "--k_shots",
+        type=int,
+        default=0,  # default full
+        help="Number of samples to use for few-shot training.",
+        choices=[0, 8, 16, 32, 100],
+    )
+
     # training arguments
     parser.add_argument("--num_epochs", type=int, default=5, help="number of epochs")
     parser.add_argument("--batch_size", type=int, default=64, help="batch size")
@@ -64,19 +77,18 @@ def show_args(args: Namespace, output_dir: str) -> None:
     print("\n========================================\n")
 
 
-def fetch_dataset(dataset_name: str, dataset_size: str) -> DatasetDict:
+def fetch_dataset(dataset_name: str) -> DatasetDict:
     """
-    Fetches the dataset from a local directory based on the provided name and size.
+    Fetches the dataset from a local directory based on the provided name.
 
     Args:
         dataset_name (str): The name of the dataset to fetch (folder under `dataset/`).
-        dataset_size (str): The size of the dataset to load (e.g., "full", "10%", "100").
 
     Returns:
         DatasetDict: A dictionary-like object containing train, test, and optionally other splits.
     """
 
-    print(f"Fetching dataset '{dataset_name}' with size '{dataset_size}'...\n")
+    print(f"Fetching dataset '{dataset_name}'...\n")
 
     dataset: DatasetDict = load_dataset(
         f"LittleFish-Coder/Fake_News_{dataset_name}",
@@ -95,6 +107,50 @@ def fetch_dataset(dataset_name: str, dataset_size: str) -> DatasetDict:
     print("\n========================================\n")
 
     return dataset
+
+
+def sample_k_shots(dataset: DatasetDict, k: int) -> DatasetDict:
+    """
+    Samples K examples per class for a few-shot learning setup.
+
+    Args:
+        dataset (DatasetDict): The full dataset containing train and test splits.
+        k (int): The number of examples to sample per class.
+
+    Returns:
+        DatasetDict: A new dataset containing only K examples per class in the train split.
+    """
+
+    if k == 0:
+        return dataset  # full dataset
+
+    print(f"Sampling {k}-shot data per class...\n")
+
+    train_data = dataset["train"]
+    sampled_data = {key: [] for key in train_data.column_names}
+
+    labels = set(train_data["label"])  # { 0 , 1 }
+    for label in labels:
+        label_data = train_data.filter(lambda x: x["label"] == label)
+        sampled_label_data = label_data.shuffle(seed=42).select(
+            range(min(k, len(label_data)))
+        )
+        for key in train_data.column_names:
+            sampled_data[key].extend(sampled_label_data[key])
+
+    sampled_dataset = DatasetDict(
+        {
+            "train": HF_Dataset.from_dict(sampled_data),
+            "test": dataset["test"],  # unchange
+        }
+    )
+
+    print(sampled_dataset)
+
+    print("\nFew-shot sampling completed.")
+    print("\n========================================\n")
+
+    return sampled_dataset
 
 
 def load_tokenizer(model_name: str, dataset: Dataset) -> AutoTokenizer:
@@ -169,6 +225,7 @@ def load_model(
     """
 
     print(f"Loading {model_name} model...\n")
+
     model = AutoModelForSequenceClassification.from_pretrained(
         model_name, num_labels=num_labels, id2label=id2label, label2id=label2id
     )
@@ -349,27 +406,30 @@ def inference(dataset: DatasetDict, output_dir: str) -> None:
 
 
 if __name__ == "__main__":
-    import numpy
 
-    print(numpy.__version__)
+    torch.cuda.empty_cache()
+    gc.collect()
 
     args = parse_arguments()
 
     # Configuration
     model_name = args.model_name
     dataset_name = args.dataset_name
-    dataset_size = "full"  # task default
+    k_shots = args.k_shots
     num_epochs = args.num_epochs
     batch_size = args.batch_size
     checkpoint_dir = args.checkpoint_dir
     logging_dir = "logs"
-    output_dir = f"{checkpoint_dir}/{dataset_name}_{dataset_size}/{model_name}"
+    output_dir = f"{checkpoint_dir}/{dataset_name}_{k_shots}/{model_name}"
 
     # show arguments
     show_args(args=args, output_dir=output_dir)
 
     # load data
-    dataset = fetch_dataset(dataset_name=dataset_name, dataset_size=dataset_size)
+    dataset = fetch_dataset(dataset_name=dataset_name)
+
+    # sample few-shot data if k_shots is specified
+    dataset = sample_k_shots(dataset=dataset, k=k_shots)
 
     # load tokenizer
     tokenizer = load_tokenizer(model_name=model_name, dataset=dataset)
@@ -414,19 +474,4 @@ if __name__ == "__main__":
     )
 
     # inference
-    inference(dataset=dataset, output_dir=output_dir)
-
-    # tokenizer = AutoTokenizer.from_pretrained(f"{output_dir}/best_model")
-    # inputs = tokenizer(text, return_tensors="pt", truncation=True)
-    # print(f"Input keys: {inputs.keys()}")
-    # print(f"Input: {inputs}")
-
-    # model = AutoModelForSequenceClassification.from_pretrained(
-    #     f"{output_dir}/best_model"
-    # )
-    # with torch.no_grad():
-    #     logits = model(**inputs).logits
-    # print(f"Logits: {logits}")
-
-    # predicted_class_id = logits.argmax().item()
-    # print(model.config.id2label[predicted_class_id])
+    # inference(dataset=dataset, output_dir=output_dir)
