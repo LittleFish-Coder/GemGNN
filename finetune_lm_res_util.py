@@ -74,7 +74,7 @@ if __name__ == "__main__":
         ax.set_axis_off()
 
         table = Table(ax, bbox=[0, 0, 1, 1])
-        col_labels = ["Model", "Dataset", "Shot", "Eval_Accuracy"]
+        col_labels = ["Dataset", "K-Shot", "Model", "Eval_Accuracy"]
         col_widths = [0.25, 0.25, 0.25, 0.25]
 
         for i, label in enumerate(col_labels):
