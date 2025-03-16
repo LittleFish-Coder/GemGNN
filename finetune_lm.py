@@ -14,6 +14,7 @@ from transformers import (
 from datasets import load_dataset, DatasetDict, Dataset
 from argparse import ArgumentParser, Namespace
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from utils.sample_k_shot import sample_k_shot
 
 
 # Constants
@@ -43,6 +44,10 @@ class FakeNewsTrainer:
         self.k_shot = k_shot
         self.num_epochs = num_epochs
         self.batch_size = batch_size
+
+        # Add these new attributes
+        self.selected_indices = None
+        self.label_distribution = None
         
         # Determine model type from model name
         self.model_type = self._get_model_type(model_name)
@@ -93,17 +98,18 @@ class FakeNewsTrainer:
         print(f"Sampling {k}-shot data per class...")
         
         train_data = dataset["train"]
-        sampled_data = {key: [] for key in train_data.column_names}
         
-        # Sample k examples from each class
-        labels = set(train_data["label"])
-        for label in labels:
-            label_data = train_data.filter(lambda x: x["label"] == label)
-            sampled_label_data = label_data.shuffle(seed=SEED).select(
-                range(min(k, len(label_data)))
-            )
-            for key in train_data.column_names:
-                sampled_data[key].extend(sampled_label_data[key])
+        # Use the shared sampling function to ensure consistency with graph model
+        selected_indices, sampled_data = sample_k_shot(train_data, k, seed=SEED)
+        
+        # Store the selected indices for later
+        self.selected_indices = selected_indices
+        
+        # Calculate and store label distribution
+        self.label_distribution = {}
+        for idx in selected_indices:
+            label = train_data["label"][idx]
+            self.label_distribution[label] = self.label_distribution.get(label, 0) + 1
         
         # Create new dataset with sampled training data
         return DatasetDict({
@@ -222,6 +228,30 @@ class FakeNewsTrainer:
             json.dump(results, f, indent=2)
         
         print(f"Evaluation completed. Results saved to {metrics_file}")
+
+        # Add this code to save indices
+        if self.selected_indices is not None:
+            indices_file = os.path.join(self.model_dir, "indices.json")
+            
+            # Convert numpy types to Python native types
+            indices_info = {
+                "indices": [int(i) for i in self.selected_indices],
+                "k_shot": int(self.k_shot),
+                "seed": int(SEED),
+                "dataset_name": self.dataset_name,
+            }
+            
+            if hasattr(self, 'label_distribution') and self.label_distribution:
+                indices_info["label_distribution"] = {
+                    int(k): int(v) for k, v in self.label_distribution.items()
+                }
+            
+            with open(indices_file, "w") as f:
+                json.dump(indices_info, f, indent=2)
+            
+            print(f"Selected indices saved to {indices_file}")
+
+
         return results
     
     def run_pipeline(self) -> Dict[str, float]:
