@@ -2,7 +2,7 @@
 
 # Models, datasets, and k-shot settings to run
 models=("bert-base-uncased" "distilbert-base-uncased" "roberta-base")
-datasets=("GossipCop" "PolitiFact")
+datasets=("gossipcop" "politifact")
 k_shots=(0 8 16 32 100)
 
 # Create log directory if it doesn't exist

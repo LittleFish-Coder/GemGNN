@@ -293,9 +293,9 @@ def parse_arguments() -> Namespace:
     parser.add_argument(
         "--dataset_name",
         type=str,
-        default="PolitiFact",
-        help="Dataset to use (default: PolitiFact)",
-        choices=["TFG", "KDD2020", "GossipCop", "PolitiFact"],
+        default="politifact",
+        help="Dataset to use (default: politifact)",
+        choices=["tfg", "kdd2020", "gossipcop", "politifact"],
     )
     
     # Few-shot setting
