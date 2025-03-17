@@ -1,45 +1,247 @@
 import os
 import torch
 import matplotlib.pyplot as plt
-from sklearn.manifold import TSNE
-from model.gnn import GCN, GAT
+import numpy as np
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 from argparse import ArgumentParser
-from torch.optim import Adam  # type: ignore
+from torch.optim import Adam
+import torch.nn as nn
+import torch.nn.functional as F
+import time
+from torch_geometric.nn import GCNConv, GATConv
 
 
-def show_args(args, model_name):
+# GCN model class
+class GCN(nn.Module):
+    """
+    Graph Convolutional Network (GCN) implementation.
+    """
+    def __init__(self, in_channels, hidden_channels, out_channels, add_dropout=True):
+        super(GCN, self).__init__()
+        self.conv1 = GCNConv(in_channels, hidden_channels)
+        self.conv2 = GCNConv(hidden_channels, out_channels)
+        self.dropout = 0.6 if add_dropout else 0.0  # Higher dropout rate
+        
+    def forward(self, x, edge_index):
+        # First Graph Convolution layer
+        x = self.conv1(x, edge_index)
+        x = F.relu(x)
+        x = F.dropout(x, p=self.dropout, training=self.training)
+        
+        # Second Graph Convolution layer
+        x = self.conv2(x, edge_index)
+        
+        return x
+
+
+# GAT model class
+class GAT(nn.Module):
+    """
+    Graph Attention Network (GAT) implementation.
+    """
+    def __init__(self, in_channels, hidden_channels, out_channels, add_dropout=True, heads=8):
+        super(GAT, self).__init__()
+        # First GAT layer with multi-head attention
+        self.conv1 = GATConv(
+            in_channels, 
+            hidden_channels // heads,  # Divide channels by heads for concatenation
+            heads=heads
+        )
+        
+        # Output layer with single head
+        self.conv2 = GATConv(
+            hidden_channels, 
+            out_channels, 
+            heads=1,  # Single head for output
+            concat=False  # Don't concatenate heads for output layer
+        )
+        
+        self.dropout = 0.6 if add_dropout else 0.0  # Higher dropout rate
+        
+    def forward(self, x, edge_index):
+        # First Graph Attention layer
+        x = self.conv1(x, edge_index)
+        x = F.elu(x)  # ELU is often used with GAT
+        x = F.dropout(x, p=self.dropout, training=self.training)
+        
+        # Second Graph Attention layer
+        x = self.conv2(x, edge_index)
+        
+        return x
+
+
+# LSTM baseline model
+class LSTMClassifier(nn.Module):
+    def __init__(self, in_channels, hidden_channels, out_channels, num_layers=1, add_dropout=True):
+        super(LSTMClassifier, self).__init__()
+        self.embedding = nn.Linear(in_channels, hidden_channels)
+        self.lstm = nn.LSTM(hidden_channels, hidden_channels, num_layers, batch_first=True, 
+                            dropout=0.6 if add_dropout and num_layers > 1 else 0)
+        self.fc = nn.Linear(hidden_channels, out_channels)
+        self.dropout = nn.Dropout(0.6 if add_dropout else 0)  # Higher dropout rate
+    
+    def forward(self, x, edge_index=None):  # edge_index not used but kept for API compatibility
+        # Convert node features to sequence format
+        x = self.embedding(x)
+        x = x.unsqueeze(1)  # Add sequence dimension
+        
+        lstm_out, _ = self.lstm(x)
+        lstm_out = lstm_out.squeeze(1)
+        out = self.dropout(lstm_out)
+        out = self.fc(out)
+        return out
+
+
+# MLP baseline model
+class MLPClassifier(nn.Module):
+    def __init__(self, in_channels, hidden_channels, out_channels, num_layers=2, add_dropout=True):
+        super(MLPClassifier, self).__init__()
+        self.layers = nn.ModuleList()
+        
+        # Input layer
+        self.layers.append(nn.Linear(in_channels, hidden_channels))
+        
+        # Hidden layers
+        for i in range(num_layers - 2):
+            self.layers.append(nn.Linear(hidden_channels, hidden_channels))
+        
+        # Output layer
+        if num_layers > 1:
+            self.layers.append(nn.Linear(hidden_channels, out_channels))
+        else:
+            # Direct mapping if num_layers is 1
+            self.layers[0] = nn.Linear(in_channels, out_channels)
+        
+        self.dropout = 0.6 if add_dropout else 0  # Higher dropout rate
+    
+    def forward(self, x, edge_index=None):  # edge_index not used but kept for API compatibility
+        for i in range(len(self.layers) - 1):
+            x = self.layers[i](x)
+            x = F.relu(x)
+            if self.dropout > 0:
+                x = F.dropout(x, p=self.dropout, training=self.training)
+        
+        x = self.layers[-1](x)
+        return x
+
+
+def show_args(args, model_name, dataset_name, scenario):
+    """
+    Display all arguments and configuration settings
+    """
     print("========================================")
     print("Arguments:")
     for arg in vars(args):
         print(f"\t{arg}: {getattr(args, arg)}")
     print(f"\tModel name: {model_name}")
+    print(f"\tDataset: {dataset_name}")
+    print(f"\tScenario: {scenario}")
     print("========================================")
+
 
 def load_graph(path: str):
     """
-    Load the graph
+    Load the graph data from specified path
+    
+    The function handles PyTorch Geometric data loading issues with weights_only parameter
     """
-    graph = torch.load(path)
+    try:
+        # First try with the safer option
+        graph = torch.load(path, weights_only=True)
+    except Exception as e:
+        print(f"Could not load with weights_only=True: {str(e)}")
+        print("Trying to load without weights_only restriction...")
+        
+        # Try to load without the weights_only restriction
+        # This is safe for your own graph data files
+        graph = torch.load(path)
+    
     print(f"Graph loaded from {path}")
     return graph
 
-def get_model_criterion_optimizer(graph_data, base_model: str, dropout: bool):
+
+def get_model_criterion_optimizer(graph_data, base_model: str, dropout: bool, hidden_channels=16, 
+                              num_layers=2, lr=0.0001, weight_decay=5e-4, class_balance=True):
+    """
+    Initialize model, loss function, and optimizer
+    
+    Args:
+        graph_data: The loaded graph data
+        base_model: Model type (GCN, GAT, LSTM, MLP)
+        dropout: Whether to use dropout regularization
+        hidden_channels: Number of hidden units
+        num_layers: Number of layers for LSTM/MLP
+        lr: Learning rate
+        weight_decay: Weight decay factor for regularization
+        class_balance: Whether to use class weights in loss function
+        
+    Returns:
+        model, criterion, optimizer
+    """
+    # Initialize the appropriate model
     if base_model == "GCN":
-        model = GCN(in_channels=graph_data.num_features, hidden_channels=16, out_channels=2, add_dropout=dropout)
+        model = GCN(in_channels=graph_data.num_features, hidden_channels=hidden_channels, 
+                   out_channels=2, add_dropout=dropout)
     elif base_model == "GAT":
-        model = GAT(in_channels=graph_data.num_features, hidden_channels=16, out_channels=2, add_dropout=dropout)
-    criterion = torch.nn.CrossEntropyLoss()
-    optimizer = Adam(model.parameters(), lr=0.0001)
+        model = GAT(in_channels=graph_data.num_features, hidden_channels=hidden_channels, 
+                   out_channels=2, add_dropout=dropout)
+    elif base_model == "LSTM":
+        model = LSTMClassifier(in_channels=graph_data.num_features, hidden_channels=hidden_channels, 
+                              out_channels=2, num_layers=num_layers, add_dropout=dropout)
+    elif base_model == "MLP":
+        model = MLPClassifier(in_channels=graph_data.num_features, hidden_channels=hidden_channels, 
+                             out_channels=2, num_layers=num_layers, add_dropout=dropout)
+    
+    # Determine device - get it from graph_data tensors
+    device = graph_data.x.device
+    
+    # Handle class imbalance
+    if class_balance:
+        # Calculate class weights
+        labels = graph_data.y[graph_data.labeled_mask].cpu().numpy()
+        class_counts = np.bincount(labels)
+        total = len(labels)
+        class_weights = total / (class_counts * len(class_counts))
+        # Move weights tensor to the same device as the model
+        weights = torch.FloatTensor(class_weights).to(device)
+        print(f"Using class weights: {class_weights}")
+        criterion = torch.nn.CrossEntropyLoss(weight=weights)
+    else:
+        criterion = torch.nn.CrossEntropyLoss()
+    
+    # Use weight decay to control overfitting
+    optimizer = Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     return model, criterion, optimizer
 
-def train_val_test(graph_data, model, criterion, optimizer, n_epochs=300, output_dir='weights', model_name='model'):
 
+def train_val_test(graph_data, model, criterion, optimizer, n_epochs=300, patience=20, 
+                  output_dir='results', model_name='model'):
+    """
+    Train, validate, and test the model
+    
+    Args:
+        graph_data: Graph data with features and labels
+        model: The initialized model
+        criterion: Loss function
+        optimizer: Optimizer
+        n_epochs: Maximum number of training epochs
+        patience: Early stopping patience
+        output_dir: Directory to save results
+        model_name: Name of the model
+        
+    Returns:
+        Various training metrics and statistics
+    """
+    # Create output directory
     os.makedirs(output_dir, exist_ok=True)
+    model_path = f"{output_dir}/{model_name}.pt"
 
     def train(graph_data):
+        """Train for a single epoch"""
         model.train()
         optimizer.zero_grad()
-        out = model(graph_data.x, graph_data.edge_index)
+        out = model(graph_data.x, graph_data.edge_index if hasattr(graph_data, 'edge_index') else None)
+
         loss = criterion(out[graph_data.labeled_mask], graph_data.y[graph_data.labeled_mask])
         
         # Backpropagation and optimization
@@ -47,7 +249,6 @@ def train_val_test(graph_data, model, criterion, optimizer, n_epochs=300, output
         optimizer.step()
         
         # Calculate training accuracy
-        # in training phase, we only learn from the labeled_mask data
         pred = out[graph_data.labeled_mask].argmax(dim=1)  # Predicted labels
         correct = (pred == graph_data.y[graph_data.labeled_mask]).sum().item()  # Correct predictions
         train_acc = correct / graph_data.labeled_mask.sum().item()  # Training accuracy
@@ -55,174 +256,353 @@ def train_val_test(graph_data, model, criterion, optimizer, n_epochs=300, output
         return train_acc, loss.item()
 
     def validate(graph_data):
+        """Validate model performance"""
         model.eval()
         with torch.no_grad():
-            out = model(graph_data.x, graph_data.edge_index)
+            out = model(graph_data.x, graph_data.edge_index if hasattr(graph_data, 'edge_index') else None)
             val_loss = criterion(out[graph_data.test_mask], graph_data.y[graph_data.test_mask])
             val_pred = out[graph_data.test_mask].argmax(dim=1)
             val_correct = (val_pred == graph_data.y[graph_data.test_mask]).sum().item()
             val_acc = val_correct / graph_data.test_mask.sum().item()
-        return val_acc, val_loss.item()
+            
+            # Calculate F1 score
+            y_true = graph_data.y[graph_data.test_mask].cpu().numpy()
+            y_pred = val_pred.cpu().numpy()
+            val_f1 = f1_score(y_true, y_pred, average='binary', zero_division=0)
+            
+        return val_acc, val_loss.item(), val_f1
 
-    def test(graph_data):
-        model.eval()
-        with torch.no_grad():
-            out = model(graph_data.x, graph_data.edge_index)
-            test_pred = out[graph_data.test_mask].argmax(dim=1)
-            test_correct = (test_pred == graph_data.y[graph_data.test_mask]).sum().item()
-            test_acc = test_correct / graph_data.test_mask.sum().item()
-        return test_acc
-        
-
-    # record
+    # Initialize records
     train_accs, train_losses = [], []
-    val_accs, val_losses = [], []
-    best_loss = float('inf')
+    val_accs, val_losses, val_f1s = [], [], []
+    best_val_loss = float('inf')
+    best_val_f1 = 0
+    best_epoch = -1
+    no_improve = 0
+    start_time = time.time()
 
     # Train the model
     for epoch in range(n_epochs):
-
         train_acc, train_loss = train(graph_data)
-        val_acc, val_loss = validate(graph_data)
+        val_acc, val_loss, val_f1 = validate(graph_data)
 
         # Store metrics for each epoch
         train_losses.append(train_loss)
         train_accs.append(train_acc)
         val_losses.append(val_loss)
         val_accs.append(val_acc)
+        val_f1s.append(val_f1)
 
-        print(f'Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Train Loss: {train_loss:.4f}, Val Acc: {val_acc:.4f}, Val Loss: {val_loss:.4f}')
+        print(f'Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Train Loss: {train_loss:.4f}, '
+              f'Val Acc: {val_acc:.4f}, Val Loss: {val_loss:.4f}, Val F1: {val_f1:.4f}')
 
-        # Save the best model
-        if val_loss < best_loss:
-            best_loss = val_loss
-            torch.save(model.state_dict(), f"{output_dir}/{model_name}.pt")
-            print(f"Model saved at {output_dir}/{model_name}.pt")
+        # Save best model (based on validation F1 score)
+        improved = False
+        if val_f1 > best_val_f1:
+            best_val_f1 = val_f1
+            best_epoch = epoch
+            torch.save(model.state_dict(), model_path)
+            print(f"Model saved at {model_path} (epoch {epoch}, best F1: {val_f1:.4f})")
+            improved = True
+            no_improve = 0
+        
+        # Also count as improvement if validation loss decreases
+        elif val_loss < best_val_loss:
+            best_val_loss = val_loss
+            if not improved:  # Avoid duplicate save
+                best_epoch = epoch
+                torch.save(model.state_dict(), model_path)
+                print(f"Model saved at {model_path} (epoch {epoch}, best loss: {val_loss:.4f})")
+                improved = True
+                no_improve = 0
+        
+        # Early stopping mechanism
+        if not improved:
+            no_improve += 1
+            if no_improve >= patience:
+                print(f"Early stopping at epoch {epoch}, no improvement for {patience} epochs")
+                break
 
-    # Evaluate the model
-    test_acc = test(graph_data)
-    print(f'Test Accuracy (with last epoch model): {test_acc:.4f}')
+    train_time = time.time() - start_time
+    print(f"Training completed in {train_time:.2f} seconds")
+    print(f"Best model saved at epoch {best_epoch}")
 
-    return train_accs, train_losses, val_accs, val_losses, test_acc
+    # Evaluate the model with the final state
+    last_test_acc, last_test_loss, last_test_f1 = validate(graph_data)
+    print(f'Test metrics (with last epoch model): Acc={last_test_acc:.4f}, F1={last_test_f1:.4f}')
 
-def test(model, graph_data):
+    return train_accs, train_losses, val_accs, val_losses, val_f1s, last_test_acc, last_test_f1, train_time, best_epoch
+
+
+def load_best_model(model, model_path):
+    """
+    Load the best model from saved checkpoint
+    
+    Args:
+        model: Model architecture
+        model_path: Path to the saved model weights
+        
+    Returns:
+        Model with loaded weights
+    """
+    try:
+        model.load_state_dict(torch.load(model_path, weights_only=True))
+        print(f"Best model loaded from {model_path}")
+    except Exception as e:
+        print(f"Error loading model: {e}")
+    return model
+
+
+def detailed_test(model, graph_data):
+    """
+    Perform detailed testing and return comprehensive metrics
+    
+    Args:
+        model: Trained model
+        graph_data: Graph data with test samples
+        
+    Returns:
+        Dictionary of evaluation metrics
+    """
     model.eval()
     with torch.no_grad():
-        out = model(graph_data.x, graph_data.edge_index)
-        test_pred = out[graph_data.test_mask].argmax(dim=1)
-        test_correct = (test_pred == graph_data.y[graph_data.test_mask]).sum().item()
-        test_acc = test_correct / graph_data.test_mask.sum().item()
-    return test_acc
+        out = model(graph_data.x, graph_data.edge_index if hasattr(graph_data, 'edge_index') else None)
+        pred = out[graph_data.test_mask].argmax(dim=1)
+        y_true = graph_data.y[graph_data.test_mask].cpu().numpy()
+        y_pred = pred.cpu().numpy()
+        
+        accuracy = accuracy_score(y_true, y_pred)
+        precision = precision_score(y_true, y_pred, average='binary', zero_division=0)
+        recall = recall_score(y_true, y_pred, average='binary', zero_division=0)
+        f1 = f1_score(y_true, y_pred, average='binary', zero_division=0)
+        conf_matrix = confusion_matrix(y_true, y_pred)
+        
+        metrics = {
+            'accuracy': accuracy,
+            'precision': precision,
+            'recall': recall,
+            'f1_score': f1,
+            'confusion_matrix': conf_matrix
+        }
+        
+        return metrics
 
-def save_results(train_accs, train_losses, val_accs, val_losses, last_test_acc, inference_test_acc, model_name, output_dir):
+
+def save_results(train_accs, train_losses, val_accs, val_losses, val_f1s, last_test_acc, last_test_f1, 
+                inference_metrics, model_name, output_dir, train_time, best_epoch):
+    """
+    Save the training results and metrics to files
+    
+    Args:
+        train_accs, train_losses, val_accs, val_losses, val_f1s: Training history
+        last_test_acc, last_test_f1: Final model performance
+        inference_metrics: Detailed evaluation metrics
+        model_name: Name of the model
+        output_dir: Directory to save results
+        train_time: Total training time
+        best_epoch: Epoch with best performance
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    
     with open(f"{output_dir}/{model_name}_results.txt", "w") as f:
-        f.write(f"Train Accuracy: {train_accs}\n")
-        f.write(f"Train Loss: {train_losses}\n")
-        f.write(f"Validation Accuracy: {val_accs}\n")
-        f.write(f"Validation Loss: {val_losses}\n")
-        f.write(f"Test Accuracy (with last epoch model): {last_test_acc}\n")
-        f.write(f"Test Accuracy (with best model): {inference_test_acc}\n")
+        f.write(f"Training Time: {train_time:.2f} seconds\n")
+        f.write(f"Best epoch: {best_epoch}\n")
+        f.write(f"Train Accuracy: {train_accs[-1]:.4f}\n")
+        f.write(f"Train Loss: {train_losses[-1]:.4f}\n")
+        f.write(f"Validation Accuracy: {val_accs[-1]:.4f}\n")
+        f.write(f"Validation Loss: {val_losses[-1]:.4f}\n")
+        f.write(f"Validation F1: {val_f1s[-1]:.4f}\n")
+        f.write(f"Test Accuracy (with last epoch model): {last_test_acc:.4f}\n")
+        f.write(f"Test F1 (with last epoch model): {last_test_f1:.4f}\n")
+        f.write(f"Detailed Metrics (with best model):\n")
+        f.write(f"  Accuracy: {inference_metrics['accuracy']:.4f}\n")
+        f.write(f"  Precision: {inference_metrics['precision']:.4f}\n")
+        f.write(f"  Recall: {inference_metrics['recall']:.4f}\n")
+        f.write(f"  F1 Score: {inference_metrics['f1_score']:.4f}\n")
+        f.write(f"  Confusion Matrix:\n{inference_metrics['confusion_matrix']}\n")
 
-def plot_acc_loss(train_accs, train_losses, val_accs, val_losses, model_name, output_dir):
-    # plot the accuracy and loss in two subplots
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+    # Save training history data
+    np.savez(
+        f"{output_dir}/{model_name}_history.npz",
+        train_accs=train_accs,
+        train_losses=train_losses,
+        val_accs=val_accs,
+        val_losses=val_losses,
+        val_f1s=val_f1s
+    )
+
+
+def plot_acc_loss(train_accs, train_losses, val_accs, val_losses, val_f1s, model_name, output_dir):
+    """
+    Plot training and validation metrics
+    
+    Args:
+        train_accs, train_losses: Training metrics
+        val_accs, val_losses, val_f1s: Validation metrics
+        model_name: Name of the model
+        output_dir: Directory to save the plots
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    fig, axes = plt.subplots(1, 3, figsize=(20, 6))
 
     # Plot accuracy
-    ax1.plot(train_accs, label='Train Accuracy')
-    ax1.plot(val_accs, label='Validation Accuracy')
-    ax1.set_xlabel('Epoch')
-    ax1.set_ylabel('Accuracy')
-    ax1.set_title('Accuracy')
-    ax1.legend()
+    axes[0].plot(train_accs, label='Train Accuracy')
+    axes[0].plot(val_accs, label='Validation Accuracy')
+    axes[0].set_xlabel('Epoch')
+    axes[0].set_ylabel('Accuracy')
+    axes[0].set_title('Accuracy')
+    axes[0].legend()
 
     # Plot loss
-    ax2.plot(train_losses, label='Train Loss')
-    ax2.plot(val_losses, label='Validation Loss')
-    ax2.set_xlabel('Epoch')
-    ax2.set_ylabel('Loss')
-    ax2.set_title('Loss')
-    ax2.legend()
-    plt.title(f"Accuracy and Loss of {model_name.replace('_', ' ')}")
-    plt.savefig(f"{output_dir}/{model_name}_acc_loss.png")
+    axes[1].plot(train_losses, label='Train Loss')
+    axes[1].plot(val_losses, label='Validation Loss')
+    axes[1].set_xlabel('Epoch')
+    axes[1].set_ylabel('Loss')
+    axes[1].set_title('Loss')
+    axes[1].legend()
+    
+    # Plot F1 score
+    axes[2].plot(val_f1s, label='Validation F1 Score', color='green')
+    axes[2].set_xlabel('Epoch')
+    axes[2].set_ylabel('F1 Score')
+    axes[2].set_title('F1 Score')
+    axes[2].legend()
+    
+    plt.suptitle(f"Training Metrics - {model_name.replace('_', ' ')}")
+    plt.tight_layout()
+    plt.savefig(f"{output_dir}/{model_name}_training_metrics.png")
+    plt.close()
 
-def plot_tsne(graph_data, model, model_name):
 
-    # create tsne dir
-    os.makedirs("tsne", exist_ok=True)
+def extract_dataset_scenario(graph_path):
+    """
+    Extract dataset name and scenario from graph path
+    
+    Args:
+        graph_path: Path to the graph file
+        
+    Returns:
+        dataset_name, scenario
+    """
+    # Example: graphs/politifact/8shot_knn5.pt
+    parts = graph_path.split('/')
+    
+    # Extract dataset name (politifact, gossipcop, etc.)
+    dataset_name = parts[-2] if len(parts) > 1 else "unknown"
+    
+    # Extract scenario (8shot_knn5, etc.)
+    filename = parts[-1]
+    scenario = filename.split('.')[0]  # Remove extension
+    
+    return dataset_name, scenario
 
-    fig, axes = plt.subplots(1, 2, figsize=(16, 8))
-
-    # before inference
-    transformed_features = graph_data.x.cpu().numpy()
-    transformed_features = TSNE(n_components=2).fit_transform(transformed_features)
-    axes[0].scatter(transformed_features[:, 0], transformed_features[:, 1], c=graph_data.y.cpu(), cmap='coolwarm', s=3)
-    axes[0].set_title("Before Training")
-
-    # after inference
-    model.eval()
-    with torch.no_grad():
-        transformed_features = model(graph_data.x, graph_data.edge_index)
-        transformed_features = transformed_features.cpu().numpy()
-        transformed_features = TSNE(n_components=2).fit_transform(transformed_features)
-    axes[1].scatter(transformed_features[:, 0], transformed_features[:, 1], c=graph_data.y.cpu(), cmap='coolwarm', s=3)
-    axes[1].set_title("After Training")
-
-    fig.suptitle(f"t-SNE of {model_name.replace('_', ' ')}")
-    plt.savefig(f"tsne/{model_name}.png")
 
 if __name__ == "__main__":
-    parser = ArgumentParser(description="Train graph by given graph data")
+    parser = ArgumentParser(description="Train graph neural networks for fake news detection")
     parser.add_argument("--graph", type=str, help="path to graph data", required=True)
-    parser.add_argument("--base_model", type=str, default="GCN", help="base model to use", choices=["GCN", "GAT"])
-    parser.add_argument("--dropout", action="store_true", help="Enable dropout")
+    parser.add_argument("--base_model", type=str, default="GAT", 
+                        help="base model to use", choices=["GCN", "GAT", "LSTM", "MLP"])
+    parser.add_argument("--dropout", action="store_true", help="Enable dropout", default=True)
     parser.add_argument("--no-dropout", dest="dropout", action="store_false", help="Disable dropout")
     parser.add_argument("--n_epochs", type=int, default=300, help="number of epochs")
-    parser.add_argument("--train_all", action="store_true", help="train all data (ignore labeled_mask)")
-    parser.add_argument("--output_dir", type=str, default="weights", help="path to save the weights")
+    parser.add_argument("--hidden_channels", type=int, default=64, help="number of hidden channels")
+    parser.add_argument("--num_layers", type=int, default=2, help="number of layers in LSTM/MLP")
+    parser.add_argument("--lr", type=float, default=0.0001, help="learning rate")
+    parser.add_argument("--weight_decay", type=float, default=5e-4, help="weight decay for regularization")
+    parser.add_argument("--patience", type=int, default=20, help="patience for early stopping")
+    parser.add_argument("--use_train_mask", action="store_true", help="use train_mask instead of labeled_mask")
+    parser.add_argument("--no_class_balance", action="store_true", help="disable class balancing in loss function")
 
     args = parser.parse_args()
-    graph = args.graph
+    graph_path = args.graph
     base_model = args.base_model
     dropout = args.dropout
     n_epochs = args.n_epochs
-    train_all = args.train_all
-    output_dir = args.output_dir
+    hidden_channels = args.hidden_channels
+    num_layers = args.num_layers
+    lr = args.lr
+    weight_decay = args.weight_decay
+    patience = args.patience
+    use_train_mask = args.use_train_mask
+    class_balance = not args.no_class_balance
 
-    # show arguments
-    model_name = f"{base_model}_{graph.split('/')[-1].split('.')[0]}"
-    if train_all:
-        model_name = f"{model_name}_train_all"
-    show_args(args, model_name)
+    # Extract dataset name and scenario from graph path
+    dataset_name, scenario = extract_dataset_scenario(graph_path)
+    
+    # Format model name
+    model_name = f"{base_model}"
 
-    # device
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # Create output directory structure: results/model/dataset/scenario
+    output_dir = os.path.join("results", model_name, dataset_name, scenario)
+    
+    # Show arguments
+    show_args(args, model_name, dataset_name, scenario)
+
+    # Select device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using {device} device")
 
-    # load graph
-    graph = load_graph(graph)
-
-    if train_all:
-        print("Training all training nodes (ignoring labeled_mask)")
-        graph.labeled_mask = graph.train_mask
-
-    # get model, criterion, optimizer
-    model, criterion, optimizer = get_model_criterion_optimizer(graph, base_model, dropout)
-
-    # train, validate, test
-    train_accs, train_losses, val_accs, val_losses, last_test_acc = train_val_test(graph, model, criterion, optimizer, n_epochs, output_dir, model_name)
-
-    # load the best model
-    model.load_state_dict(torch.load(f"{output_dir}/{model_name}.pt", weights_only=True))
-
-    # test the best model
-    inference_test_acc = test(model, graph)
-    print(f"Test accuracy (with best model): {inference_test_acc}")
-
-    # save results
-    save_results(train_accs, train_losses, val_accs, val_losses, last_test_acc, inference_test_acc, model_name, output_dir)
-
-    # plot the accuracy and loss at same plot
-    plot_acc_loss(train_accs, train_losses, val_accs, val_losses, model_name, output_dir)
+    # Load graph
+    graph_data = load_graph(graph_path)
     
-    # plot t-SNE, before and after training
-    plot_tsne(graph, model, model_name)
+    # Move graph data to device
+    graph_data.x = graph_data.x.to(device)
+    graph_data.y = graph_data.y.to(device)
+    graph_data.train_mask = graph_data.train_mask.to(device)
+    graph_data.test_mask = graph_data.test_mask.to(device)
+    
+    # Move edge_index to device if it exists
+    if hasattr(graph_data, 'edge_index'):
+        graph_data.edge_index = graph_data.edge_index.to(device)
+    
+    # Move edge_attr to device if it exists
+    if hasattr(graph_data, 'edge_attr'):
+        graph_data.edge_attr = graph_data.edge_attr.to(device)
+
+    # Check if labeled_mask is all zero(indicates no labeled nodes)
+    if graph_data.labeled_mask.sum() == 0:
+        graph_data.labeled_mask = graph_data.train_mask
+
+    # Display class distribution
+    train_labels = graph_data.y[graph_data.labeled_mask].cpu().numpy()
+    class_counts = np.bincount(train_labels)
+    print(f"Training class distribution: Real={class_counts[0]}, Fake={class_counts[1]}")
+    
+    test_labels = graph_data.y[graph_data.test_mask].cpu().numpy()
+    test_counts = np.bincount(test_labels)
+    print(f"Test class distribution: Real={test_counts[0]}, Fake={test_counts[1]}")
+
+    # Initialize model, criterion, optimizer
+    model, criterion, optimizer = get_model_criterion_optimizer(
+        graph_data, base_model, dropout, hidden_channels, num_layers, lr, weight_decay, class_balance
+    )
+    model = model.to(device)
+
+    # Train, validate, test
+    train_accs, train_losses, val_accs, val_losses, val_f1s, last_test_acc, last_test_f1, train_time, best_epoch = train_val_test(
+        graph_data, model, criterion, optimizer, n_epochs, patience, output_dir, model_name
+    )
+
+    # Load best model and evaluate
+    model_path = f"{output_dir}/{model_name}.pt"
+    model = load_best_model(model, model_path)
+
+    # Get detailed evaluation metrics
+    metrics = detailed_test(model, graph_data)
+    print("\nDetailed Test Metrics (Best Model):")
+    print(f"Accuracy: {metrics['accuracy']:.4f}")
+    print(f"Precision: {metrics['precision']:.4f}")
+    print(f"Recall: {metrics['recall']:.4f}")
+    print(f"F1 Score: {metrics['f1_score']:.4f}")
+    print("Confusion Matrix:")
+    print(metrics['confusion_matrix'])
+
+    # Save results
+    save_results(
+        train_accs, train_losses, val_accs, val_losses, val_f1s,
+        last_test_acc, last_test_f1, metrics,
+        model_name, output_dir, train_time, best_epoch
+    )
+
+    # Plot training metrics
+    plot_acc_loss(train_accs, train_losses, val_accs, val_losses, val_f1s, model_name, output_dir)
