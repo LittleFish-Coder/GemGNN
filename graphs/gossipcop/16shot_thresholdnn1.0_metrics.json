@@ -1,0 +1,19 @@
+{
+  "num_nodes": 12660,
+  "num_edges": 88235316,
+  "num_train_nodes": 9988,
+  "num_test_nodes": 2672,
+  "num_labeled_nodes": 32,
+  "avg_degree": 6969.6142180094785,
+  "edge_types": {
+    "train-train": 55021207,
+    "train-test": 29312826,
+    "test-test": 3901283
+  },
+  "fake_to_fake": 3887996,
+  "real_to_real": 55705423,
+  "fake_to_real": 28641897,
+  "homophilic_edges": 59593419,
+  "heterophilic_edges": 28641897,
+  "homophily_ratio": 0.6753919145028052
+}
