@@ -20,7 +20,7 @@ for model in "${models[@]}"; do
             
             # Run the graph building with logging
             python train_graph.py \
-                --model "$model" \
+                --base_model "$model" \
                 --graph "graphs/${dataset}/${k_shot}shot_knn5.pt" \
                 > "logs/${model}_${dataset}_${k_shot}shot_knn5.log" 2>&1
         done
