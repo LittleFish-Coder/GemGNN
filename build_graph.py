@@ -23,6 +23,7 @@ SEED = 42  # Use the same SEED as finetune_lm.py
 DEFAULT_K_NEIGHBORS = 5 
 GRAPH_DIR = "graphs"
 PLOT_DIR = "plots"
+DEFAULT_EMBEDDING_TYPE = "roberta"  # Default to RoBERTa embeddings
 
 def set_seed(seed: int = SEED) -> None:
     """Set seed for reproducibility across all random processes."""
@@ -53,6 +54,7 @@ class GraphBuilder:
         output_dir: str = GRAPH_DIR,
         plot: bool = False,
         seed: int = SEED,
+        embedding_type: str = DEFAULT_EMBEDDING_TYPE,
         device: str = None,
     ):
         """Initialize the GraphBuilder with configuration parameters."""
@@ -63,8 +65,9 @@ class GraphBuilder:
         self.threshold_factor = threshold_factor
         self.plot = plot
         self.seed = seed
+        self.embedding_type = embedding_type.lower()
         
-        # Setup directory paths
+        # Setup directory paths (keep dataset name only for directories)
         self.output_dir = os.path.join(output_dir, self.dataset_name)
         self.plot_dir = os.path.join(PLOT_DIR, self.dataset_name)
         
@@ -85,7 +88,7 @@ class GraphBuilder:
     
     def load_dataset(self) -> None:
         """Load dataset from HuggingFace and prepare it for graph construction."""
-        print(f"Loading dataset '{self.dataset_name}'...")
+        print(f"Loading dataset '{self.dataset_name}' with {self.embedding_type} embeddings...")
         
         # Format dataset name for HuggingFace
         hf_dataset_name = f"LittleFish-Coder/Fake_News_{self.dataset_name.capitalize()}"
@@ -185,15 +188,35 @@ class GraphBuilder:
     
     def build_empty_graph(self) -> Data:
         """Build a graph with nodes but without edges."""
-        print("Building graph nodes (without edges)...")
+        print(f"Building graph nodes using {self.embedding_type} embeddings (without edges)...")
         
         train_data = self.dataset["train"]
         test_data = self.dataset["test"]
         
+        # Determine which embedding field to use based on embedding_type
+        embedding_field = f"{self.embedding_type}_embeddings"
+        
+        # Check if the embedding field exists
+        if embedding_field not in train_data.features and embedding_field not in test_data.features:
+            available_fields = [f for f in train_data.features if "_embeddings" in f]
+            if not available_fields:
+                raise ValueError(f"No embedding fields found in the dataset. Available fields: {train_data.features}")
+            
+            # Fall back to "embeddings" if it exists and no specific embedding field is found
+            if "embeddings" in train_data.features:
+                embedding_field = "embeddings"
+                print(f"Warning: {self.embedding_type}_embeddings not found. Using 'embeddings' field instead.")
+            else:
+                # Use the first available embedding field
+                embedding_field = available_fields[0]
+                print(f"Warning: {self.embedding_type}_embeddings not found. Using '{embedding_field}' field instead.")
+        
+        print(f"Using embeddings from field: '{embedding_field}'")
+        
         # Get embeddings and labels
-        train_embeddings = np.array(train_data["embeddings"])
+        train_embeddings = np.array(train_data[embedding_field])
         train_labels = np.array(train_data["label"])
-        test_embeddings = np.array(test_data["embeddings"])
+        test_embeddings = np.array(test_data[embedding_field])
         test_labels = np.array(test_data["label"])
         
         # Calculate number of nodes
@@ -406,8 +429,8 @@ class GraphBuilder:
         if self.graph_data is None:
             raise ValueError("Graph must be built before saving")
         
-        # Generate graph name
-        graph_name = f"{self.k_shot}shot_{self.edge_policy}{self.k_neighbors if self.edge_policy == 'knn' else self.threshold_factor}"
+        # Generate graph name - include embedding type in the filename only
+        graph_name = f"{self.k_shot}shot_{self.embedding_type}_{self.edge_policy}{self.k_neighbors if self.edge_policy == 'knn' else self.threshold_factor}"
         
         # Save graph data
         graph_path = os.path.join(self.output_dir, f"{graph_name}.pt")
@@ -520,7 +543,7 @@ class GraphBuilder:
         plt.legend(handles=legend_elements, loc='upper right')
         
         # Add title
-        title = f"{self.dataset_name.capitalize()} - {self.edge_policy.upper()}"
+        title = f"{self.dataset_name.capitalize()} - {self.edge_policy.upper()} ({self.embedding_type.upper()})"
         if self.graph_data.num_nodes > max_nodes:
             title += f"\n(showing {max_nodes} of {self.graph_data.num_nodes} nodes)"
         
@@ -586,6 +609,15 @@ def parse_arguments():
         help="Threshold factor for threshold-based edge construction (default: 1.0)",
     )
     
+    # New argument for embedding type
+    parser.add_argument(
+        "--embedding_type",
+        type=str,
+        default=DEFAULT_EMBEDDING_TYPE,
+        help=f"Type of embeddings to use (default: {DEFAULT_EMBEDDING_TYPE})",
+        choices=["bert", "roberta"],
+    )
+    
     # Output arguments
     parser.add_argument(
         "--output_dir",
@@ -625,6 +657,7 @@ def main() -> None:
     print("Fake News Detection - Graph Building Pipeline")
     print("="*60)
     print(f"Dataset:          {args.dataset_name}")
+    print(f"Embedding type:   {args.embedding_type}")
     print(f"Few-shot k:       {args.k_shot} per class")
     print(f"Edge policy:      {args.edge_policy}")
     
@@ -650,7 +683,8 @@ def main() -> None:
         threshold_factor=args.threshold_factor,
         output_dir=args.output_dir,
         plot=args.plot,
-        seed=args.seed
+        seed=args.seed,
+        embedding_type=args.embedding_type
     )
     
     # Run pipeline
@@ -660,6 +694,7 @@ def main() -> None:
     print("\n" + "="*60)
     print("Graph Building Complete")
     print("="*60)
+    print(f"Embedding type:   {args.embedding_type}")
     print(f"Nodes:            {graph_data.num_nodes}")
     print(f"Features:         {graph_data.num_features}")
     print(f"Edges:            {graph_data.edge_index.shape[1]}")
