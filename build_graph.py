@@ -169,6 +169,8 @@ class GraphBuilder:
         
         if self.edge_policy == "knn":
             edges, edge_attr = self._build_knn_edges(embeddings, self.k_neighbors)
+        elif self.edge_policy == "mutual_knn":
+            edges, edge_attr = self._build_mutual_knn_edges(embeddings, self.k_neighbors)
         elif self.edge_policy == "thresholdnn":
             edges, edge_attr = self._build_threshold_edges(embeddings, self.threshold_factor)
         else:
@@ -311,6 +313,37 @@ class GraphBuilder:
         
         return edge_index, edge_attr
     
+    def _build_mutual_knn_edges(self, embeddings: np.ndarray, k: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Build edges using mutual k-nearest neighbors approach."""
+        print(f"Building mutual KNN graph with k={k}...")
+        
+        # Compute cosine distances
+        distances = pairwise_distances(embeddings, metric='cosine')
+        
+        # For each node, find k nearest neighbors
+        rows, cols, data = [], [], []
+        for i in tqdm(range(len(embeddings)), desc="Finding mutual neighbors"):
+            # Skip self (distance=0)
+            dist_i = distances[i].copy()
+            dist_i[i] = float('inf')
+            
+            # Get indices of k smallest distances
+            indices = np.argpartition(dist_i, k)[:k]
+            
+            # Check mutuality
+            for j in indices:
+                if i in np.argpartition(distances[j], k)[:k]:
+                    rows.append(i)
+                    cols.append(j)
+                    # Convert distance to similarity
+                    data.append(1 - distances[i, j])
+        
+        # Create PyTorch tensors
+        edge_index = torch.tensor(np.vstack((rows, cols)), dtype=torch.long)
+        edge_attr = torch.tensor(data, dtype=torch.float).unsqueeze(1)
+        
+        return edge_index, edge_attr
+
     def _build_threshold_edges(self, embeddings: np.ndarray, threshold_factor: float) -> Tuple[torch.Tensor, torch.Tensor]:
         """Build edges using threshold-based approach."""
         print(f"Building threshold graph with factor={threshold_factor}...")
@@ -372,7 +405,9 @@ class GraphBuilder:
         
         # Edge type analysis
         edge_types = {"train-train": 0, "train-test": 0, "test-test": 0}
-        
+        # Calculate the degree of each node
+        degrees = torch.zeros(self.graph_data.num_nodes, dtype=torch.long)
+
         for edge in tqdm(self.graph_data.edge_index.t(), desc="Analyzing edge types"):
             source, target = edge
             if self.graph_data.train_mask[source] and self.graph_data.train_mask[target]:
@@ -382,8 +417,14 @@ class GraphBuilder:
                 edge_types["train-test"] += 1
             elif self.graph_data.test_mask[source] and self.graph_data.test_mask[target]:
                 edge_types["test-test"] += 1
+            degrees[source] += 1
+            degrees[target] += 1
         
         self.graph_metrics["edge_types"] = edge_types
+
+        # Find nodes with degree 0
+        isolated_nodes = (degrees == 0).nonzero(as_tuple=True)[0].tolist()
+        self.graph_metrics["isolated_nodes"] = len(isolated_nodes)
         
         # Calculate connectivity patterns between fake/real news
         fake_to_fake = 0
@@ -430,7 +471,7 @@ class GraphBuilder:
             raise ValueError("Graph must be built before saving")
         
         # Generate graph name - include embedding type in the filename only
-        graph_name = f"{self.k_shot}shot_{self.embedding_type}_{self.edge_policy}{self.k_neighbors if self.edge_policy == 'knn' else self.threshold_factor}"
+        graph_name = f"{self.k_shot}shot_{self.embedding_type}_{self.edge_policy}{self.k_neighbors if self.edge_policy in ['knn', 'mutual_knn'] else self.threshold_factor}"
         
         # Save graph data
         graph_path = os.path.join(self.output_dir, f"{graph_name}.pt")
@@ -594,7 +635,7 @@ def parse_arguments():
         type=str,
         default="knn",
         help="Edge construction policy (default: knn)",
-        choices=["knn", "thresholdnn"],
+        choices=["knn", "mutual_knn", "thresholdnn"],
     )
     parser.add_argument(
         "--k_neighbors",
@@ -661,7 +702,7 @@ def main() -> None:
     print(f"Few-shot k:       {args.k_shot} per class")
     print(f"Edge policy:      {args.edge_policy}")
     
-    if args.edge_policy == "knn":
+    if args.edge_policy in ["knn", "mutual_knn"]:
         print(f"K neighbors:      {args.k_neighbors}")
     else:
         print(f"Threshold factor: {args.threshold_factor}")
