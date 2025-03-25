@@ -25,6 +25,14 @@ def sample_k_shot(train_data: Dataset, k: int, seed: int = 42) -> Tuple[List[int
     sampled_data = {key: [] for key in train_data.column_names}
     selected_indices = []
     
+    # count number of samples in each class
+    class_counts = np.bincount(train_data["label"])
+
+    # full-shot scenario, make k equal to the number of samples in the smallest class
+    if k == 0:
+        k = min(class_counts)
+        print(f"Setting k to {k} for full-shot scenario")
+
     # Sample k examples from each class
     labels = set(train_data["label"])
     for label in labels:
