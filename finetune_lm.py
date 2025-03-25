@@ -86,9 +86,7 @@ class FakeNewsTrainer:
             cache_dir="dataset",
         )
         
-        # Sample k-shot if needed
-        if self.k_shot > 0:
-            dataset = self._sample_k_shot(dataset, self.k_shot)
+        dataset = self._sample_k_shot(dataset, self.k_shot)
         
         self.dataset = dataset
         print(f"Dataset loaded and prepared. Train size: {len(dataset['train'])}, Test size: {len(dataset['test'])}")
