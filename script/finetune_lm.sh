@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Models, datasets, and k-shot settings to run
-models=("bert-base-uncased" "distilbert-base-uncased" "roberta-base")
+models=("bert-base-uncased" "roberta-base")
 datasets=("gossipcop" "politifact")
 k_shots=(0 8 16 32 100)
 
@@ -23,7 +23,6 @@ for model in "${models[@]}"; do
         --model_name "$model" \
         --dataset_name "$dataset" \
         --k_shot "$k_shot" \
-        --output_dir "results" \
         > "logs/${model}_${dataset}_${k_shot}shot.log" 2>&1
     done
   done
