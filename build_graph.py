@@ -17,7 +17,7 @@ from utils.sample_k_shot import sample_k_shot
 
 # Constants
 SEED = 42  # Use the same SEED as finetune_lm.py
-DEFAULT_K_NEIGHBORS = 15
+DEFAULT_K_NEIGHBORS = 5
 GRAPH_DIR = "graphs"
 PLOT_DIR = "plots"
 DEFAULT_EMBEDDING_TYPE = "roberta"  # Default to RoBERTa embeddings
@@ -48,6 +48,7 @@ class GraphBuilder:
         edge_policy: str = "knn",
         k_neighbors: int = DEFAULT_K_NEIGHBORS,
         threshold_factor: float = 1.0,
+        alpha: float = 0.5,
         output_dir: str = GRAPH_DIR,
         plot: bool = False,
         seed: int = SEED,
@@ -60,6 +61,7 @@ class GraphBuilder:
         self.edge_policy = edge_policy
         self.k_neighbors = k_neighbors
         self.threshold_factor = threshold_factor
+        self.alpha = alpha
         self.plot = plot
         self.seed = seed
         self.embedding_type = embedding_type.lower()
@@ -168,8 +170,10 @@ class GraphBuilder:
             edges, edge_attr = self._build_knn_edges(embeddings, self.k_neighbors)
         elif self.edge_policy == "mutual_knn":
             edges, edge_attr = self._build_mutual_knn_edges(embeddings, self.k_neighbors)
-        elif self.edge_policy == "thresholdnn":
+        elif self.edge_policy == "threshold":
             edges, edge_attr = self._build_threshold_edges(embeddings, self.threshold_factor)
+        elif self.edge_policy == "dynamic_threshold":
+            edges, edge_attr = self._build_dynamic_threshold_edges(embeddings, self.alpha)
         else:
             raise ValueError(f"Unknown edge policy: {self.edge_policy}")
         
@@ -268,7 +272,6 @@ class GraphBuilder:
         ])
 
         # Detect minority class (assume fake news is minority class)
-        label_counts = np.bincount(labels)
         minority_class = 1  # Assume 1 represents fake news
 
         # For each node, find k nearest neighbors
@@ -331,51 +334,234 @@ class GraphBuilder:
         return edge_index, edge_attr
 
     def _build_threshold_edges(self, embeddings: np.ndarray, threshold_factor: float) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Build edges using threshold-based approach."""
-        print(f"Building threshold graph with factor={threshold_factor}...")
+        """
+        Build edges using a threshold-based approach, optimized for robustness and accuracy.
         
-        # Compute pairwise cosine similarities
-        # Normalize embeddings for faster computation
+        Args:
+            embeddings: Node feature embedding matrix
+            threshold_factor: Factor to adjust the threshold
+            
+        Returns:
+            edge_index: Edge indices (2 x num_edges)
+            edge_attr: Edge attributes (num_edges x 1)
+        """
+        print(f"Building threshold graph with threshold_factor={threshold_factor}...")
+        
+        # Calculate effective embeddings (check and handle NaN and infinite values)
+        if np.isnan(embeddings).any() or np.isinf(embeddings).any():
+            print("Warning: Embeddings contain NaN or infinite values, fixing...")
+            embeddings = np.nan_to_num(embeddings, nan=0.0, posinf=0.0, neginf=0.0)
+        
+        # Normalize embeddings, prevent division by zero
         norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
-        normalized_embeddings = embeddings / np.maximum(norms, 1e-10)  # Avoid division by zero
+        # Ensure no zero-length vectors
+        valid_norms = np.maximum(norms, 1e-10)
+        normalized_embeddings = embeddings / valid_norms
         
+        # Initialize edge storage
         rows, cols, data = [], [], []
-        batch_size = min(1000, len(embeddings))  # Adjust batch size based on memory
+        num_nodes = len(embeddings)
         
-        for i in tqdm(range(0, len(embeddings), batch_size), desc="Computing similarities"):
-            batch_end = min(i + batch_size, len(embeddings))
+        # Process in batches for efficiency
+        batch_size = min(500, num_nodes)
+        
+        for i in tqdm(range(0, num_nodes, batch_size), desc="Computing threshold edges"):
+            batch_end = min(i + batch_size, num_nodes)
             batch = normalized_embeddings[i:batch_end]
             
-            # Compute similarities with all nodes
+            # Explicitly compute cosine similarity
             batch_similarities = np.dot(batch, normalized_embeddings.T)
             
-            # Get mean similarity for each node in batch
-            batch_mean_similarities = np.mean(batch_similarities, axis=1)
-            
-            # Apply threshold factor
+            # Determine threshold and build edges for each node in the batch
             for j in range(batch_end - i):
                 node_idx = i + j
-                node_similarities = batch_similarities[j]
-                node_threshold = batch_mean_similarities[j] * threshold_factor
+                node_similarities = batch_similarities[j].copy()
                 
-                # Find nodes above threshold (excluding self)
-                above_threshold = np.where(node_similarities > node_threshold)[0]
-                valid_nodes = above_threshold[above_threshold != node_idx]
+                # Exclude self-connections
+                node_similarities[node_idx] = -1.0
                 
-                # Add edges
-                for target in valid_nodes:
-                    rows.append(node_idx)
-                    cols.append(target)
-                    data.append(node_similarities[target])
+                # Calculate mean similarity for this node (excluding negative values)
+                positive_similarities = node_similarities[node_similarities > 0]
+                if len(positive_similarities) > 0:
+                    mean_similarity = np.mean(positive_similarities)
+                    # Apply threshold factor
+                    node_threshold = mean_similarity * threshold_factor
+                    
+                    # Find nodes above threshold
+                    above_threshold = np.where(node_similarities > node_threshold)[0]
+                    
+                    # Add edges
+                    for target in above_threshold:
+                        if target != node_idx:  # Additional check for self-connections
+                            rows.append(node_idx)
+                            cols.append(target)
+                            data.append(node_similarities[target])
+        
+        # Error checking
+        if len(rows) == 0:
+            print("Warning: No edges were created! Try reducing the threshold factor.")
+            # To prevent completely disconnected graphs, add edges to most similar nodes
+            for i in range(num_nodes):
+                similarities = np.dot(normalized_embeddings[i], normalized_embeddings.T)
+                similarities[i] = -1.0
+                # Connect to most similar node
+                top_idx = np.argmax(similarities)
+                rows.append(i)
+                cols.append(top_idx)
+                data.append(similarities[top_idx])
         
         # Create PyTorch tensors
         edge_index = torch.tensor(np.vstack((rows, cols)), dtype=torch.long)
         edge_attr = torch.tensor(data, dtype=torch.float).unsqueeze(1)
         
+        print(f"Created {edge_index.shape[1]} edges, average degree {edge_index.shape[1]/num_nodes:.2f}")
+        
+        return edge_index, edge_attr
+
+    def _build_dynamic_threshold_edges(self, embeddings: np.ndarray, alpha: float = 0.5, max_degree: int = None) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Build edges using a dynamic threshold approach with global statistics and power-law degree distribution support.
+        
+        Args:
+            embeddings: Node feature embedding matrix
+            alpha: Coefficient controlling threshold strictness (default: 0.5)
+            max_degree: Maximum degree for each node (default: None, no limit)
+            
+        Returns:
+            edge_index: Edge indices (2 x num_edges)
+            edge_attr: Edge attributes (num_edges x 1)
+        """
+        print(f"Building dynamic threshold graph with alpha={alpha}" + (f", max_degree={max_degree}" if max_degree else "") + "...")
+        
+        # Handle invalid values
+        embeddings = np.nan_to_num(embeddings, nan=0.0, posinf=0.0, neginf=0.0)
+        
+        # Normalize embeddings
+        norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+        valid_norms = np.maximum(norms, 1e-10)
+        normalized_embeddings = embeddings / valid_norms
+        
+        num_nodes = len(embeddings)
+        
+        # 1. Calculate global similarity statistics
+        print("Computing global similarity statistics...")
+        all_similarities = []
+        batch_size = min(500, num_nodes)
+        
+        for i in tqdm(range(0, num_nodes, batch_size), desc="Sampling similarities"):
+            batch_end = min(i + batch_size, num_nodes)
+            
+            # To avoid memory issues, sample only a portion of node pairs for large graphs
+            if num_nodes > 1000:
+                sample_size = min(1000, num_nodes)
+                sample_indices = np.random.choice(num_nodes, size=sample_size, replace=False)
+                
+                for j in range(i, batch_end):
+                    similarities = np.dot(normalized_embeddings[j], normalized_embeddings[sample_indices].T)
+                    # Exclude self-similarity
+                    if j in sample_indices:
+                        idx = np.where(sample_indices == j)[0][0]
+                        similarities[idx] = 0
+                    all_similarities.extend(similarities)
+            else:
+                # For small graphs, compute all similarities
+                batch = normalized_embeddings[i:batch_end]
+                batch_similarities = np.dot(batch, normalized_embeddings.T)
+                
+                for j in range(batch_similarities.shape[0]):
+                    node_idx = i + j
+                    sims = batch_similarities[j]
+                    sims[node_idx] = 0  # Exclude self
+                    all_similarities.extend(sims)
+        
+        # Filter out -1 (possible due to numerical errors)
+        all_similarities = np.array([s for s in all_similarities if s > -0.99])
+        
+        # Calculate statistics
+        sim_mean = np.mean(all_similarities)
+        sim_std = np.std(all_similarities)
+        
+        # 2. Set dynamic threshold using + instead of - for stricter connections
+        dynamic_threshold = sim_mean + alpha * sim_std
+        
+        print(f"Similarity statistics: mean={sim_mean:.4f}, std={sim_std:.4f}")
+        print(f"Dynamic threshold: {dynamic_threshold:.4f}")
+        
+        # 3. Create edges - using power-law degree distribution
+        rows, cols, data = [], [], []
+        
+        # If power-law distribution is desired, assign different target degrees to each node
+        if max_degree is not None:
+            # Generate target degrees following power-law distribution
+            exponent = 2.1  # Typical power-law exponent
+            target_degrees = np.random.power(exponent, size=num_nodes) * max_degree
+            target_degrees = np.maximum(target_degrees, 2).astype(int)  # Minimum degree of 2
+            current_degrees = np.zeros(num_nodes, dtype=int)
+        else:
+            target_degrees = None
+            current_degrees = None
+        
+        # Build edges
+        for i in tqdm(range(num_nodes), desc="Building dynamic threshold edges"):
+            # Compute similarities with all nodes
+            similarities = np.dot(normalized_embeddings[i], normalized_embeddings.T)
+            similarities[i] = -1.0  # Exclude self
+            
+            # Find nodes above threshold
+            above_threshold = np.where(similarities > dynamic_threshold)[0]
+            
+            # Apply degree limit if enabled
+            if target_degrees is not None:
+                remaining = target_degrees[i] - current_degrees[i]
+                
+                if remaining <= 0:
+                    continue  # Node has reached target degree
+                    
+                if len(above_threshold) > remaining:
+                    # Sort by similarity, take top remaining
+                    sorted_indices = above_threshold[np.argsort(similarities[above_threshold])[-remaining:]]
+                else:
+                    sorted_indices = above_threshold
+            else:
+                sorted_indices = above_threshold
+            
+            # Add edges
+            for target in sorted_indices:
+                # If target node has degree limit, check if it has capacity
+                if target_degrees is not None and current_degrees[target] >= target_degrees[target]:
+                    continue
+                    
+                rows.append(i)
+                cols.append(target)
+                data.append(similarities[target])
+                
+                # Update degree counts
+                if target_degrees is not None:
+                    current_degrees[i] += 1
+                    current_degrees[target] += 1
+        
+        # Error checking - ensure edges exist
+        if len(rows) == 0:
+            print("Warning: Threshold too high, no edges created. Adding basic connectivity...")
+            # Add a minimum spanning tree to ensure graph connectivity
+            for i in range(1, num_nodes):
+                similarities = np.dot(normalized_embeddings[i], normalized_embeddings[:i].T)
+                most_similar = np.argmax(similarities)
+                
+                rows.append(i)
+                cols.append(most_similar)
+                data.append(similarities[most_similar])
+        
+        # Create PyTorch tensors
+        edge_index = torch.tensor(np.vstack((rows, cols)), dtype=torch.long)
+        edge_attr = torch.tensor(data, dtype=torch.float).unsqueeze(1)
+        
+        print(f"Created {edge_index.shape[1]} edges, average degree {edge_index.shape[1]/num_nodes:.2f}")
+        
         return edge_index, edge_attr
     
     def _analyze_graph(self) -> None:
-        """Analyze the graph and compute metrics."""
+        """Analyze the graph and compute comprehensive metrics."""
         if self.graph_data is None:
             raise ValueError("Graph must be built before analysis")
         
@@ -441,14 +627,109 @@ class GraphBuilder:
         self.graph_metrics["heterophilic_edges"] = fake_to_real
         self.graph_metrics["homophily_ratio"] = homophilic_edges / total_edges
         
+        # Degree distribution analysis
+        degrees_np = degrees.numpy()
+        unique_degrees, degree_counts = np.unique(degrees_np, return_counts=True)
+        # Convert numpy types to native Python types
+        degree_distribution = {int(k): int(v) for k, v in zip(unique_degrees, degree_counts)}
+        
+        # Calculate degree statistics
+        self.graph_metrics["degree_stats"] = {
+            "min_degree": int(np.min(degrees_np)),
+            "max_degree": int(np.max(degrees_np)),
+            "mean_degree": float(np.mean(degrees_np)),
+            "median_degree": float(np.median(degrees_np)),
+            "std_degree": float(np.std(degrees_np)),
+            "degree_distribution": degree_distribution
+        }
+        
+        # Power-law analysis
+        if len(unique_degrees) > 1:
+            # Fit power-law distribution
+            from scipy import stats
+            # Remove zero degrees for power-law fitting
+            valid_degrees = unique_degrees[unique_degrees > 0]
+            valid_counts = degree_counts[unique_degrees > 0]
+            
+            # Log-transform for linear regression
+            log_degrees = np.log10(valid_degrees)
+            log_counts = np.log10(valid_counts)
+            
+            # Fit linear regression
+            slope, intercept, r_value, p_value, std_err = stats.linregress(log_degrees, log_counts)
+            
+            # Calculate power-law metrics
+            self.graph_metrics["power_law"] = {
+                "exponent": float(-slope),  # Power-law exponent
+                "r_squared": float(r_value**2),  # R-squared value
+                "p_value": float(p_value),
+                "std_err": float(std_err),
+                "is_power_law": p_value < 0.05 and r_value**2 > 0.7  # Rough criteria for power-law
+            }
+        
+        # Calculate clustering coefficient
+        G = to_networkx(self.graph_data, to_undirected=True)
+        clustering_coeffs = nx.clustering(G)
+        avg_clustering = nx.average_clustering(G)
+        
+        self.graph_metrics["clustering"] = {
+            "average_clustering": float(avg_clustering),
+            "clustering_distribution": {
+                str(k): float(v) for k, v in nx.clustering(G).items()
+            }
+        }
+        
+        # Calculate graph density
+        density = nx.density(G)
+        self.graph_metrics["density"] = float(density)
+        
+        # Calculate average path length (if graph is connected)
+        if nx.is_connected(G):
+            avg_path_length = nx.average_shortest_path_length(G)
+            self.graph_metrics["avg_path_length"] = float(avg_path_length)
+        
+        # Calculate assortativity (degree correlation)
+        assortativity = nx.degree_assortativity_coefficient(G)
+        self.graph_metrics["assortativity"] = float(assortativity)
+        
+        # Print comprehensive analysis
         print("\nGraph Analysis Summary:")
         print(f"  Nodes: {self.graph_metrics['num_nodes']}")
         print(f"  Edges: {self.graph_metrics['num_edges']}")
         print(f"  Average degree: {self.graph_metrics['avg_degree']:.2f}")
-        print(f"  Homophily ratio: {self.graph_metrics['homophily_ratio']:.2f}")
-        print("  Edge types:")
+        print(f"  Graph density: {self.graph_metrics['density']:.4f}")
+        print(f"  Average clustering coefficient: {self.graph_metrics['clustering']['average_clustering']:.4f}")
+        print(f"  Assortativity: {self.graph_metrics['assortativity']:.4f}")
+        
+        if "avg_path_length" in self.graph_metrics:
+            print(f"  Average path length: {self.graph_metrics['avg_path_length']:.2f}")
+        
+        print("\n  Degree Statistics:")
+        print(f"    Min degree: {self.graph_metrics['degree_stats']['min_degree']}")
+        print(f"    Max degree: {self.graph_metrics['degree_stats']['max_degree']}")
+        print(f"    Mean degree: {self.graph_metrics['degree_stats']['mean_degree']:.2f}")
+        print(f"    Median degree: {self.graph_metrics['degree_stats']['median_degree']:.2f}")
+        print(f"    Degree std: {self.graph_metrics['degree_stats']['std_degree']:.2f}")
+        
+        if "power_law" in self.graph_metrics:
+            print("\n  Power-Law Analysis:")
+            print(f"    Exponent: {self.graph_metrics['power_law']['exponent']:.2f}")
+            print(f"    R-squared: {self.graph_metrics['power_law']['r_squared']:.4f}")
+            print(f"    P-value: {self.graph_metrics['power_law']['p_value']:.4f}")
+            print(f"    Follows power-law: {'Yes' if self.graph_metrics['power_law']['is_power_law'] else 'No'}")
+        
+        print("\n  Edge Types:")
         for edge_type, count in edge_types.items():
-            print(f"    - {edge_type}: {count} ({count/total_edges*100:.1f})")
+            print(f"    - {edge_type}: {count} ({count/total_edges*100:.1f}%)")
+        
+        print("\n  Class Connectivity:")
+        print(f"    Fake-to-Fake: {fake_to_fake} ({fake_to_fake/total_edges*100:.1f}%)")
+        print(f"    Real-to-Real: {real_to_real} ({real_to_real/total_edges*100:.1f}%)")
+        print(f"    Fake-to-Real: {fake_to_real} ({fake_to_real/total_edges*100:.1f}%)")
+        print(f"    Homophily ratio: {self.graph_metrics['homophily_ratio']:.4f}")
+        
+        if isolated_nodes:
+            print(f"\n  Warning: {len(isolated_nodes)} isolated nodes found!")
         print("")
     
     def save_graph(self) -> str:
@@ -457,7 +738,14 @@ class GraphBuilder:
             raise ValueError("Graph must be built before saving")
         
         # Generate graph name - include embedding type in the filename only
-        graph_name = f"{self.k_shot}shot_{self.embedding_type}_{self.edge_policy}{self.k_neighbors if self.edge_policy in ['knn', 'mutual_knn'] else self.threshold_factor}"
+        # Add appropriate parameter based on edge policy
+        if self.edge_policy in ['knn', 'mutual_knn']:
+            param = self.k_neighbors
+        elif self.edge_policy == 'threshold':
+            param = self.threshold_factor
+        else:  # dynamic_threshold
+            param = self.alpha
+        graph_name = f"{self.k_shot}shot_{self.embedding_type}_{self.edge_policy}{param}"
         
         # Save graph data
         graph_path = os.path.join(self.output_dir, f"{graph_name}.pt")
@@ -612,8 +900,8 @@ def parse_arguments():
         "--k_shot",
         type=int,
         default=8,
-        help="Number of samples per class for few-shot learning (e.g., 0, 8, 16, 32, 100) | 0 = full-shot",
-        choices=[0, 8, 16, 32, 100],
+        help="Number of samples per class for few-shot learning (e.g., 0, 3, 8, 16) | 0 = full-shot",
+        choices=[0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
     )
     
     # Graph construction arguments
@@ -622,7 +910,7 @@ def parse_arguments():
         type=str,
         default="knn",
         help="Edge construction policy (default: knn)",
-        choices=["knn", "mutual_knn", "thresholdnn"],
+        choices=["knn", "mutual_knn", "threshold", "dynamic_threshold"],
     )
     parser.add_argument(
         "--k_neighbors",
@@ -635,6 +923,14 @@ def parse_arguments():
         type=float,
         default=1.0,
         help="Threshold factor for threshold-based edge construction (default: 1.0)",
+    )
+    
+    # Add alpha parameter for dynamic threshold
+    parser.add_argument(
+        "--alpha",
+        type=float,
+        default=0.5,
+        help="Alpha parameter for dynamic threshold edge construction (default: 0.5)",
     )
     
     # New argument for embedding type
@@ -691,8 +987,10 @@ def main() -> None:
     
     if args.edge_policy in ["knn", "mutual_knn"]:
         print(f"K neighbors:      {args.k_neighbors}")
-    else:
+    elif args.edge_policy == "threshold":
         print(f"Threshold factor: {args.threshold_factor}")
+    elif args.edge_policy == "dynamic_threshold":
+        print(f"Alpha:            {args.alpha}")
     
     print(f"Output directory: {args.output_dir}")
     print(f"Plot:             {args.plot}")
@@ -709,6 +1007,7 @@ def main() -> None:
         edge_policy=args.edge_policy,
         k_neighbors=args.k_neighbors,
         threshold_factor=args.threshold_factor,
+        alpha=args.alpha,
         output_dir=args.output_dir,
         plot=args.plot,
         seed=args.seed,

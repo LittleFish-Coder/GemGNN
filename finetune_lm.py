@@ -302,7 +302,7 @@ def parse_arguments() -> Namespace:
         type=int,
         default=8,
         help="Number of samples per class for few-shot learning (default: 8)",
-        choices=[0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+        choices=[0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
     )
     
     # Training parameters
