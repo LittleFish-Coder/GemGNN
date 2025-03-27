@@ -8,7 +8,7 @@ from torch.optim import Adam
 import torch.nn as nn
 import torch.nn.functional as F
 import time
-from torch_geometric.nn import GCNConv, GATConv
+from torch_geometric.nn import GCNConv, GATConv, SAGEConv
 
 
 # GCN model class
@@ -94,6 +94,21 @@ class GAT(nn.Module):
         
         return x
 
+
+# GraphSAGE model class
+class GraphSAGE(nn.Module):
+    def __init__(self, in_channels, hidden_channels, out_channels, add_dropout=True):
+        super(GraphSAGE, self).__init__()
+        self.conv1 = SAGEConv(in_channels, hidden_channels)
+        self.conv2 = SAGEConv(hidden_channels, out_channels)
+        self.dropout = 0.6 if add_dropout else 0.0
+
+    def forward(self, x, edge_index, edge_attr=None):
+        x = self.conv1(x, edge_index, edge_attr)
+        x = F.relu(x)
+        x = F.dropout(x, p=self.dropout, training=self.training)
+        x = self.conv2(x, edge_index, edge_attr)
+        return x
 
 # LSTM baseline model
 class LSTMClassifier(nn.Module):
@@ -516,8 +531,7 @@ def extract_dataset_scenario(graph_path):
     
     # Extract scenario (8shot_knn5, etc.)
     filename = parts[-1]
-    scenario = filename.split('.')[0]  # Remove extension
-    
+    scenario = '.'.join(filename.split('.')[:-1])  # Remove only .pt extension
     return dataset_name, scenario
 
 
@@ -525,7 +539,7 @@ if __name__ == "__main__":
     parser = ArgumentParser(description="Train graph neural networks for fake news detection")
     parser.add_argument("--graph", type=str, help="path to graph data", required=True)
     parser.add_argument("--base_model", type=str, default="GAT", 
-                        help="base model to use", choices=["GCN", "GAT", "LSTM", "MLP"])
+                        help="base model to use", choices=["GCN", "GAT", "GraphSAGE", "LSTM", "MLP"])
     parser.add_argument("--dropout", action="store_true", help="Enable dropout", default=True)
     parser.add_argument("--no-dropout", dest="dropout", action="store_false", help="Disable dropout")
     parser.add_argument("--n_epochs", type=int, default=300, help="number of epochs")
