@@ -197,14 +197,13 @@ def get_model_criterion_optimizer(graph_data, base_model: str, dropout: bool, hi
     
     # Handle class imbalance
     if class_balance:
-        # Calculate class weights
-        labels = graph_data.y[graph_data.labeled_mask].cpu().numpy()
-        class_counts = np.bincount(labels)
-        total = len(labels)
-        class_weights = total / (class_counts * len(class_counts))
-        # Move weights tensor to the same device as the model
-        weights = torch.FloatTensor(class_weights).to(device)
-        print(f"Using class weights: {class_weights}")
+        # Priliminary Knowledge:
+        # In real world, the estimated class weights are approximatey:
+        # Real:Fake = 8:2 (So, we can use this to set the class weights)
+        
+        prior_class_weights = np.array([0.6, 0.4])
+        weights = torch.FloatTensor(prior_class_weights).to(device)
+        print(f"Using class weights: {prior_class_weights}")
         criterion = torch.nn.CrossEntropyLoss(weight=weights)
     else:
         criterion = torch.nn.CrossEntropyLoss()
