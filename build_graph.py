@@ -13,14 +13,11 @@ from torch_geometric.utils import to_networkx
 from tqdm import tqdm
 from argparse import ArgumentParser
 from matplotlib.patches import Patch
-
-# Import the same sampling function used in finetune_lm.py
-# This ensures we select the exact same examples with the same seed
 from utils.sample_k_shot import sample_k_shot
 
 # Constants
 SEED = 42  # Use the same SEED as finetune_lm.py
-DEFAULT_K_NEIGHBORS = 5 
+DEFAULT_K_NEIGHBORS = 15
 GRAPH_DIR = "graphs"
 PLOT_DIR = "plots"
 DEFAULT_EMBEDDING_TYPE = "roberta"  # Default to RoBERTa embeddings
@@ -198,21 +195,6 @@ class GraphBuilder:
         # Determine which embedding field to use based on embedding_type
         embedding_field = f"{self.embedding_type}_embeddings"
         
-        # Check if the embedding field exists
-        if embedding_field not in train_data.features and embedding_field not in test_data.features:
-            available_fields = [f for f in train_data.features if "_embeddings" in f]
-            if not available_fields:
-                raise ValueError(f"No embedding fields found in the dataset. Available fields: {train_data.features}")
-            
-            # Fall back to "embeddings" if it exists and no specific embedding field is found
-            if "embeddings" in train_data.features:
-                embedding_field = "embeddings"
-                print(f"Warning: {self.embedding_type}_embeddings not found. Using 'embeddings' field instead.")
-            else:
-                # Use the first available embedding field
-                embedding_field = available_fields[0]
-                print(f"Warning: {self.embedding_type}_embeddings not found. Using '{embedding_field}' field instead.")
-        
         print(f"Using embeddings from field: '{embedding_field}'")
         
         # Get embeddings and labels
@@ -268,18 +250,7 @@ class GraphBuilder:
         # Display graph structure
         print(f"Graph nodes built with {num_nodes} nodes and {x.shape[1]} features")
         print(f"Labeled nodes: {labeled_mask.sum().item()} (for few-shot learning)")
-        
-        # Print some sample indices to verify
-        if len(self.selected_indices) > 0:
-            print(f"Sample of selected indices (first 5): {sorted(self.selected_indices)[:5]}")
-            # Count distribution of labels in selected indices
-            label_counts = {}
-            for idx in self.selected_indices:
-                label = train_labels[idx]
-                if label not in label_counts:
-                    label_counts[label] = 0
-                label_counts[label] += 1
-            print(f"Label distribution in selected indices: {label_counts}")
+        print("")
         
         return graph_data
     
@@ -290,6 +261,16 @@ class GraphBuilder:
         # Compute cosine distances
         distances = pairwise_distances(embeddings, metric='cosine')
         
+        # Get node labels
+        labels = np.concatenate([
+            np.array(self.dataset["train"]["label"]), 
+            np.array(self.dataset["test"]["label"])
+        ])
+
+        # Detect minority class (assume fake news is minority class)
+        label_counts = np.bincount(labels)
+        minority_class = 1  # Assume 1 represents fake news
+
         # For each node, find k nearest neighbors
         rows, cols, data = [], [], []
         for i in tqdm(range(len(embeddings)), desc="Finding neighbors"):
@@ -297,8 +278,13 @@ class GraphBuilder:
             dist_i = distances[i].copy()
             dist_i[i] = float('inf')
             
+            # get effective k
+            effective_k = k
+            if labels[i] == minority_class:
+                effective_k = min(k * 2, len(embeddings) - 1)  # minority class use 2k
+
             # Get indices of k smallest distances
-            indices = np.argpartition(dist_i, k)[:k]
+            indices = np.argpartition(dist_i, effective_k)[:effective_k]
             
             # Add edges
             for j in indices:
@@ -620,13 +606,14 @@ def parse_arguments():
         type=str,
         default="politifact",
         help="Dataset to use (e.g., politifact, gossipcop, kdd2020, tfg)",
-        choices=["tfg", "kdd2020", "gossipcop", "politifact"],
+        choices=["politifact", "gossipcop", "kdd2020", "tfg"],
     )
     parser.add_argument(
         "--k_shot",
         type=int,
         default=8,
-        help="Number of samples per class for few-shot learning (e.g., 8, 16, 32)",
+        help="Number of samples per class for few-shot learning (e.g., 0, 8, 16, 32, 100) | 0 = full-shot",
+        choices=[0, 8, 16, 32, 100],
     )
     
     # Graph construction arguments
@@ -641,7 +628,7 @@ def parse_arguments():
         "--k_neighbors",
         type=int,
         default=DEFAULT_K_NEIGHBORS,
-        help=f"Number of neighbors for KNN (default: {DEFAULT_K_NEIGHBORS})",
+        help=f"Number of neighbors for KNN or Mutual KNN (default: {DEFAULT_K_NEIGHBORS})",
     )
     parser.add_argument(
         "--threshold_factor",

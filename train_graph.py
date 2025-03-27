@@ -22,9 +22,9 @@ class GCN(nn.Module):
         self.conv2 = GCNConv(hidden_channels, out_channels)
         self.dropout = 0.6 if add_dropout else 0.0  # Higher dropout rate
         
-    def forward(self, x, edge_index):
+    def forward(self, x, edge_index, edge_attr=None):
         # First Graph Convolution layer
-        x = self.conv1(x, edge_index)
+        x = self.conv1(x, edge_index, edge_attr)
         x = F.relu(x)
         x = F.dropout(x, p=self.dropout, training=self.training)
         
@@ -36,36 +36,61 @@ class GCN(nn.Module):
 
 # GAT model class
 class GAT(nn.Module):
-    """
-    Graph Attention Network (GAT) implementation.
-    """
     def __init__(self, in_channels, hidden_channels, out_channels, add_dropout=True, heads=8):
         super(GAT, self).__init__()
-        # First GAT layer with multi-head attention
-        self.conv1 = GATConv(
-            in_channels, 
-            hidden_channels // heads,  # Divide channels by heads for concatenation
-            heads=heads
-        )
         
-        # Output layer with single head
+        # Initial projection layer
+        self.feature_proj = nn.Linear(in_channels, hidden_channels)
+        self.bn1 = nn.BatchNorm1d(hidden_channels)
+        
+        # First GAT layer
+        self.conv1 = GATConv(
+            hidden_channels, 
+            hidden_channels // heads,
+            heads=heads,
+            dropout=0.3  # Attention dropout
+        )
+        self.bn2 = nn.BatchNorm1d(hidden_channels)
+        
+        # Second GAT layer
         self.conv2 = GATConv(
             hidden_channels, 
-            out_channels, 
-            heads=1,  # Single head for output
-            concat=False  # Don't concatenate heads for output layer
+            hidden_channels,
+            heads=1,
+            concat=False,
+            dropout=0.3
         )
+        self.bn3 = nn.BatchNorm1d(hidden_channels)
         
-        self.dropout = 0.6 if add_dropout else 0.0  # Higher dropout rate
+        # Output classifier
+        self.classifier = nn.Linear(hidden_channels, out_channels)
         
-    def forward(self, x, edge_index):
-        # First Graph Attention layer
-        x = self.conv1(x, edge_index)
-        x = F.elu(x)  # ELU is often used with GAT
+        # Higher dropout rate
+        self.dropout = 0.7 if add_dropout else 0.0
+        
+    def forward(self, x, edge_index, edge_attr=None):
+        # Initial feature projection
+        identity = x
+        x = self.feature_proj(x)
+        x = self.bn1(x)
+        x = F.elu(x)
         x = F.dropout(x, p=self.dropout, training=self.training)
         
-        # Second Graph Attention layer
-        x = self.conv2(x, edge_index)
+        # First GAT layer with residual connection
+        identity = x
+        x = self.conv1(x, edge_index, edge_attr)
+        x = self.bn2(x)
+        x = F.elu(x + identity)  # Residual connection
+        x = F.dropout(x, p=self.dropout, training=self.training)
+        
+        # Second GAT layer with residual connection
+        identity = x
+        x = self.conv2(x, edge_index, edge_attr)
+        x = self.bn3(x)
+        x = F.elu(x + identity)  # Residual connection
+        
+        # Output classifier
+        x = self.classifier(x)
         
         return x
 
@@ -201,7 +226,7 @@ def get_model_criterion_optimizer(graph_data, base_model: str, dropout: bool, hi
         # In real world, the estimated class weights are approximatey:
         # Real:Fake = 8:2 (So, we can use this to set the class weights)
         
-        prior_class_weights = np.array([0.6, 0.4])
+        prior_class_weights = np.array([1, 1])
         weights = torch.FloatTensor(prior_class_weights).to(device)
         print(f"Using class weights: {prior_class_weights}")
         criterion = torch.nn.CrossEntropyLoss(weight=weights)
