@@ -3,7 +3,7 @@
 # Models, datasets, and k-shot settings to run
 models=("bert-base-uncased" "roberta-base")
 datasets=("gossipcop" "politifact")
-k_shots=(0 8 16 32 100)
+k_shots=(3 4 5 6 7 8 9 10 11 12 13 14 15 16)
 
 # Create log directory if it doesn't exist
 mkdir -p logs
