@@ -2,11 +2,21 @@
 dataset/
 checkpoints/
 log/
-graph/*/G/
-results/
+indices.json
 
-# graph pt
+# language model weights
+config.json
+*.safetensors
+special_tokens_map.json
+tokenizer_config.json
+tokenizer.json
+*.bin
+vocab.txt
+
+# graph model weights
+*.npz
 *.pt
+*.pth
 
 # OS
 .DS_Store

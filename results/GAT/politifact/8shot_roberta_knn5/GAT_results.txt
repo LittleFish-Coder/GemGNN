@@ -1,0 +1,17 @@
+Training Time: 2.99 seconds
+Best epoch: 98
+Train Accuracy: 0.9375
+Train Loss: 0.3252
+Validation Accuracy: 0.7647
+Validation Loss: 0.4990
+Validation F1: 0.6571
+Test Accuracy (with last epoch model): 0.7647
+Test F1 (with last epoch model): 0.6571
+Detailed Metrics (with best model):
+  Accuracy: 0.7647
+  Precision: 0.5610
+  Recall: 0.7931
+  F1 Score: 0.6571
+  Confusion Matrix:
+[[55 18]
+ [ 6 23]]
