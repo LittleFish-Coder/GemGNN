@@ -225,12 +225,17 @@ def get_model_criterion_optimizer(graph_data, base_model: str, dropout: bool, hi
     elif base_model == "GAT":
         model = GAT(in_channels=graph_data.num_features, hidden_channels=hidden_channels, 
                    out_channels=2, add_dropout=dropout)
+    elif base_model == "GraphSAGE":
+        model = GraphSAGE(in_channels=graph_data.num_features, hidden_channels=hidden_channels, 
+                         out_channels=2, add_dropout=dropout)
     elif base_model == "LSTM":
         model = LSTMClassifier(in_channels=graph_data.num_features, hidden_channels=hidden_channels, 
                               out_channels=2, num_layers=num_layers, add_dropout=dropout)
     elif base_model == "MLP":
         model = MLPClassifier(in_channels=graph_data.num_features, hidden_channels=hidden_channels, 
                              out_channels=2, num_layers=num_layers, add_dropout=dropout)
+    else:
+        raise ValueError(f"Unsupported model type: {base_model}")
     
     # Determine device - get it from graph_data tensors
     device = graph_data.x.device
