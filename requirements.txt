@@ -11,3 +11,7 @@ evaluate
 accelerate
 transformers
 datasets
+
+# GCP Vertex AI Gemini API
+google-cloud-aiplatform
+vertexai
