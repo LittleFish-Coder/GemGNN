@@ -1,0 +1,20 @@
+{
+  "accuracy": 0.43300898203592814,
+  "f1": 0.4667601501712562,
+  "precision": 0.7756882359942439,
+  "recall": 0.43300898203592814,
+  "num_samples": 2672,
+  "num_generation_errors": 0,
+  "run_info": {
+    "model_type": "gemma",
+    "model_hf_id": "google/gemma-7b-it",
+    "dataset_name": "gossipcop",
+    "k_shot": 15,
+    "internal_seed": 42,
+    "max_new_tokens": 10,
+    "batch_size": 4,
+    "max_example_length": 500,
+    "effective_device_type": "cuda",
+    "execution_time_seconds": 2383.573105573654
+  }
+}

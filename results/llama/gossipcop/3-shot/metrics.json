@@ -1,0 +1,20 @@
+{
+  "accuracy": 0.8252245508982036,
+  "f1": 0.8102102226387613,
+  "precision": 0.8050408316701319,
+  "recall": 0.8252245508982036,
+  "num_samples": 2672,
+  "num_generation_errors": 0,
+  "run_info": {
+    "model_type": "llama",
+    "model_hf_id": "meta-llama/Meta-Llama-3-8B-Instruct",
+    "dataset_name": "gossipcop",
+    "k_shot": 3,
+    "internal_seed": 42,
+    "max_new_tokens": 10,
+    "batch_size": 4,
+    "max_example_length": 500,
+    "effective_device_type": "cuda",
+    "execution_time_seconds": 767.5854871273041
+  }
+}

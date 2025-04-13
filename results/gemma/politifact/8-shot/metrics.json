@@ -1,0 +1,20 @@
+{
+  "accuracy": 0.6764705882352942,
+  "f1": 0.6902778902517271,
+  "precision": 0.7250233426704015,
+  "recall": 0.6764705882352942,
+  "num_samples": 102,
+  "num_generation_errors": 0,
+  "run_info": {
+    "model_type": "gemma",
+    "model_hf_id": "google/gemma-7b-it",
+    "dataset_name": "politifact",
+    "k_shot": 8,
+    "internal_seed": 42,
+    "max_new_tokens": 10,
+    "batch_size": 4,
+    "max_example_length": 500,
+    "effective_device_type": "cuda",
+    "execution_time_seconds": 117.06505846977234
+  }
+}
