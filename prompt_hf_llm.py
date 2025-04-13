@@ -43,7 +43,7 @@ def load_and_prepare_data(dataset_name: str, k_shot: int, seed: int) -> Tuple[Da
     print(f"Loading dataset 'LittleFish-Coder/Fake_News_{dataset_name}'...")
     dataset_full_name = f"LittleFish-Coder/Fake_News_{dataset_name.capitalize()}"
     try:
-        dataset = load_dataset(dataset_full_name, cache_dir=os.path.join(os.getcwd(), ".cache", "huggingface", "datasets"))
+        dataset = load_dataset(dataset_full_name, cache_dir="dataset")
     except Exception as e: print(f"Error loading dataset '{dataset_full_name}': {e}"); raise
 
     if "train" not in dataset or "test" not in dataset: raise ValueError("Dataset needs 'train'/'test' splits.")
