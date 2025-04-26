@@ -1,0 +1,8 @@
+{
+  "num_nodes": 12660,
+  "num_edges": 53123113,
+  "avg_degree": 4196.1384676145335,
+  "is_connected": false,
+  "num_components": 38,
+  "density": 0.3314749623337747
+}
