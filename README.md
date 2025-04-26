@@ -19,8 +19,8 @@ Check [installation guide](#installation) to run the code.
 - F1-Score: $2 \cdot \frac{Precision \cdot Recall}{Precision + Recall}$ (main metric)
 
 ## Results
-[gossipcop.png](./results/gossipcop.png)
-[politifact.png](./results/politifact.png)
+![gossipcop.png](./results/gossipcop.png)
+![politifact.png](./results/politifact.png)
 
 
 ## Dataset
