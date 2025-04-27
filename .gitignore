@@ -3,6 +3,7 @@ dataset/
 checkpoints/
 log/
 indices.json
+script/
 
 # language model weights
 config.json
