@@ -110,60 +110,6 @@ class GraphSAGE(nn.Module):
         x = self.conv2(x, edge_index, edge_attr)
         return x
 
-# LSTM baseline model
-class LSTMClassifier(nn.Module):
-    def __init__(self, in_channels, hidden_channels, out_channels, num_layers=1, add_dropout=True):
-        super(LSTMClassifier, self).__init__()
-        self.embedding = nn.Linear(in_channels, hidden_channels)
-        self.lstm = nn.LSTM(hidden_channels, hidden_channels, num_layers, batch_first=True, 
-                            dropout=0.6 if add_dropout and num_layers > 1 else 0)
-        self.fc = nn.Linear(hidden_channels, out_channels)
-        self.dropout = nn.Dropout(0.6 if add_dropout else 0)  # Higher dropout rate
-    
-    def forward(self, x, edge_index=None):  # edge_index not used but kept for API compatibility
-        # Convert node features to sequence format
-        x = self.embedding(x)
-        x = x.unsqueeze(1)  # Add sequence dimension
-        
-        lstm_out, _ = self.lstm(x)
-        lstm_out = lstm_out.squeeze(1)
-        out = self.dropout(lstm_out)
-        out = self.fc(out)
-        return out
-
-
-# MLP baseline model
-class MLPClassifier(nn.Module):
-    def __init__(self, in_channels, hidden_channels, out_channels, num_layers=2, add_dropout=True):
-        super(MLPClassifier, self).__init__()
-        self.layers = nn.ModuleList()
-        
-        # Input layer
-        self.layers.append(nn.Linear(in_channels, hidden_channels))
-        
-        # Hidden layers
-        for i in range(num_layers - 2):
-            self.layers.append(nn.Linear(hidden_channels, hidden_channels))
-        
-        # Output layer
-        if num_layers > 1:
-            self.layers.append(nn.Linear(hidden_channels, out_channels))
-        else:
-            # Direct mapping if num_layers is 1
-            self.layers[0] = nn.Linear(in_channels, out_channels)
-        
-        self.dropout = 0.6 if add_dropout else 0  # Higher dropout rate
-    
-    def forward(self, x, edge_index=None):  # edge_index not used but kept for API compatibility
-        for i in range(len(self.layers) - 1):
-            x = self.layers[i](x)
-            x = F.relu(x)
-            if self.dropout > 0:
-                x = F.dropout(x, p=self.dropout, training=self.training)
-        
-        x = self.layers[-1](x)
-        return x
-
 
 def show_args(args, model_name, dataset_name, scenario):
     """
@@ -228,12 +174,6 @@ def get_model_criterion_optimizer(graph_data, base_model: str, dropout: bool, hi
     elif base_model == "GraphSAGE":
         model = GraphSAGE(in_channels=graph_data.num_features, hidden_channels=hidden_channels, 
                          out_channels=2, add_dropout=dropout)
-    elif base_model == "LSTM":
-        model = LSTMClassifier(in_channels=graph_data.num_features, hidden_channels=hidden_channels, 
-                              out_channels=2, num_layers=num_layers, add_dropout=dropout)
-    elif base_model == "MLP":
-        model = MLPClassifier(in_channels=graph_data.num_features, hidden_channels=hidden_channels, 
-                             out_channels=2, num_layers=num_layers, add_dropout=dropout)
     else:
         raise ValueError(f"Unsupported model type: {base_model}")
     
@@ -544,7 +484,7 @@ if __name__ == "__main__":
     parser = ArgumentParser(description="Train graph neural networks for fake news detection")
     parser.add_argument("--graph", type=str, help="path to graph data", required=True)
     parser.add_argument("--base_model", type=str, default="GAT", 
-                        help="base model to use", choices=["GCN", "GAT", "GraphSAGE", "LSTM", "MLP"])
+                        help="base model to use", choices=["GCN", "GAT", "GraphSAGE"])
     parser.add_argument("--dropout", action="store_true", help="Enable dropout", default=True)
     parser.add_argument("--no-dropout", dest="dropout", action="store_false", help="Disable dropout")
     parser.add_argument("--n_epochs", type=int, default=300, help="number of epochs")
