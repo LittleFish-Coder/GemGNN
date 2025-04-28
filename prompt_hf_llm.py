@@ -282,75 +282,131 @@ def main_hf(args: Namespace):
     set_internal_seed(INTERNAL_SEED)
     start_time = time.time()
 
-    # Determine Model ID
-    if args.model_hf_id: actual_model_hf_id = args.model_hf_id
-    elif args.model_type in DEFAULT_MODEL_IDS: actual_model_hf_id = DEFAULT_MODEL_IDS[args.model_type]
-    else: print(f"Error: Invalid model type '{args.model_type}'."); return
+    # --- 1. Determine Model ID ---
+    if args.model_hf_id:
+        actual_model_hf_id = args.model_hf_id
+    elif args.model_type in DEFAULT_MODEL_IDS:
+        actual_model_hf_id = DEFAULT_MODEL_IDS[args.model_type]
+    else:
+        print(f"Error: Invalid model type '{args.model_type}'. Cannot determine model ID.")
+        return # Exit early if model ID is invalid
     model_type_for_dir = args.model_type
     print(f"Using Hugging Face Model ID: {actual_model_hf_id}")
 
-    # Output Dir
+    # --- 2. Setup Output Directory ---
     shot_str = f"{args.k_shot}-shot"
     output_dir = os.path.join(args.results_base_dir, model_type_for_dir, args.dataset_name, shot_str)
-    try: os.makedirs(output_dir, exist_ok=True); print(f"Results will be saved to: {output_dir}")
-    except OSError as e: print(f"Error creating output dir {output_dir}: {e}"); return
-
-    # Load Data
     try:
-        dataset, k_shot_examples, k_shot_indices_info = load_and_prepare_data(args.dataset_name, args.k_shot, INTERNAL_SEED)
-        if k_shot_indices_info:
-            with open(os.path.join(output_dir, "k_shot_indices.json"), "w") as f: json.dump(k_shot_indices_info, f, indent=2)
-            print(f"K-shot indices saved.")
-    except Exception as e: print(f"Failed to load data: {e}"); return
+        os.makedirs(output_dir, exist_ok=True)
+        print(f"Results will be saved to: {output_dir}")
+    except OSError as e:
+        print(f"Error creating output directory {output_dir}: {e}")
+        return # Exit if directory cannot be created
 
-    # Setup Model (Removed 4-bit flag)
+    # --- 3. Load Data ---
+    dataset = None
+    k_shot_examples = []
+    k_shot_indices_info = None
+    try:
+        dataset, k_shot_examples, k_shot_indices_info = load_and_prepare_data(
+            args.dataset_name, args.k_shot, INTERNAL_SEED
+        )
+        if k_shot_indices_info:
+            indices_path = os.path.join(output_dir, "k_shot_indices.json")
+            with open(indices_path, "w") as f:
+                json.dump(k_shot_indices_info, f, indent=2)
+            print(f"K-shot indices saved to {indices_path}")
+    except Exception as e:
+        print(f"Failed to load or prepare data: {e}")
+        return # Exit if data loading fails
+
+    # --- 4. Setup Model and Tokenizer ---
+    model = None
+    tokenizer = None
+    effective_device_type = "cpu"
     try:
         model, tokenizer, effective_device_type = setup_hf_model_and_tokenizer(actual_model_hf_id)
-        print(f"Setup complete. Effective device type: {effective_device_type}")
-    except Exception as e: print(f"Failed to setup model: {e}"); return
+        print(f"Model setup complete. Effective device type: {effective_device_type}")
+    except Exception as e:
+        print(f"Failed to setup model: {e}")
+        # Cleanup potentially loaded data before exiting
+        del dataset, k_shot_examples
+        gc.collect()
+        return # Exit if model setup fails
 
-    # Run Evaluation
+    # --- 5. Run Evaluation ---
+    metrics = None
+    predictions_data = None
     try:
         metrics, predictions_data = run_hf_evaluation(
-            model, tokenizer, actual_model_hf_id, # Pass model ID
-            dataset["test"], k_shot_examples, args.max_new_tokens,
-            args.max_example_length, # Pass max length
-            args.batch_size
+            model=model,
+            tokenizer=tokenizer,
+            model_hf_id=actual_model_hf_id,
+            test_dataset=dataset["test"],
+            k_shot_examples=k_shot_examples,
+            max_new_tokens=args.max_new_tokens,
+            max_example_len=args.max_example_length,
+            batch_size=args.batch_size
         )
-    except Exception as e: print(f"Error during evaluation: {e}"); import traceback; traceback.print_exc(); return
+    except Exception as e:
+        print(f"Error during evaluation: {e}")
+        import traceback
+        traceback.print_exc()
+        # Fall through to cleanup, results won't be saved
 
-    # Save Results
+    # --- 6. Save Results ---
     if metrics and "error" not in metrics:
         run_info = {
-            "model_type": model_type_for_dir, "model_hf_id": actual_model_hf_id,
-            "dataset_name": args.dataset_name, "k_shot": args.k_shot,
+            "model_type": model_type_for_dir,
+            "model_hf_id": actual_model_hf_id,
+            "dataset_name": args.dataset_name,
+            "k_shot": args.k_shot,
             "internal_seed": INTERNAL_SEED,
-            "max_new_tokens": args.max_new_tokens, "batch_size": args.batch_size,
+            "max_new_tokens": args.max_new_tokens,
+            "batch_size": args.batch_size,
             "max_example_length": args.max_example_length,
             "effective_device_type": effective_device_type,
             "execution_time_seconds": time.time() - start_time
         }
         metrics["run_info"] = run_info
-        with open(os.path.join(output_dir, "metrics.json"), "w") as f: json.dump(metrics, f, indent=2)
-        print(f"Metrics saved.")
-        with open(os.path.join(output_dir, "predictions.json"), "w") as f:
-             save_data = {"labels": [], "predictions": [], "confidences": []}
-             if predictions_data:
-                save_data = {
-                     "labels": [int(l) if l is not None else -1 for l in predictions_data.get("labels", [])],
-                     "predictions": [int(p) if p is not None else -1 for p in predictions_data.get("predictions", [])],
-                     "confidences": [float(c) if c is not None else -1.0 for c in predictions_data.get("confidences", [])]
-                }
-             json.dump(save_data, f, indent=2)
-        print(f"Predictions saved.")
-    else: print("Evaluation did not produce valid metrics.")
 
-    # Cleanup
-    del model, tokenizer, dataset, k_shot_examples
-    if 'generator' in locals(): del generator
+        metrics_path = os.path.join(output_dir, "metrics.json")
+        predictions_path = os.path.join(output_dir, "predictions.json")
+
+        try:
+            with open(metrics_path, "w") as f:
+                json.dump(metrics, f, indent=2)
+            print(f"Metrics saved to {metrics_path}")
+
+            save_data = {"labels": [], "predictions": [], "confidences": []}
+            if predictions_data:
+                save_data = {
+                    "labels": [int(l) if l is not None else -1 for l in predictions_data.get("labels", [])],
+                    "predictions": [int(p) if p is not None else -1 for p in predictions_data.get("predictions", [])],
+                    "confidences": [float(c) if c is not None else -1.0 for c in predictions_data.get("confidences", [])]
+                }
+            with open(predictions_path, "w") as f:
+                json.dump(save_data, f, indent=2)
+            print(f"Predictions saved to {predictions_path}")
+        except IOError as e:
+            print(f"Error saving results: {e}")
+    elif metrics and "error" in metrics:
+         print(f"Evaluation failed with error: {metrics['error']}")
+    else:
+        print("Evaluation did not produce valid metrics or encountered an error. Results not saved.")
+
+    # --- 7. Cleanup ---
+    print("Cleaning up resources...")
+    del model, tokenizer, dataset, k_shot_examples, predictions_data, metrics
+    # Check if 'generator' was created in run_hf_evaluation and attempt cleanup if needed (though it's local to that function)
+    # if 'generator' in locals(): del generator # This won't work as 'generator' is local to run_hf_evaluation
     gc.collect()
-    if torch.cuda.is_available(): torch.cuda.empty_cache()
-    print(f"Script finished in {time.time() - start_time:.2f} seconds.")
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        print("Cleared CUDA cache.")
+
+    end_time = time.time()
+    print(f"Script finished in {end_time - start_time:.2f} seconds.")
 
 
 if __name__ == "__main__":

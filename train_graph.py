@@ -480,7 +480,7 @@ def extract_dataset_scenario(graph_path):
     return dataset_name, scenario
 
 
-if __name__ == "__main__":
+def main():
     parser = ArgumentParser(description="Train graph neural networks for fake news detection")
     parser.add_argument("--graph", type=str, help="path to graph data", required=True)
     parser.add_argument("--base_model", type=str, default="GAT", 
@@ -589,3 +589,7 @@ if __name__ == "__main__":
 
     # Plot training metrics
     plot_acc_loss(train_accs, train_losses, val_accs, val_losses, val_f1s, model_name, output_dir)
+
+
+if __name__ == "__main__":
+    main()
