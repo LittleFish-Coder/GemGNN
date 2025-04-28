@@ -178,9 +178,9 @@ class FakeNewsTrainer:
         
         return {
             "accuracy": accuracy_score(labels, predictions),
-            "f1": f1_score(labels, predictions, average="weighted"),
-            "precision": precision_score(labels, predictions, average="weighted"),
-            "recall": recall_score(labels, predictions, average="weighted"),
+            "f1": f1_score(labels, predictions, average="macro"),
+            "precision": precision_score(labels, predictions, average="macro"),
+            "recall": recall_score(labels, predictions, average="macro"),
         }
     
     def train(self, cleanup_checkpoints=True) -> None:

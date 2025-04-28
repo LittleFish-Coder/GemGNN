@@ -260,9 +260,9 @@ def run_hf_evaluation(
         if min_len == 0: return {"error": "Length mismatch, zero valid results."}
 
     accuracy = accuracy_score(labels, predictions)
-    f1 = f1_score(labels, predictions, average="weighted", zero_division=0)
-    precision = precision_score(labels, predictions, average="weighted", zero_division=0)
-    recall = recall_score(labels, predictions, average="weighted", zero_division=0)
+    f1 = f1_score(labels, predictions, average="macro", zero_division=0)
+    precision = precision_score(labels, predictions, average="macro", zero_division=0)
+    recall = recall_score(labels, predictions, average="macro", zero_division=0)
     metrics = {
         "accuracy": accuracy, 
         "f1": f1, 
