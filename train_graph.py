@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import time
 from torch_geometric.nn import GCNConv, GATConv, SAGEConv
+import json
 
 
 # GCN model class
@@ -388,32 +389,27 @@ def save_results(train_accs, train_losses, val_accs, val_losses, val_f1s, last_t
     """
     os.makedirs(output_dir, exist_ok=True)
     
-    with open(f"{output_dir}/{model_name}_results.txt", "w") as f:
-        f.write(f"Training Time: {train_time:.2f} seconds\n")
-        f.write(f"Best epoch: {best_epoch}\n")
-        f.write(f"Train Accuracy: {train_accs[-1]:.4f}\n")
-        f.write(f"Train Loss: {train_losses[-1]:.4f}\n")
-        f.write(f"Validation Accuracy: {val_accs[-1]:.4f}\n")
-        f.write(f"Validation Loss: {val_losses[-1]:.4f}\n")
-        f.write(f"Validation F1: {val_f1s[-1]:.4f}\n")
-        f.write(f"Test Accuracy (with last epoch model): {last_test_acc:.4f}\n")
-        f.write(f"Test F1 (with last epoch model): {last_test_f1:.4f}\n")
-        f.write(f"Detailed Metrics (with best model):\n")
-        f.write(f"  Accuracy: {inference_metrics['accuracy']:.4f}\n")
-        f.write(f"  Precision: {inference_metrics['precision']:.4f}\n")
-        f.write(f"  Recall: {inference_metrics['recall']:.4f}\n")
-        f.write(f"  F1 Score: {inference_metrics['f1_score']:.4f}\n")
-        f.write(f"  Confusion Matrix:\n{inference_metrics['confusion_matrix']}\n")
+    results = {
+        "Training Time": f"{train_time:.2f} seconds",
+        "Best Epoch": best_epoch,
+        "Train Accuracy": train_accs[-1],
+        "Train Loss": train_losses[-1],
+        "Validation Accuracy": val_accs[-1],
+        "Validation Loss": val_losses[-1],
+        "Validation F1": val_f1s[-1],
+        "Test Accuracy (with last epoch model)": last_test_acc,
+        "Test F1 (with last epoch model)": last_test_f1,
+        "Detailed Metrics (with best model)": {
+            "Accuracy": inference_metrics['accuracy'],
+            "Precision": inference_metrics['precision'],
+            "Recall": inference_metrics['recall'],
+            "F1 Score": inference_metrics['f1_score'],
+            "Confusion Matrix": inference_metrics['confusion_matrix'].tolist()  # Convert numpy array to list
+        }
+    }
 
-    # Save training history data
-    np.savez(
-        f"{output_dir}/{model_name}_history.npz",
-        train_accs=train_accs,
-        train_losses=train_losses,
-        val_accs=val_accs,
-        val_losses=val_losses,
-        val_f1s=val_f1s
-    )
+    with open(f"{output_dir}/mertrics.json", "w") as f:
+        json.dump(results, f, indent=4)
 
 
 def plot_acc_loss(train_accs, train_losses, val_accs, val_losses, val_f1s, model_name, output_dir):

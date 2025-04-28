@@ -10,6 +10,7 @@ from argparse import ArgumentParser, Namespace
 from datasets import load_dataset
 import matplotlib.pyplot as plt
 from utils.sample_k_shot import sample_k_shot # Assuming this utility exists
+import json
 
 # Constants
 SEED = 42
@@ -359,44 +360,25 @@ def save_results(history, test_metrics, model_name, output_dir, train_time, best
 
 
     # Save metrics summary
-    with open(os.path.join(output_dir, f"{model_name}_results.txt"), "w") as f:
-        f.write(f"Model: {model_name}\\n")
-        f.write(f"Dataset: {args.dataset_name}\\n")
-        f.write(f"Embedding: {args.embedding_type}\\n")
-        f.write(f"K-shot: {args.k_shot if args.k_shot > 0 else 'Full'}\\n")
-        f.write(f"Training Time: {train_time:.2f} seconds\\n")
-        f.write(f"Best epoch (based on val F1): {best_epoch}\\n\\n")
+    results = {
+        "model": model_name,
+        "dataset": args.dataset_name,
+        "embedding": args.embedding_type,
+        "k_shot": args.k_shot if args.k_shot > 0 else "Full",
+        "training_time": train_time,
+        "best_epoch": best_epoch,
+        "final_train_accuracy": history['train_accs'][-1] if history['train_accs'] else None,
+        "final_train_loss": history['train_losses'][-1] if history['train_losses'] else None,
+        "final_val_accuracy": history['val_accs'][-1] if history['val_accs'] else None,
+        "final_val_loss": history['val_losses'][-1] if history['val_losses'] else None,
+        "final_val_f1": history['val_f1s'][-1] if history['val_f1s'] else None,
+        "test_metrics": test_metrics if test_metrics else None
+    }
 
-        if history['train_accs']:
-             f.write(f"Final Train Accuracy: {history['train_accs'][-1]:.4f}\\n")
-             f.write(f"Final Train Loss: {history['train_losses'][-1]:.4f}\\n")
-        if history['val_accs']:
-             f.write(f"Final Validation Accuracy: {history['val_accs'][-1]:.4f}\\n")
-             f.write(f"Final Validation Loss: {history['val_losses'][-1]:.4f}\\n")
-             f.write(f"Final Validation F1: {history['val_f1s'][-1]:.4f}\\n\\n")
-        else:
-             f.write("No validation data used.\\n\\n")
+    with open(os.path.join(output_dir, f"metrics.json"), "w") as f:
+        json.dump(results, f, indent=4)
 
-
-        f.write("Test Metrics (Best Model):\\n")
-        if test_metrics:
-            f.write(f"  Accuracy: {test_metrics['accuracy']:.4f}\\n")
-            f.write(f"  Precision: {test_metrics['precision']:.4f}\\n")
-            f.write(f"  Recall: {test_metrics['recall']:.4f}\\n")
-            f.write(f"  F1 Score: {test_metrics['f1_score']:.4f}\\n")
-            # Format confusion matrix explicitly before writing
-            conf_matrix_str = np.array2string(np.array(test_metrics['confusion_matrix']), separator=', ')
-            f.write(f"  Confusion Matrix:\\n{conf_matrix_str}\\n")
-        else:
-            f.write("  No test metrics available (test loader might be empty).\\n")
-
-
-    # Save training history data
-    np.savez(
-        os.path.join(output_dir, f"{model_name}_history.npz"),
-        **history # Unpack the history dictionary
-    )
-    print(f"Results and history saved to {output_dir}")
+    print(f"Results saved to {output_dir}")
 
 def plot_metrics(history, model_name, output_dir):
     os.makedirs(output_dir, exist_ok=True)
