@@ -80,11 +80,7 @@ class FakeNewsTrainer:
         print(f"Loading dataset '{self.dataset_name}'...")
         
         # Load dataset from Hugging Face
-        dataset = load_dataset(
-            f"LittleFish-Coder/Fake_News_{self.dataset_name}",
-            download_mode="reuse_cache_if_exists",
-            cache_dir="dataset",
-        )
+        dataset = load_dataset(f"LittleFish-Coder/Fake_News_{self.dataset_name}", cache_dir="dataset")
         
         dataset = self._sample_k_shot(dataset, self.k_shot)
         

@@ -100,15 +100,7 @@ def load_and_prepare_data(dataset_name: str, embedding_type: str, k_shot: int, b
     """Loads dataset, extracts embeddings, creates DataLoaders."""
     print(f"Loading dataset '{dataset_name}' with {embedding_type} embeddings...")
     hf_dataset_name = f"LittleFish-Coder/Fake_News_{dataset_name.capitalize()}"
-    try:
-        dataset = load_dataset(
-            hf_dataset_name,
-            download_mode="reuse_cache_if_exists",
-            cache_dir="dataset"
-        )
-    except Exception as e:
-        print(f"Error loading dataset: {e}")
-        raise
+    dataset = load_dataset(hf_dataset_name, cache_dir="dataset")
 
     train_hf_dataset = dataset["train"]
     test_hf_dataset = dataset["test"]
