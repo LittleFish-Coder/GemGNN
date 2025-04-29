@@ -264,23 +264,15 @@ class GraphBuilder:
             ]
         )
 
-        # Detect minority class (assume fake news is minority class)
-        minority_class = 1  # Assume 1 represents fake news
-
         # For each node, find k nearest neighbors
         rows, cols, data = [], [], []
         for i in tqdm(range(len(embeddings)), desc="Finding neighbors"):
             # Skip self (distance=0)
             dist_i = distances[i].copy()
-            dist_i[i] = float("inf")
-
-            # get effective k
-            effective_k = k
-            if labels[i] == minority_class:
-                effective_k = min(k * 2, len(embeddings) - 1)  # minority class use 2k
+            dist_i[i] = float("inf")    # self distance is set to infinity
 
             # Get indices of k smallest distances
-            indices = np.argpartition(dist_i, effective_k)[:effective_k]
+            indices = np.argpartition(dist_i, k)[:k]
 
             # Add edges
             for j in indices:
@@ -309,7 +301,7 @@ class GraphBuilder:
         for i in tqdm(range(len(embeddings)), desc="Finding mutual neighbors"):
             # Skip self (distance=0)
             dist_i = distances[i].copy()
-            dist_i[i] = float("inf")
+            dist_i[i] = float("inf")    # self distance is set to infinity
 
             # Get indices of k smallest distances
             indices = np.argpartition(dist_i, k)[:k]
