@@ -22,6 +22,8 @@ DEFAULT_SEED = 42  # use the same SEED as finetune_lm.py, prompt_hf_llm.py
 DEFAULT_K_NEIGHBORS = 5
 DEFAULT_EDGE_POLICY = "dynamic_threshold"
 DEFAULT_EMBEDDING_TYPE = "roberta"
+DEFAULT_THRESHOLD_FACTOR = 1.1
+DEFAULT_ALPHA = 0.1
 
 
 def set_seed(seed: int = DEFAULT_SEED) -> None:
@@ -256,17 +258,9 @@ class GraphBuilder:
         # Compute cosine distances
         distances = pairwise_distances(embeddings, metric="cosine")
 
-        # Get node labels
-        labels = np.concatenate(
-            [
-                np.array(self.dataset["train"]["label"]),
-                np.array(self.dataset["test"]["label"]),
-            ]
-        )
-
         # For each node, find k nearest neighbors
         rows, cols, data = [], [], []
-        for i in tqdm(range(len(embeddings)), desc="Finding neighbors"):
+        for i in tqdm(range(len(embeddings)), desc=f"Finding {k} nearest neighbors"):
             # Skip self (distance=0)
             dist_i = distances[i].copy()
             dist_i[i] = float("inf")    # self distance is set to infinity
@@ -298,7 +292,7 @@ class GraphBuilder:
 
         # For each node, find k nearest neighbors
         rows, cols, data = [], [], []
-        for i in tqdm(range(len(embeddings)), desc="Finding mutual neighbors"):
+        for i in tqdm(range(len(embeddings)), desc=f"Finding {k} mutual neighbors"):
             # Skip self (distance=0)
             dist_i = distances[i].copy()
             dist_i[i] = float("inf")    # self distance is set to infinity
@@ -354,9 +348,7 @@ class GraphBuilder:
         # Process in batches for efficiency
         batch_size = min(500, num_nodes)
 
-        for i in tqdm(
-            range(0, num_nodes, batch_size), desc="Computing threshold edges"
-        ):
+        for i in tqdm(range(0, num_nodes, batch_size), desc="Computing threshold edges"):
             batch_end = min(i + batch_size, num_nodes)
             batch = normalized_embeddings[i:batch_end]
 
@@ -553,14 +545,10 @@ class GraphBuilder:
 
         # Error checking - ensure edges exist
         if len(rows) == 0:
-            print(
-                "Warning: Threshold too high, no edges created. Adding basic connectivity..."
-            )
+            print("Warning: Threshold too high, no edges created. Adding basic connectivity...")
             # Add a minimum spanning tree to ensure graph connectivity
             for i in range(1, num_nodes):
-                similarities = np.dot(
-                    normalized_embeddings[i], normalized_embeddings[:i].T
-                )
+                similarities = np.dot(normalized_embeddings[i], normalized_embeddings[:i].T)
                 most_similar = np.argmax(similarities)
 
                 rows.append(i)
@@ -571,16 +559,12 @@ class GraphBuilder:
         edge_index = torch.tensor(np.vstack((rows, cols)), dtype=torch.long)
         edge_attr = torch.tensor(data, dtype=torch.float).unsqueeze(1)
 
-        print(
-            f"Created {edge_index.shape[1]} edges, average degree {edge_index.shape[1]/num_nodes:.2f}"
-        )
+        print(f"Created {edge_index.shape[1]} edges, average degree {edge_index.shape[1]/num_nodes:.2f}")
 
         return edge_index, edge_attr
 
     def _analyze_graph(self) -> None:
         """Analyze the graph and compute comprehensive metrics."""
-        if self.graph_data is None:
-            raise ValueError("Graph must be built before analysis")
 
         # Basic metrics
         self.graph_metrics = {
@@ -589,8 +573,7 @@ class GraphBuilder:
             "num_train_nodes": self.graph_data.train_mask.sum().item(),
             "num_test_nodes": self.graph_data.test_mask.sum().item(),
             "num_labeled_nodes": self.graph_data.labeled_mask.sum().item(),
-            "avg_degree": self.graph_data.edge_index.shape[1]
-            / self.graph_data.num_nodes,
+            "avg_degree": self.graph_data.edge_index.shape[1] / self.graph_data.num_nodes,
         }
 
         # Edge type analysis
@@ -984,15 +967,15 @@ def parse_arguments():
     parser.add_argument(
         "--threshold_factor",
         type=float,
-        default=1.0,
-        help="Threshold factor for threshold edge construction (default: 1.0)",
+        default=DEFAULT_THRESHOLD_FACTOR,
+        help=f"Threshold factor for threshold edge construction (default: {DEFAULT_THRESHOLD_FACTOR})",
     )
     ## for dynamic_threshold
     parser.add_argument(
         "--alpha",
         type=float,
-        default=0.5,
-        help="Alpha parameter for dynamic threshold edge construction (default: 0.5)",
+        default=DEFAULT_ALPHA,
+        help=f"Alpha parameter for dynamic threshold edge construction (default: {DEFAULT_ALPHA})",
     )
 
     # news embedding type
