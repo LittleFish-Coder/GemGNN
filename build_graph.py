@@ -24,6 +24,7 @@ DEFAULT_EDGE_POLICY = "dynamic_threshold"
 DEFAULT_EMBEDDING_TYPE = "roberta"
 DEFAULT_THRESHOLD_FACTOR = 1.1
 DEFAULT_ALPHA = 0.1
+DEFAULT_QUANTILE_P = 95.0
 
 
 def set_seed(seed: int = DEFAULT_SEED) -> None:
@@ -52,6 +53,7 @@ class GraphBuilder:
         k_neighbors: int = DEFAULT_K_NEIGHBORS,
         threshold_factor: float = 1.0,
         alpha: float = 0.5,
+        quantile_p: float = 95.0,
         output_dir: str = GRAPH_DIR,
         plot: bool = False,
         seed: int = DEFAULT_SEED,
@@ -65,6 +67,7 @@ class GraphBuilder:
         self.k_neighbors = k_neighbors
         self.threshold_factor = threshold_factor
         self.alpha = alpha
+        self.quantile_p = quantile_p
         self.plot = plot
         self.seed = seed
         self.embedding_type = embedding_type.lower()
@@ -163,6 +166,8 @@ class GraphBuilder:
             edges, edge_attr = self._build_threshold_edges(embeddings, self.threshold_factor)
         elif self.edge_policy == "dynamic_threshold":
             edges, edge_attr = self._build_dynamic_threshold_edges(embeddings, self.alpha)
+        elif self.edge_policy == "quantile":
+            edges, edge_attr = self._build_quantile_edges(embeddings, self.quantile_p)
         else:
             raise ValueError(f"Unknown edge policy: {self.edge_policy}")
 
@@ -563,6 +568,107 @@ class GraphBuilder:
 
         return edge_index, edge_attr
 
+    def _build_quantile_edges(
+        self, embeddings: np.ndarray, quantile_p: float = 95.0
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Build edges using a quantile-based threshold on similarities.
+
+        Connects nodes if their similarity is above the p-th percentile
+        of all non-self pairwise similarities.
+
+        Args:
+            embeddings: Node feature embedding matrix.
+            quantile_p: The percentile (0-100) to use as the similarity threshold
+                        (e.g., 95.0 means connect nodes in the top 5% similarity).
+
+        Returns:
+            edge_index: Edge indices (2 x num_edges).
+            edge_attr: Edge attributes (similarities) (num_edges x 1).
+        """
+        print(f"Building quantile edges using {quantile_p:.2f}-th percentile similarity threshold...")
+        if not (0 < quantile_p < 100):
+            raise ValueError("quantile_p must be between 0 and 100 (exclusive).")
+
+        # --- 1. Preprocessing (與其他方法類似) ---
+        # Handle invalid values
+        embeddings = np.nan_to_num(embeddings, nan=0.0, posinf=0.0, neginf=0.0)
+
+        # Normalize embeddings for cosine similarity
+        norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+        valid_norms = np.maximum(norms, 1e-10)
+        normalized_embeddings = embeddings / valid_norms
+        num_nodes = len(embeddings)
+
+        # --- 2. Calculate all pairwise similarities ---
+        # For N=483, calculating the full matrix should be acceptable.
+        # For very large N, sampling might be needed here.
+        print("Calculating pairwise similarities...")
+        # similarities_matrix[i, j] is the similarity between node i and node j
+        similarities_matrix = np.dot(normalized_embeddings, normalized_embeddings.T)
+
+        # --- 3. Extract non-self similarities and find threshold ---
+        # Create a mask for the upper triangle (excluding diagonal) to avoid duplicates and self-loops
+        mask = np.triu(np.ones((num_nodes, num_nodes), dtype=bool), k=1)
+        non_self_similarities = similarities_matrix[mask]
+
+        if len(non_self_similarities) == 0:
+             print("Warning: No non-self similarities found (graph might be too small).")
+             # Handle this case: maybe return an empty graph or add basic connectivity
+             # For now, let's return an empty edge set
+             return torch.zeros((2, 0), dtype=torch.long), torch.zeros((0, 1), dtype=torch.float)
+
+        # Calculate the similarity threshold based on the specified percentile
+        similarity_threshold = np.percentile(non_self_similarities, quantile_p)
+        print(f"Similarity distribution {quantile_p:.2f}-th percentile: {similarity_threshold:.4f}")
+
+        # --- 4. Build edges ---
+        rows, cols, data = [], [], []
+        # Find pairs where similarity > threshold
+        # Use np.where on the full matrix for potential efficiency
+        indices_rows, indices_cols = np.where(similarities_matrix > similarity_threshold)
+
+        print(f"Found {len(indices_rows)} potential edges above threshold. Filtering self-loops...")
+
+        for i, j in tqdm(zip(indices_rows, indices_cols), total=len(indices_rows), desc="Building quantile edges"):
+            # Explicitly exclude self-loops
+            if i != j:
+                rows.append(i)
+                cols.append(j)
+                data.append(similarities_matrix[i, j])
+
+        # --- 5. Handle no edges case ---
+        if len(rows) == 0:
+            print(f"Warning: Threshold {similarity_threshold:.4f} too high, no edges created. Adding basic connectivity (MST)...")
+             # Fallback: Add a minimum spanning tree based on *distance*
+            distances = 1 - similarities_matrix # Convert similarity to distance approximation
+            np.fill_diagonal(distances, np.inf) # Ignore self-distance
+
+            # Compute MST using scipy (needs import: from scipy.sparse.csgraph import minimum_spanning_tree)
+            # This part is more complex, maybe fallback to nearest neighbor first
+            # Fallback: Connect each node to its single most similar neighbor
+            for i in range(num_nodes):
+                sims = similarities_matrix[i].copy()
+                sims[i] = -np.inf # Exclude self
+                most_similar_neighbor = np.argmax(sims)
+                if sims[most_similar_neighbor] > -np.inf : # Check if any neighbor exists
+                    rows.append(i)
+                    cols.append(most_similar_neighbor)
+                    data.append(sims[most_similar_neighbor])
+
+        if len(rows) == 0: # Still no edges after fallback
+             print("Error: Could not create any edges.")
+             return torch.zeros((2, 0), dtype=torch.long), torch.zeros((0, 1), dtype=torch.float)
+
+
+        # --- 6. Create tensors ---
+        edge_index = torch.tensor(np.vstack((rows, cols)), dtype=torch.long)
+        edge_attr = torch.tensor(data, dtype=torch.float).unsqueeze(1)
+
+        print(f"Created {edge_index.shape[1]} edges, average degree {edge_index.shape[1]/num_nodes:.2f}")
+
+        return edge_index, edge_attr
+
     def _analyze_graph(self) -> None:
         """Analyze the graph and compute comprehensive metrics."""
 
@@ -768,8 +874,12 @@ class GraphBuilder:
             edge_param = self.k_neighbors
         elif self.edge_policy == "threshold":
             edge_param = self.threshold_factor
-        else:  # dynamic_threshold
+        elif self.edge_policy == "dynamic_threshold":
             edge_param = self.alpha
+        elif self.edge_policy == "quantile":
+            edge_param = self.quantile_p
+        else:  
+            edge_param = "unknown"
         graph_name = f"{self.k_shot}_shot_{self.embedding_type}_{self.edge_policy}_{edge_param}"
 
         # Save graph data
@@ -954,7 +1064,7 @@ def parse_arguments():
         type=str,
         default=DEFAULT_EDGE_POLICY,
         help="Edge construction policy (default: knn)",
-        choices=["knn", "mutual_knn", "threshold", "dynamic_threshold"],
+        choices=["knn", "mutual_knn", "threshold", "dynamic_threshold", "quantile"],
     )
     ## for knn and mutual_knn
     parser.add_argument(
@@ -976,6 +1086,13 @@ def parse_arguments():
         type=float,
         default=DEFAULT_ALPHA,
         help=f"Alpha parameter for dynamic threshold edge construction (default: {DEFAULT_ALPHA})",
+    )
+    ## for quantile
+    parser.add_argument(
+        "--quantile_p",
+        type=float,
+        default=DEFAULT_QUANTILE_P,
+        help=f"Quantile percentile for quantile edge construction (default: {DEFAULT_QUANTILE_P})",
     )
 
     # news embedding type
@@ -1055,6 +1172,7 @@ def main() -> None:
         k_neighbors=args.k_neighbors,
         threshold_factor=args.threshold_factor,
         alpha=args.alpha,
+        quantile_p=args.quantile_p,
         output_dir=args.output_dir,
         plot=args.plot,
         seed=args.seed,
