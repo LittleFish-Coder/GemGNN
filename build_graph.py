@@ -14,6 +14,7 @@ from tqdm import tqdm
 from argparse import ArgumentParser
 from matplotlib.patches import Patch
 from utils.sample_k_shot import sample_k_shot
+from sklearn.metrics.pairwise import cosine_similarity
 
 # constants
 GRAPH_DIR = "graphs"
@@ -22,7 +23,7 @@ DEFAULT_SEED = 42  # use the same SEED as finetune_lm.py, prompt_hf_llm.py
 DEFAULT_K_NEIGHBORS = 5
 DEFAULT_EDGE_POLICY = "dynamic_threshold"
 DEFAULT_EMBEDDING_TYPE = "roberta"
-DEFAULT_THRESHOLD_FACTOR = 1.1
+DEFAULT_THRESHOLD_FACTOR = 1
 DEFAULT_ALPHA = 0.1
 DEFAULT_QUANTILE_P = 95.0
 
@@ -51,6 +52,7 @@ class GraphBuilder:
         k_shot: int,
         edge_policy: str = DEFAULT_EDGE_POLICY,
         k_neighbors: int = DEFAULT_K_NEIGHBORS,
+        k_top_sim: int = 10,
         threshold_factor: float = 1.0,
         alpha: float = 0.5,
         quantile_p: float = 95.0,
@@ -65,6 +67,7 @@ class GraphBuilder:
         self.k_shot = k_shot
         self.edge_policy = edge_policy
         self.k_neighbors = k_neighbors
+        self.k_top_sim = k_top_sim
         self.threshold_factor = threshold_factor
         self.alpha = alpha
         self.quantile_p = quantile_p
@@ -168,6 +171,8 @@ class GraphBuilder:
             edges, edge_attr = self._build_dynamic_threshold_edges(embeddings, self.alpha)
         elif self.edge_policy == "quantile":
             edges, edge_attr = self._build_quantile_edges(embeddings, self.quantile_p)
+        elif self.edge_policy == "topk_mean":
+            edges, edge_attr = self._build_topk_mean_edges(embeddings, self.k_top_sim, self.threshold_factor)
         else:
             raise ValueError(f"Unknown edge policy: {self.edge_policy}")
 
@@ -669,6 +674,130 @@ class GraphBuilder:
 
         return edge_index, edge_attr
 
+    def _build_topk_mean_edges(
+        self,
+        embeddings: np.ndarray,
+        k_top_sim: int = 10,
+        threshold_factor: float = 1.0
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Build edges based on the global average of mean similarities to top-k neighbors.
+
+        Steps:
+        1. For each node, find its k most similar neighbors.
+        2. Calculate the mean similarity to these k neighbors (local_topk_mean_sim).
+        3. Compute the global average of these local_topk_mean_sim values (global_avg_topk_mean_sim).
+        4. Set the final threshold = global_avg_topk_mean_sim * threshold_factor.
+        5. Connect nodes if their similarity exceeds this final threshold.
+
+        Args:
+            embeddings: Node feature embedding matrix.
+            k_top_sim: The number (K) of nearest neighbors to consider for local mean similarity calculation.
+            threshold_factor: Factor to adjust the final threshold relative to the global average.
+
+        Returns:
+            edge_index: Edge indices (2 x num_edges).
+            edge_attr: Edge attributes (similarities) (num_edges x 1).
+        """
+        print(f"Building Top-K Mean edges with k_top_sim={k_top_sim}, threshold_factor={threshold_factor:.2f}...")
+
+        # --- 1. Preprocessing ---
+        embeddings = np.nan_to_num(embeddings, nan=0.0, posinf=0.0, neginf=0.0)
+        norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+        valid_norms = np.maximum(norms, 1e-10)
+        normalized_embeddings = embeddings / valid_norms
+        num_nodes = len(embeddings)
+
+        # --- 2. Calculate all pairwise similarities ---
+        # Reusing the efficient calculation
+        print("Calculating pairwise similarities...")
+        similarities_matrix = cosine_similarity(normalized_embeddings)
+        # Ensure self-similarity doesn't interfere with top-k selection later
+        np.fill_diagonal(similarities_matrix, -np.inf) # Set self-sim to negative infinity
+
+        # --- 3. Calculate local mean similarity to Top-K for each node ---
+        local_topk_mean_sims = []
+        print(f"Calculating mean similarity to top-{k_top_sim} neighbors for each node...")
+        for i in tqdm(range(num_nodes), desc="Computing local Top-K means"):
+            node_similarities = similarities_matrix[i, :]
+
+            # Find indices of top k neighbors (excluding self, already handled by -inf)
+            # If k_top_sim is larger than num_nodes-1, adjust k
+            actual_k = min(k_top_sim, num_nodes - 1)
+            if actual_k <= 0:
+                local_topk_mean_sims.append(0) # Handle case of single-node graph or k=0
+                continue
+
+            # Get indices of the k largest similarity values
+            # Using argpartition for efficiency if k is much smaller than N
+            # top_k_indices = np.argpartition(node_similarities, -actual_k)[-actual_k:]
+            # Simpler argsort for clarity, might be slightly slower for large N/small k
+            sorted_indices = np.argsort(node_similarities)[::-1] # Sort descending
+            top_k_indices = sorted_indices[:actual_k]
+
+            # Get the similarities of these top k neighbors
+            top_k_similarities = node_similarities[top_k_indices]
+
+            # Calculate the mean similarity (handle case where no valid neighbors found)
+            if len(top_k_similarities) > 0:
+                 local_mean = np.mean(top_k_similarities)
+                 local_topk_mean_sims.append(local_mean)
+            else:
+                 local_topk_mean_sims.append(0) # Or some other default if no neighbors
+
+        # --- 4. Calculate global threshold ---
+        if not local_topk_mean_sims:
+             print("Error: Could not calculate any local top-k mean similarities.")
+             return torch.zeros((2, 0), dtype=torch.long), torch.zeros((0, 1), dtype=torch.float)
+
+        global_avg_topk_mean_sim = np.mean(local_topk_mean_sims)
+        final_threshold = global_avg_topk_mean_sim * threshold_factor
+        print(f"Global average of Top-{k_top_sim} mean similarities: {global_avg_topk_mean_sim:.4f}")
+        print(f"Final similarity threshold (applied factor {threshold_factor:.2f}): {final_threshold:.4f}")
+
+        # --- 5. Build edges based on the final threshold ---
+        # Reset diagonal for edge checking (or use original similarity matrix if saved)
+        np.fill_diagonal(similarities_matrix, 1.0) # Reset self-similarity for checking pairs
+
+        rows, cols, data = [], [], []
+        # Find pairs where similarity > final_threshold
+        indices_rows, indices_cols = np.where(similarities_matrix > final_threshold)
+
+        print(f"Found {len(indices_rows)} potential edges above threshold. Filtering self-loops...")
+
+        for i, j in tqdm(zip(indices_rows, indices_cols), total=len(indices_rows), desc="Building Top-K Mean edges"):
+            if i != j: # Exclude self-loops
+                rows.append(i)
+                cols.append(j)
+                data.append(similarities_matrix[i, j])
+
+        # --- 6. Handle no edges case ---
+        if len(rows) == 0:
+            print(f"Warning: Threshold {final_threshold:.4f} too high, no edges created. Adding basic connectivity (nearest neighbor)...")
+            # Fallback: Connect each node to its single most similar neighbor
+            np.fill_diagonal(similarities_matrix, -np.inf) # Exclude self again for argmax
+            for i in range(num_nodes):
+                sims = similarities_matrix[i].copy()
+                most_similar_neighbor = np.argmax(sims)
+                if sims[most_similar_neighbor] > -np.inf:
+                    rows.append(i)
+                    cols.append(most_similar_neighbor)
+                    # Fetch original similarity if needed, or use the max value
+                    data.append(sims[most_similar_neighbor])
+            np.fill_diagonal(similarities_matrix, 1.0) # Restore diagonal if matrix is reused
+
+        if len(rows) == 0:
+             print("Error: Could not create any edges.")
+             return torch.zeros((2, 0), dtype=torch.long), torch.zeros((0, 1), dtype=torch.float)
+
+        # --- 7. Create tensors ---
+        edge_index = torch.tensor(np.vstack((rows, cols)), dtype=torch.long)
+        edge_attr = torch.tensor(data, dtype=torch.float).unsqueeze(1)
+
+        print(f"Created {edge_index.shape[1]} edges, average degree {edge_index.shape[1]/num_nodes:.2f}")
+
+        return edge_index, edge_attr
+
     def _analyze_graph(self) -> None:
         """Analyze the graph and compute comprehensive metrics."""
 
@@ -878,6 +1007,9 @@ class GraphBuilder:
             edge_param = self.alpha
         elif self.edge_policy == "quantile":
             edge_param = self.quantile_p
+            edge_param = f"{edge_param:.1f}".replace('.', 'p')
+        elif self.edge_policy == "topk_mean":
+            edge_param = f"{self.k_top_sim}_{self.threshold_factor:.2f}".replace('.', '')
         else:  
             edge_param = "unknown"
         graph_name = f"{self.k_shot}_shot_{self.embedding_type}_{self.edge_policy}_{edge_param}"
@@ -1064,7 +1196,7 @@ def parse_arguments():
         type=str,
         default=DEFAULT_EDGE_POLICY,
         help="Edge construction policy (default: knn)",
-        choices=["knn", "mutual_knn", "threshold", "dynamic_threshold", "quantile"],
+        choices=["knn", "mutual_knn", "threshold", "dynamic_threshold", "quantile", "topk_mean"],
     )
     ## for knn and mutual_knn
     parser.add_argument(
@@ -1093,6 +1225,13 @@ def parse_arguments():
         type=float,
         default=DEFAULT_QUANTILE_P,
         help=f"Quantile percentile for quantile edge construction (default: {DEFAULT_QUANTILE_P})",
+    )
+    ## for topk_mean
+    parser.add_argument(
+        "--k_top_sim",
+        type=int,
+        default=10,
+        help="Number of top neighbors (K) to compute local mean similarity for 'topk_mean' policy (default: 10)",
     )
 
     # news embedding type
@@ -1155,6 +1294,11 @@ def main() -> None:
         print(f"Threshold factor: {args.threshold_factor}")
     elif args.edge_policy == "dynamic_threshold":
         print(f"Alpha:            {args.alpha}")
+    elif args.edge_policy == "quantile":
+        print(f"Quantile p:       {args.quantile_p}")
+    elif args.edge_policy == "topk_mean":
+        print(f"K Top Sim:        {args.k_top_sim}")
+        print(f"Threshold factor: {args.threshold_factor}")
 
     print(f"Output directory: {args.output_dir}")
     print(f"Plot:             {args.plot}")
