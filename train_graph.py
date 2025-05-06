@@ -299,7 +299,7 @@ def evaluate(model: nn.Module, data: Data, mask: torch.Tensor, criterion: nn.Mod
     # Calculate F1 score
     y_true = data.y[mask].cpu().numpy()
     y_pred = pred.cpu().numpy()
-    # Use binary average, handle zero division
+    # Use macro average, handle zero division
     f1 = f1_score(y_true, y_pred, average='macro', zero_division=0)
 
     return loss.item(), acc, f1
@@ -391,10 +391,9 @@ def final_evaluation(model: nn.Module, data: Data, model_path: str) -> dict:
         y_pred = pred.cpu().numpy()
 
         accuracy = accuracy_score(y_true, y_pred)
-        # Use binary average, handle zero division
-        precision = precision_score(y_true, y_pred, average='binary', zero_division=0)
-        recall = recall_score(y_true, y_pred, average='binary', zero_division=0)
-        f1 = f1_score(y_true, y_pred, average='binary', zero_division=0)
+        precision = precision_score(y_true, y_pred, average='macro', zero_division=0)
+        recall = recall_score(y_true, y_pred, average='macro', zero_division=0)
+        f1 = f1_score(y_true, y_pred, average='macro', zero_division=0)
         conf_matrix = confusion_matrix(y_true, y_pred)
 
     metrics = {
