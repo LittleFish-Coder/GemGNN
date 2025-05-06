@@ -17,12 +17,12 @@ from torch_geometric.nn import HGTConv, HANConv, Linear # Using PyG's Linear for
 # Constants
 DEFAULT_MODEL = "HGT"
 DEFAULT_EPOCHS = 300
-DEFAULT_LR = 0.0001
+DEFAULT_LR = 1e-4
 DEFAULT_WEIGHT_DECAY = 1e-4
 DEFAULT_HIDDEN_CHANNELS = 128
-DEFAULT_DROPOUT = 0.5
+DEFAULT_DROPOUT = 0.0
 DEFAULT_HGT_HAN_HEADS = 4 # Number of attention heads for HGT/HAN
-DEFAULT_HGT_LAYERS = 2
+DEFAULT_HGT_LAYERS = 1
 DEFAULT_PATIENCE = 30
 DEFAULT_SEED = 42
 DEFAULT_TARGET_NODE_TYPE = "news" # Target node type for classification
@@ -56,8 +56,7 @@ class HGTModel(nn.Module):
 
         self.convs = nn.ModuleList()
         for _ in range(num_layers):
-            conv = HGTConv(hidden_channels, hidden_channels, data.metadata(),
-                           heads, group='sum') # Using 'sum' aggregation
+            conv = HGTConv(hidden_channels, hidden_channels, data.metadata(), heads)
             self.convs.append(conv)
 
         self.out_lin = Linear(hidden_channels, out_channels)
@@ -222,7 +221,7 @@ def train(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optimizer, 
     start_time = time.time()
 
     train_losses, train_accs = [], []
-    val_losses, val_accs, val_f1s = [], [] # Using test_mask as validation set
+    val_losses, val_accs, val_f1s = [], [], []
     
     best_val_f1 = -1.0
     best_val_loss = float('inf')
@@ -301,9 +300,9 @@ def final_evaluation(model: nn.Module, data: HeteroData, model_path: str, target
         y_pred = pred.cpu().numpy()
 
         accuracy = accuracy_score(y_true, y_pred)
-        precision = precision_score(y_true, y_pred, average='binary', zero_division=0)
-        recall = recall_score(y_true, y_pred, average='binary', zero_division=0)
-        f1 = f1_score(y_true, y_pred, average='binary', zero_division=0)
+        precision = precision_score(y_true, y_pred, average='macro', zero_division=0)
+        recall = recall_score(y_true, y_pred, average='macro', zero_division=0)
+        f1 = f1_score(y_true, y_pred, average='macro', zero_division=0)
         conf_matrix = confusion_matrix(y_true, y_pred)
 
     metrics = {

@@ -501,9 +501,6 @@ class HeteroGraphBuilder:
         print(f"      Created {edge_index.shape[1]} topk-mean edges.")
         return edge_index, edge_attr
 
-    # ... Add quantile, topk_mean, mutual_knn if needed ...
-
-
     def build_hetero_data(self) -> Optional[HeteroData]:
         """Constructs the HeteroData object."""
         print("\n[*] Starting Heterogeneous Graph Construction...")
