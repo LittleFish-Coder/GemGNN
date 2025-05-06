@@ -116,8 +116,7 @@ class HeteroGraphBuilder:
         print(f"\n[*] Loading dataset: LittleFish-Coder/Fake_News_{self.dataset_name.capitalize()}")
         try:
             # Assuming dataset script doesn't require trust_remote_code=True, adjust if needed
-            dataset_dict = load_dataset(f"LittleFish-Coder/Fake_News_{self.dataset_name.capitalize()}",
-                                        cache_dir="./hf_cache") # Use cache dir from inspect script
+            dataset_dict = load_dataset(f"LittleFish-Coder/Fake_News_{self.dataset_name.capitalize()}", cache_dir="./dataset") # Use cache dir from inspect script
             self.dataset = dataset_dict
             self.train_data = dataset_dict['train']
             self.test_data = dataset_dict['test']

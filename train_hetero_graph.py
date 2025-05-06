@@ -56,7 +56,8 @@ class HGTModel(nn.Module):
 
         self.convs = nn.ModuleList()
         for _ in range(num_layers):
-            conv = HGTConv(hidden_channels, hidden_channels, data.metadata(), heads) # Removed aggr='sum'. HGTConv uses aggr='add' internally for MessagePassing.
+            conv = HGTConv(hidden_channels, hidden_channels, data.metadata(),
+                           heads, group='sum') # Using 'sum' aggregation
             self.convs.append(conv)
 
         self.out_lin = Linear(hidden_channels, out_channels)
@@ -221,7 +222,7 @@ def train(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optimizer, 
     start_time = time.time()
 
     train_losses, train_accs = [], []
-    val_losses, val_accs, val_f1s = [], [], []
+    val_losses, val_accs, val_f1s = [], [] # Using test_mask as validation set
     
     best_val_f1 = -1.0
     best_val_loss = float('inf')
