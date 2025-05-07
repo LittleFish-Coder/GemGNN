@@ -13,7 +13,7 @@ from transformers import (
 )
 from datasets import load_dataset, DatasetDict, Dataset
 from argparse import ArgumentParser, Namespace
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, confusion_matrix
 from utils.sample_k_shot import sample_k_shot
 
 
@@ -172,11 +172,14 @@ class FakeNewsTrainer:
         predictions, labels = eval_pred
         predictions = np.argmax(predictions, axis=-1)
         
+        cm = confusion_matrix(labels, predictions)
+        
         return {
             "accuracy": accuracy_score(labels, predictions),
             "f1": f1_score(labels, predictions, average="macro"),
             "precision": precision_score(labels, predictions, average="macro"),
             "recall": recall_score(labels, predictions, average="macro"),
+            "confusion_matrix": cm.tolist(),  # Convert numpy array to list for JSON serialization
         }
     
     def train(self, cleanup_checkpoints=True) -> None:
@@ -214,6 +217,7 @@ class FakeNewsTrainer:
             "f1": metrics["eval_f1"],
             "precision": metrics["eval_precision"],
             "recall": metrics["eval_recall"],
+            "confusion_matrix": metrics.get("eval_confusion_matrix", "N/A"),
         }
         
         # Save metrics to results directory
@@ -298,7 +302,7 @@ def parse_arguments() -> Namespace:
         type=int,
         default=8,
         help="Number of samples per class for few-shot learning (default: 8)",
-        choices=[0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+        choices=[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
     )
     
     # Training parameters
@@ -380,6 +384,8 @@ def main() -> None:
     print(f"F1 Score:     {metrics['f1']:.4f}")
     print(f"Precision:    {metrics['precision']:.4f}")
     print(f"Recall:       {metrics['recall']:.4f}")
+    if metrics.get("confusion_matrix") != "N/A":
+        print(f"Confusion Matrix:\n{np.array(metrics['confusion_matrix'])}")
     print("="*50 + "\n")
 
 
