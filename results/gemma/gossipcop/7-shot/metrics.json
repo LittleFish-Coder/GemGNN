@@ -16,5 +16,19 @@
     "max_example_length": 500,
     "effective_device_type": "cuda",
     "execution_time_seconds": 1443.8761200904846
-  }
+  },
+  "macro_precision": 0.5791789903345588,
+  "macro_recall": 0.6260248559358463,
+  "macro_f1_score": 0.5600406249611368,
+  "confusion_matrix": [
+    [
+      1366,
+      803
+    ],
+    [
+      190,
+      313
+    ]
+  ],
+  "calculation_info": "Metrics (re)calculated from predictions.json by calculate_and_update_metrics.py"
 }
