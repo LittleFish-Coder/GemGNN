@@ -1,0 +1,16 @@
+{
+  "k_shot": 15,
+  "dataset_name": "gossipcop",
+  "embedding_type": "bert",
+  "model_type": "MLP",
+  "hidden_channels": 64,
+  "num_layers": 2,
+  "lr": 0.001,
+  "weight_decay": 1e-05,
+  "n_epochs": 100,
+  "patience": 10,
+  "batch_size": 64,
+  "dropout_rate": 0.0,
+  "seed": 42,
+  "output_dir_base": "results"
+}
