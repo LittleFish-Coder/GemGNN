@@ -1,0 +1,29 @@
+{
+    "model": "MLP_gossipcop_6_shot_roberta",
+    "dataset": "gossipcop",
+    "embedding": "roberta",
+    "k_shot": 6,
+    "training_time": 0.40577244758605957,
+    "best_epoch": 0,
+    "final_train_accuracy": 0.6363636363636364,
+    "final_train_loss": 0.6401718854904175,
+    "final_val_accuracy": 0.0,
+    "final_val_loss": 0.7864363789558411,
+    "final_val_f1": 0.0,
+    "test_metrics": {
+        "accuracy": 0.811751497005988,
+        "precision": 0.405875748502994,
+        "recall": 0.5,
+        "f1_score": 0.4480479239826482,
+        "confusion_matrix": [
+            [
+                2169,
+                0
+            ],
+            [
+                503,
+                0
+            ]
+        ]
+    }
+}

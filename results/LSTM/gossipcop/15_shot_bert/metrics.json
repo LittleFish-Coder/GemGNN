@@ -1,0 +1,29 @@
+{
+    "model": "LSTM_gossipcop_15_shot_bert",
+    "dataset": "gossipcop",
+    "embedding": "bert",
+    "k_shot": 15,
+    "training_time": 0.5709257125854492,
+    "best_epoch": 8,
+    "final_train_accuracy": 1.0,
+    "final_train_loss": 0.48626914620399475,
+    "final_val_accuracy": 0.5,
+    "final_val_loss": 0.6195874214172363,
+    "final_val_f1": 0.3333333333333333,
+    "test_metrics": {
+        "accuracy": 0.7144461077844312,
+        "precision": 0.548048263604047,
+        "recall": 0.5515377078240561,
+        "f1_score": 0.5494401527549259,
+        "confusion_matrix": [
+            [
+                1763,
+                406
+            ],
+            [
+                357,
+                146
+            ]
+        ]
+    }
+}

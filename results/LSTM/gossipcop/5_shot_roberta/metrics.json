@@ -1,0 +1,29 @@
+{
+    "model": "LSTM_gossipcop_5_shot_roberta",
+    "dataset": "gossipcop",
+    "embedding": "roberta",
+    "k_shot": 5,
+    "training_time": 0.44429588317871094,
+    "best_epoch": 0,
+    "final_train_accuracy": 0.5555555555555556,
+    "final_train_loss": 0.6831387877464294,
+    "final_val_accuracy": 0.0,
+    "final_val_loss": 0.833622932434082,
+    "final_val_f1": 0.0,
+    "test_metrics": {
+        "accuracy": 0.811751497005988,
+        "precision": 0.405875748502994,
+        "recall": 0.5,
+        "f1_score": 0.4480479239826482,
+        "confusion_matrix": [
+            [
+                2169,
+                0
+            ],
+            [
+                503,
+                0
+            ]
+        ]
+    }
+}

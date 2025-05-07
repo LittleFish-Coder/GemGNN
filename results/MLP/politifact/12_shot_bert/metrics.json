@@ -1,0 +1,29 @@
+{
+    "model": "MLP_politifact_12_shot_bert",
+    "dataset": "politifact",
+    "embedding": "bert",
+    "k_shot": 12,
+    "training_time": 0.4914216995239258,
+    "best_epoch": 2,
+    "final_train_accuracy": 1.0,
+    "final_train_loss": 0.1881067454814911,
+    "final_val_accuracy": 0.6666666666666666,
+    "final_val_loss": 1.0078753232955933,
+    "final_val_f1": 0.6666666666666666,
+    "test_metrics": {
+        "accuracy": 0.46078431372549017,
+        "precision": 0.6232954545454545,
+        "recall": 0.6025035427491734,
+        "f1_score": 0.4582327378078223,
+        "confusion_matrix": [
+            [
+                20,
+                53
+            ],
+            [
+                2,
+                27
+            ]
+        ]
+    }
+}

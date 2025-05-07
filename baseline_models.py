@@ -17,24 +17,26 @@ SEED = 42
 DEFAULT_EMBEDDING_TYPE = "roberta"
 DEFAULT_BATCH_SIZE = 64
 RESULTS_DIR = "results" # Changed base directory
+DEFAULT_SEED = 42
 
-def set_seed(seed: int = SEED) -> None:
+def set_seed(seed: int = DEFAULT_SEED) -> None:
     """Set seed for reproducibility across all random processes."""
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
     np.random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 class LSTMClassifier(nn.Module):
-    def __init__(self, in_channels, hidden_channels, out_channels, num_layers=1, add_dropout=True):
+    def __init__(self, in_channels, hidden_channels, out_channels, num_layers=1, dropout_rate=0.0):
         super(LSTMClassifier, self).__init__()
         # LSTM expects input shape (batch, seq_len, input_size)
         # Our input is (batch, input_size), so we'll treat seq_len as 1
         self.embedding_proj = nn.Linear(in_channels, hidden_channels) # Optional projection
-        self.lstm = nn.LSTM(hidden_channels, hidden_channels, num_layers, batch_first=True,
-                            dropout=0.6 if add_dropout and num_layers > 1 else 0)
+        self.lstm = nn.LSTM(hidden_channels, hidden_channels, num_layers, batch_first=True, dropout=dropout_rate if num_layers > 1 else 0)
         self.fc = nn.Linear(hidden_channels, out_channels)
-        self.dropout = nn.Dropout(0.6 if add_dropout else 0)
+        self.dropout = nn.Dropout(dropout_rate)
 
     def forward(self, x):
         # x shape: (batch_size, in_channels)
@@ -44,15 +46,14 @@ class LSTMClassifier(nn.Module):
         lstm_out, _ = self.lstm(x)
         # lstm_out shape: (batch_size, 1, hidden_channels)
         lstm_out = lstm_out.squeeze(1) # Remove sequence dimension: (batch_size, hidden_channels)
-        out = self.dropout(lstm_out)
+        out = self.dropout(lstm_out) # Apply dropout before the final fully connected layer
         out = self.fc(out) # (batch_size, out_channels)
         return out
 
 class MLPClassifier(nn.Module):
-    def __init__(self, in_channels, hidden_channels, out_channels, num_layers=2, add_dropout=True):
+    def __init__(self, in_channels, hidden_channels, out_channels, num_layers=2, dropout_rate=0.0):
         super(MLPClassifier, self).__init__()
         self.layers = nn.ModuleList()
-        dropout_rate = 0.6 if add_dropout else 0
 
         if num_layers == 1:
             # Direct mapping if num_layers is 1
@@ -99,7 +100,7 @@ class EmbeddingDataset(Dataset):
 def load_and_prepare_data(dataset_name: str, embedding_type: str, k_shot: int, batch_size: int, seed: int, device: torch.device):
     """Loads dataset, extracts embeddings, creates DataLoaders."""
     print(f"Loading dataset '{dataset_name}' with {embedding_type} embeddings...")
-    hf_dataset_name = f"LittleFish-Coder/Fake_News_{dataset_name.capitalize()}"
+    hf_dataset_name = f"LittleFish-Coder/Fake_News_{dataset_name}"
     dataset = load_dataset(hf_dataset_name, cache_dir="dataset")
 
     train_hf_dataset = dataset["train"]
@@ -241,7 +242,7 @@ def evaluate(model, loader, criterion, device):
 
     avg_loss = total_loss / total if total > 0 else 0
     accuracy = correct / total if total > 0 else 0
-    f1 = f1_score(all_labels, all_preds, average='binary', zero_division=0) if total > 0 else 0
+    f1 = f1_score(all_labels, all_preds, average='macro', zero_division=0) if total > 0 else 0
     return accuracy, avg_loss, f1
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, n_epochs, patience, device, output_dir, model_name):
@@ -325,9 +326,9 @@ def detailed_test(model, loader, device):
     if not all_labels: return {} # Handle case where loader was empty
 
     accuracy = accuracy_score(all_labels, all_preds)
-    precision = precision_score(all_labels, all_preds, average='binary', zero_division=0)
-    recall = recall_score(all_labels, all_preds, average='binary', zero_division=0)
-    f1 = f1_score(all_labels, all_preds, average='binary', zero_division=0)
+    precision = precision_score(all_labels, all_preds, average='macro', zero_division=0)
+    recall = recall_score(all_labels, all_preds, average='macro', zero_division=0)
+    f1 = f1_score(all_labels, all_preds, average='macro', zero_division=0)
     conf_matrix = confusion_matrix(all_labels, all_preds)
 
     metrics = {
@@ -419,10 +420,11 @@ def plot_metrics(history, model_name, output_dir):
 
 def parse_arguments() -> Namespace:
     parser = ArgumentParser(description="Train MLP or LSTM on pre-computed embeddings for fake news detection")
+    parser.add_argument("--k_shot", type=int, default=8, choices=[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], help="Number of samples per class for few-shot learning")
+    
     parser.add_argument("--dataset_name", type=str, default="politifact", choices=["politifact", "gossipcop"], help="Dataset to use")
     parser.add_argument("--embedding_type", type=str, default=DEFAULT_EMBEDDING_TYPE, choices=["bert", "roberta"], help="Type of embeddings to use")
     parser.add_argument("--model_type", type=str, default="MLP", choices=["MLP", "LSTM"], help="Model architecture")
-    parser.add_argument("--k_shot", type=int, default=0, help="Number of samples per class for few-shot learning (0 for full training set)")
 
     # Hyperparameters
     parser.add_argument("--hidden_channels", type=int, default=64, help="Number of hidden units")
@@ -432,10 +434,7 @@ def parse_arguments() -> Namespace:
     parser.add_argument("--n_epochs", type=int, default=100, help="Maximum number of training epochs")
     parser.add_argument("--patience", type=int, default=10, help="Patience for early stopping")
     parser.add_argument("--batch_size", type=int, default=DEFAULT_BATCH_SIZE, help="Training batch size")
-    parser.add_argument("--dropout", action="store_true", default=True, help="Enable dropout")
-    parser.add_argument("--no-dropout", dest="dropout", action="store_false", help="Disable dropout")
-    parser.add_argument("--no_class_balance", action="store_true", help="Disable class balancing in loss function")
-
+    parser.add_argument("--dropout_rate", type=float, default=0.0, help="Dropout rate (0.0 to disable)")
 
     # Others
     parser.add_argument("--seed", type=int, default=SEED, help="Random seed")
@@ -468,7 +467,7 @@ def main():
             hidden_channels=args.hidden_channels,
             out_channels=2, # Assuming binary classification (real/fake)
             num_layers=args.num_layers,
-            add_dropout=args.dropout
+            dropout_rate=args.dropout_rate
         )
     elif args.model_type == "LSTM":
         model = LSTMClassifier(
@@ -476,7 +475,7 @@ def main():
             hidden_channels=args.hidden_channels,
             out_channels=2,
             num_layers=args.num_layers,
-            add_dropout=args.dropout
+            dropout_rate=args.dropout_rate
         )
     else:
         raise ValueError(f"Unsupported model type: {args.model_type}")
@@ -485,45 +484,13 @@ def main():
     print(f"Initialized {args.model_type} model:")
     print(model)
 
-    # --- Loss and Optimizer ---
-    # Handle class imbalance (optional) - Calculate weights based on training data if possible
-    if not args.no_class_balance and train_loader:
-        all_labels = []
-        # Iterate through the dataset backing the loader to get all labels
-        if isinstance(train_loader.dataset, Subset):
-             # If it's a Subset (due to train/val split), access the underlying dataset
-             indices = train_loader.dataset.indices
-             underlying_dataset = train_loader.dataset.dataset
-             all_labels = [underlying_dataset.labels[i].item() for i in indices]
-        else:
-             # If it's the full dataset
-             all_labels = [label.item() for _, label in train_loader.dataset]
-
-
-        if all_labels:
-             counts = np.bincount(all_labels)
-             # Calculate weights inverse to class frequency: weight = total_samples / (num_classes * count)
-             total_samples = len(all_labels)
-             num_classes = len(counts)
-             weights = total_samples / (num_classes * counts + 1e-9) # Add epsilon for stability
-             class_weights = torch.FloatTensor(weights).to(device)
-             print(f"Using class weights for loss: {class_weights.cpu().numpy()}")
-             criterion = nn.CrossEntropyLoss(weight=class_weights)
-        else:
-             print("Warning: Could not calculate class weights (empty training data?). Using unweighted loss.")
-             criterion = nn.CrossEntropyLoss()
-    else:
-        print("Using unweighted CrossEntropyLoss.")
-        criterion = nn.CrossEntropyLoss()
-
-
+    criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
     # --- Training ---
-    k_shot_str = f"{args.k_shot}shot" if args.k_shot > 0 else "full"
-    model_name = f"{args.model_type}_{args.dataset_name}_{args.embedding_type}_{k_shot_str}"
+    model_name = f"{args.model_type}_{args.dataset_name}_{args.k_shot}_shot_{args.embedding_type}"
     # Adjusted output directory structure
-    output_dir = os.path.join(args.output_dir_base, args.model_type, args.dataset_name, k_shot_str)
+    output_dir = os.path.join(args.output_dir_base, args.model_type, args.dataset_name, f"{args.k_shot}_shot_{args.embedding_type}")
     os.makedirs(output_dir, exist_ok=True)
 
     print(f"Starting training for {model_name}...")

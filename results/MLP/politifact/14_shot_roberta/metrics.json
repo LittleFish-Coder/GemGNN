@@ -1,0 +1,29 @@
+{
+    "model": "MLP_politifact_14_shot_roberta",
+    "dataset": "politifact",
+    "embedding": "roberta",
+    "k_shot": 14,
+    "training_time": 0.5590953826904297,
+    "best_epoch": 10,
+    "final_train_accuracy": 0.8333333333333334,
+    "final_train_loss": 0.5518565773963928,
+    "final_val_accuracy": 0.75,
+    "final_val_loss": 0.6325466632843018,
+    "final_val_f1": 0.7333333333333334,
+    "test_metrics": {
+        "accuracy": 0.4411764705882353,
+        "precision": 0.6146341463414634,
+        "recall": 0.588804912612187,
+        "f1_score": 0.43679163034001744,
+        "confusion_matrix": [
+            [
+                18,
+                55
+            ],
+            [
+                2,
+                27
+            ]
+        ]
+    }
+}
