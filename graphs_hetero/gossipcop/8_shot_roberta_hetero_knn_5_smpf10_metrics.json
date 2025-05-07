@@ -1,0 +1,17 @@
+{
+  "nodes_news": 2848,
+  "nodes_interaction": 56960,
+  "nodes_total": 59808,
+  "edges_news_has_interaction_interaction": 56960,
+  "edges_interaction_rev_has_interaction_news": 56960,
+  "edges_news_similar_to_news": 14240,
+  "edges_total": 128160,
+  "avg_degree_news_similar_to": 5.0,
+  "homophily_ratio_news_similar_to": 0.7692559548170582,
+  "sampling_info": {
+    "sampled_unlabeled": true,
+    "unlabeled_sample_factor": 10,
+    "num_labeled_original": 16,
+    "num_unlabeled_sampled_original": 160
+  }
+}
