@@ -1,0 +1,27 @@
+{
+    "Training Time": "3.33 seconds",
+    "Best Epoch": 163,
+    "Train Accuracy": 1.0,
+    "Train Loss": 0.16300368309020996,
+    "Validation Accuracy": 0.7450980392156863,
+    "Validation Loss": 0.5223619341850281,
+    "Validation F1": 0.6388888888888888,
+    "Test Accuracy (with last epoch model)": 0.7450980392156863,
+    "Test F1 (with last epoch model)": 0.6388888888888888,
+    "Detailed Metrics (with best model)": {
+        "Accuracy": 0.7647058823529411,
+        "Precision": 0.5555555555555556,
+        "Recall": 0.8620689655172413,
+        "F1 Score": 0.6756756756756757,
+        "Confusion Matrix": [
+            [
+                53,
+                20
+            ],
+            [
+                4,
+                25
+            ]
+        ]
+    }
+}

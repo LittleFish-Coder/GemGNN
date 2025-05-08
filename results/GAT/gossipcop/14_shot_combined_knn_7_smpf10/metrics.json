@@ -1,0 +1,43 @@
+{
+    "args": {
+        "graph_path": "graphs/gossipcop/14_shot_combined_knn_7_smpf10.pt",
+        "model": "GAT",
+        "dropout_rate": 0.5,
+        "hidden_channels": 128,
+        "gat_heads": 8,
+        "lr": 0.0001,
+        "weight_decay": 0.0001,
+        "n_epochs": 300,
+        "patience": 30,
+        "seed": 42,
+        "output_dir": "results"
+    },
+    "model_name": "GAT_gossipcop_14_shot_combined_knn_7_smpf10",
+    "training_history": {
+        "final_train_loss": 0.5364617705345154,
+        "final_train_acc": 0.7857142857142857,
+        "final_val_loss": 0.6633515954017639,
+        "final_val_acc": 0.6276197604790419,
+        "final_val_f1": 0.5076431208948886,
+        "best_val_f1": 0.5154017857142856,
+        "best_epoch": 70,
+        "total_epochs": 132,
+        "training_time_seconds": 2.61456036567688
+    },
+    "final_test_metrics": {
+        "accuracy": 0.7372754491017964,
+        "precision": 0.22437673130193905,
+        "recall": 0.1610337972166998,
+        "f1_score": 0.1875,
+        "confusion_matrix": [
+            [
+                1889,
+                280
+            ],
+            [
+                422,
+                81
+            ]
+        ]
+    }
+}

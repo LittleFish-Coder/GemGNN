@@ -1,0 +1,43 @@
+{
+    "args": {
+        "graph_path": "graphs/politifact/8_shot_roberta_global_threshold_0p10_smpf10.pt",
+        "model": "GAT",
+        "dropout_rate": 0.5,
+        "hidden_channels": 128,
+        "gat_heads": 8,
+        "lr": 0.0001,
+        "weight_decay": 0.0001,
+        "n_epochs": 300,
+        "patience": 30,
+        "seed": 42,
+        "output_dir": "results"
+    },
+    "model_name": "GAT_politifact_8_shot_roberta_global_threshold_0p10_smpf10",
+    "training_history": {
+        "final_train_loss": 0.6206238269805908,
+        "final_train_acc": 0.625,
+        "final_val_loss": 0.7143369317054749,
+        "final_val_acc": 0.29411764705882354,
+        "final_val_f1": 0.27631060307449745,
+        "best_val_f1": 0.4552516588444732,
+        "best_epoch": 19,
+        "total_epochs": 67,
+        "training_time_seconds": 3.179959774017334
+    },
+    "final_test_metrics": {
+        "accuracy": 0.6764705882352942,
+        "precision": 0.25,
+        "recall": 0.06896551724137931,
+        "f1_score": 0.10810810810810811,
+        "confusion_matrix": [
+            [
+                67,
+                6
+            ],
+            [
+                27,
+                2
+            ]
+        ]
+    }
+}

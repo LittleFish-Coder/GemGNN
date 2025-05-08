@@ -1,0 +1,27 @@
+{
+    "Training Time": "1.15 seconds",
+    "Best Epoch": 2,
+    "Train Accuracy": 0.5,
+    "Train Loss": 0.9449405670166016,
+    "Validation Accuracy": 0.7156862745098039,
+    "Validation Loss": 0.6446560025215149,
+    "Validation F1": 0.0,
+    "Test Accuracy (with last epoch model)": 0.7156862745098039,
+    "Test F1 (with last epoch model)": 0.0,
+    "Detailed Metrics (with best model)": {
+        "Accuracy": 0.7156862745098039,
+        "Precision": 0.0,
+        "Recall": 0.0,
+        "F1 Score": 0.0,
+        "Confusion Matrix": [
+            [
+                73,
+                0
+            ],
+            [
+                29,
+                0
+            ]
+        ]
+    }
+}

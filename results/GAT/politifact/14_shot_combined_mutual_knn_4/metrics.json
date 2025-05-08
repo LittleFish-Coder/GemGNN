@@ -1,0 +1,43 @@
+{
+    "args": {
+        "graph_path": "graphs/politifact/14_shot_combined_mutual_knn_4.pt",
+        "model": "GAT",
+        "dropout_rate": 0.5,
+        "hidden_channels": 128,
+        "gat_heads": 8,
+        "lr": 0.0001,
+        "weight_decay": 0.0001,
+        "n_epochs": 300,
+        "patience": 30,
+        "seed": 42,
+        "output_dir": "results"
+    },
+    "model_name": "GAT_politifact_14_shot_combined_mutual_knn_4",
+    "training_history": {
+        "final_train_loss": 0.6555019617080688,
+        "final_train_acc": 0.6785714285714286,
+        "final_val_loss": 0.6995961666107178,
+        "final_val_acc": 0.4117647058823529,
+        "final_val_f1": 0.40350877192982454,
+        "best_val_f1": 0.45022194039315155,
+        "best_epoch": 2,
+        "total_epochs": 32,
+        "training_time_seconds": 1.3011915683746338
+    },
+    "final_test_metrics": {
+        "accuracy": 0.6666666666666666,
+        "precision": 0.2222222222222222,
+        "recall": 0.06896551724137931,
+        "f1_score": 0.10526315789473684,
+        "confusion_matrix": [
+            [
+                66,
+                7
+            ],
+            [
+                27,
+                2
+            ]
+        ]
+    }
+}
