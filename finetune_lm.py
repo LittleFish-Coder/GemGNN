@@ -86,6 +86,8 @@ class FakeNewsTrainer:
         
         self.dataset = dataset
         print(f"Dataset loaded and prepared. Train size: {len(dataset['train'])}, Test size: {len(dataset['test'])}")
+        print('Train label distribution:', np.bincount(self.dataset['train']['label']))
+        print('Test label distribution:', np.bincount(self.dataset['test']['label']))
     
     def _sample_k_shot(self, dataset: DatasetDict, k: int) -> DatasetDict:
         """Sample k examples per class for few-shot learning."""
@@ -176,9 +178,9 @@ class FakeNewsTrainer:
         
         return {
             "accuracy": accuracy_score(labels, predictions),
-            "f1": f1_score(labels, predictions, average="macro"),
-            "precision": precision_score(labels, predictions, average="macro"),
-            "recall": recall_score(labels, predictions, average="macro"),
+            "f1": f1_score(labels, predictions, average="macro", zero_division=0),
+            "precision": precision_score(labels, predictions, average="macro", zero_division=0),
+            "recall": recall_score(labels, predictions, average="macro", zero_division=0),
             "confusion_matrix": cm.tolist(),  # Convert numpy array to list for JSON serialization
         }
     
@@ -293,7 +295,7 @@ def parse_arguments() -> Namespace:
         type=str,
         default="politifact",
         help="Dataset to use (default: politifact)",
-        choices=["tfg", "kdd2020", "gossipcop", "politifact"],
+        choices=["gossipcop", "politifact"],
     )
     
     # Few-shot setting
