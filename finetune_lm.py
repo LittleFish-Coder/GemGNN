@@ -86,8 +86,6 @@ class FakeNewsTrainer:
         
         self.dataset = dataset
         print(f"Dataset loaded and prepared. Train size: {len(dataset['train'])}, Test size: {len(dataset['test'])}")
-        print('Train label distribution:', np.bincount(self.dataset['train']['label']))
-        print('Test label distribution:', np.bincount(self.dataset['test']['label']))
     
     def _sample_k_shot(self, dataset: DatasetDict, k: int) -> DatasetDict:
         """Sample k examples per class for few-shot learning."""
