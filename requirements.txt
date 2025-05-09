@@ -10,6 +10,8 @@ torch-geometric
 evaluate
 accelerate
 transformers
+sentencepiece
+tiktoken
 datasets
 
 # GCP Vertex AI Gemini API
