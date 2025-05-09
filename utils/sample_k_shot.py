@@ -10,9 +10,6 @@ def sample_k_shot(train_data: Dataset, k: int, seed: int = 42) -> Tuple[List[int
     """
     Sample k examples per class, returning both indices and dataset.
     
-    This function replicates the exact sampling logic from finetune_lm.py
-    to ensure the same examples are selected for both models.
-    
     Args:
         train_data: Original training dataset
         k: Number of samples per class
@@ -24,14 +21,6 @@ def sample_k_shot(train_data: Dataset, k: int, seed: int = 42) -> Tuple[List[int
     # Initialize output
     sampled_data = {key: [] for key in train_data.column_names}
     selected_indices = []
-    
-    # count number of samples in each class
-    class_counts = np.bincount(train_data["label"])
-
-    # full-shot scenario, make k equal to the number of samples in the smallest class
-    if k == 0:
-        k = min(class_counts)
-        print(f"Setting k to {k} for full-shot scenario")
 
     # Sample k examples from each class
     labels = set(train_data["label"])
@@ -44,14 +33,7 @@ def sample_k_shot(train_data: Dataset, k: int, seed: int = 42) -> Tuple[List[int
             range(min(k, len(label_data)))
         )
         
-        # Get the original indices of these samples
-        # Note: this is a bit tricky with HuggingFace datasets
-        # We need to map back to original indices
         label_indices = [i for i, l in enumerate(train_data["label"]) if l == label]
-        
-        # The sampled_label_data is in order of shuffle, so we need to get these indices
-        # For simplicity, we'll just use the first k indices after shuffling
-        # This assumes the .shuffle() works the same way every time with same seed
         
         # Get shuffled indices
         np.random.seed(seed)
@@ -97,7 +79,7 @@ def debug_compare_samples(dataset_name: str, k_shot: int, seed: int = 42):
     
     # Compare text samples
     for i in range(min(len(data1["text"]), 2)):  # Show first 2 samples
-        print(f"\nSample {i}:")
+        print(f"Index: {indices1[i]}")
         print(f"Run 1: {data1['text'][i][:50]}...")
         print(f"Run 2: {data2['text'][i][:50]}...")
     
