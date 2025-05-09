@@ -40,11 +40,6 @@ def set_seed(seed: int = DEFAULT_SEED) -> None:
 
 
 class GraphBuilder:
-    """
-    Builds graph datasets for few-shot fake news detection.
-    Supports sampling of unlabeled training nodes.
-    """
-
     def __init__(
         self,
         dataset_name: str,
@@ -55,8 +50,8 @@ class GraphBuilder:
         local_threshold_factor: float = DEFAULT_LOCAL_THRESHOLD_FACTOR,
         alpha: float = DEFAULT_ALPHA,
         quantile_p: float = DEFAULT_QUANTILE_P,
-        sample_unlabeled: bool = False, # New argument
-        unlabeled_sample_factor: int = DEFAULT_UNLABELED_SAMPLE_FACTOR, # New argument
+        sample_unlabeled: bool = False, 
+        unlabeled_sample_factor: int = DEFAULT_UNLABELED_SAMPLE_FACTOR,
         output_dir: str = GRAPH_DIR,
         plot: bool = False,
         seed: int = DEFAULT_SEED,
@@ -64,42 +59,46 @@ class GraphBuilder:
         device: str = None,
     ):
         """Initialize the GraphBuilder with configuration parameters."""
+        ## Dataset configuration
         self.dataset_name = dataset_name.lower()
+        self.embedding_type = embedding_type.lower()
+        ## K-Shot
         self.k_shot = k_shot
+        ## Edge Policy
         self.edge_policy = edge_policy
         self.k_neighbors = k_neighbors
         self.k_top_sim = k_top_sim
         self.local_threshold_factor = local_threshold_factor
         self.alpha = alpha
         self.quantile_p = quantile_p
-        self.sample_unlabeled = sample_unlabeled # Store new argument
-        self.unlabeled_sample_factor = unlabeled_sample_factor # Store new argument
+        ## Sampling
+        self.sample_unlabeled = sample_unlabeled
+        self.unlabeled_sample_factor = unlabeled_sample_factor
         self.plot = plot
         self.seed = seed
-        self.embedding_type = embedding_type.lower()
-
+        
+        # Set device
+        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        print(f"Using device: {self.device}")
+        np.random.seed(self.seed)
+        
         # Setup directory paths
         self.output_dir = os.path.join(output_dir, self.dataset_name)
         self.plot_dir = os.path.join(PLOT_DIR, self.dataset_name)
 
         # Create directories
         os.makedirs(self.output_dir, exist_ok=True)
-        if self.plot:
-            os.makedirs(self.plot_dir, exist_ok=True)
+        if self.plot: os.makedirs(self.plot_dir, exist_ok=True)
 
         # Initialize components
         self.dataset = None
         self.graph_data = None
         self.graph_metrics = {}
-        self.selected_labeled_indices_original = None # Store original indices of labeled nodes
-        self.selected_unlabeled_indices_original = None # Store original indices of sampled unlabeled nodes
 
-        # Set device
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-        print(f"Using device: {self.device}")
-        # Set numpy random seed specifically for sampling if needed elsewhere
-        np.random.seed(self.seed)
-
+        # Selected Indices
+        self.selected_train_labeled_indices = None
+        self.selected_train_unlabeled_indices = None
+        self.selected_test_indices = None
 
     def load_dataset(self) -> None:
         """Load dataset from HuggingFace and prepare it for graph construction."""
@@ -107,283 +106,161 @@ class GraphBuilder:
         hf_dataset_name = f"LittleFish-Coder/Fake_News_{self.dataset_name}"
         dataset = load_dataset(hf_dataset_name, download_mode="reuse_cache_if_exists", cache_dir="dataset")
         self.dataset = {"train": dataset["train"], "test": dataset["test"]}
-        self.train_size_original = len(dataset["train"])
-        self.test_size_original = len(dataset["test"])
-        unique_labels = set(dataset["train"]["label"])
-        self.num_classes = len(unique_labels)
-        self.labeled_size_per_class = self.k_shot
+        self.train_size = len(dataset["train"])
+        self.test_size = len(dataset["test"])
+        unique_labels = set(dataset["train"]["label"])  # 0: real, 1: fake
+        self.num_classes = len(unique_labels)   # 2
         self.total_labeled_size = self.k_shot * self.num_classes
-        print(f"\nOriginal dataset size: Train={self.train_size_original}, Test={self.test_size_original}")
+        print(f"\nOriginal dataset size: Train={self.train_size}, Test={self.test_size}")
         print(f"Labeled set: {self.k_shot}-shot * {self.num_classes} classes = {self.total_labeled_size} total labeled nodes")
-        # self._show_dataset_stats() # Keep this optional or adapt it
-
-    # def _show_dataset_stats(self) -> None: # Can be adapted later if needed
-    #     # ... (original code) ...
 
     def build_graph(self) -> Data:
-        """Build a graph including both nodes and edges."""
-        # Build nodes (potentially with sampling)
-        self.build_empty_graph() # This function now handles sampling logic
-
-        # Check if graph building created valid data
-        if self.graph_data is None or self.graph_data.x is None:
-             print("Error: Graph node building failed. Aborting.")
-             return None
+        """
+        Build a graph including both nodes and edges.
+        Pipeline:
+        1. Build empty graph
+            - train_labeled_nodes (train_labeled_mask from training set)
+            - train_unlabeled_nodes (train_unlabeled_mask from training set)
+            - test_nodes (test_mask from test set)
+        2. Build edges (based on edge policy)
+        3. Update graph data with edges
+        """
+        self.build_empty_graph() # Build nodes (potentially with sampling)
 
         print(f"\nBuilding graph edges using {self.edge_policy} policy...")
-        embeddings = self.graph_data.x.cpu().numpy() # Ensure embeddings are on CPU for sklearn/numpy
-
-        # Check if graph has enough nodes for the chosen policy
-        if self.graph_data.num_nodes <= 1:
-             print("Warning: Graph has 1 or 0 nodes. Skipping edge building.")
-             self.graph_data.edge_index = torch.zeros((2, 0), dtype=torch.long)
-             self.graph_data.edge_attr = torch.zeros((0, 1), dtype=torch.float)
-             self.graph_data.num_edges = 0
-             return self.graph_data
+        embeddings = self.graph_data.x.cpu().numpy()
 
         # --- Edge Building Logic ---
-        edge_func_map = {
-            "knn": self._build_knn_edges,
-            "mutual_knn": self._build_mutual_knn_edges,
-            "local_threshold": self._build_local_threshold_edges,
-            "global_threshold": self._build_global_threshold_edges,
-            "quantile": self._build_quantile_edges,
-            "topk_mean": self._build_topk_mean_edges,
-        }
+        if self.edge_policy == "knn":
+            edge_index, edge_attr = self._build_knn_edges(embeddings, self.k_neighbors)
+        elif self.edge_policy == "mutual_knn":
+            edge_index, edge_attr = self._build_mutual_knn_edges(embeddings, self.k_neighbors)
+        elif self.edge_policy == "local_threshold":
+            edge_index, edge_attr = self._build_local_threshold_edges(embeddings, self.local_threshold_factor)
+        elif self.edge_policy == "global_threshold":
+            edge_index, edge_attr = self._build_global_threshold_edges(embeddings, self.alpha)
+        elif self.edge_policy == "quantile":
+            edge_index, edge_attr = self._build_quantile_edges(embeddings, self.quantile_p)
+        elif self.edge_policy == "topk_mean":
+            edge_index, edge_attr = self._build_topk_mean_edges(embeddings, self.k_top_sim, self.local_threshold_factor)
+        else: 
+            raise ValueError(f"Edge policy '{self.edge_policy}' not found.")
 
-        if self.edge_policy in edge_func_map:
-            build_func = edge_func_map[self.edge_policy]
-            # Prepare arguments for the specific function
-            if self.edge_policy in ["knn", "mutual_knn"]:
-                edges, edge_attr = build_func(embeddings, self.k_neighbors)
-            elif self.edge_policy == "local_threshold":
-                 edges, edge_attr = build_func(embeddings, self.local_threshold_factor)
-            elif self.edge_policy == "global_threshold":
-                edges, edge_attr = build_func(embeddings, self.alpha)
-            elif self.edge_policy == "quantile":
-                 edges, edge_attr = build_func(embeddings, self.quantile_p)
-            elif self.edge_policy == "topk_mean":
-                 # Reusing local_threshold_factor for topk_mean's factor
-                 edges, edge_attr = build_func(embeddings, self.k_top_sim, self.local_threshold_factor)
-            else: # Should not happen due to check above, but for safety
-                 raise ValueError(f"Edge policy '{self.edge_policy}' handler not found.")
-        else:
-            raise ValueError(f"Unknown edge policy: {self.edge_policy}")
+        # symmetrize edge_index and edge_attr (for undirected graphs)
+        edge_index = torch.cat([edge_index, edge_index[[1, 0], :]], dim=1)
+        edge_attr = torch.cat([edge_attr, edge_attr], dim=0)
 
-        # Update graph data
-        self.graph_data.edge_index = edges.to(self.device) # Move edges to target device
+        self.graph_data.edge_index = edge_index.to(self.device)
         if edge_attr is not None:
-             self.graph_data.edge_attr = edge_attr.to(self.device) # Move attributes to target device
+            self.graph_data.edge_attr = edge_attr.to(self.device)
         else:
-             self.graph_data.edge_attr = None
-        self.graph_data.num_edges = edges.shape[1]
-
+            self.graph_data.edge_attr = None
+        self.graph_data.num_edges = self.graph_data.edge_index.shape[1]
         print(f"Graph edges built: {self.graph_data.num_edges} edges created")
 
-        # Analyze the graph
         self._analyze_graph()
 
         return self.graph_data
 
     def build_empty_graph(self) -> Optional[Data]:
         """
-        Builds the graph nodes and masks. Handles sampling of unlabeled training nodes if enabled.
+        Build the graph nodes and masks for three node types:
+        - train_labeled_nodes: k-shot per class from training set (used for supervision)
+        - train_unlabeled_nodes: remaining training nodes (no label for training, only structure)
+        - test_nodes: all test set nodes (no label for training, prediction target)
+        If self.sample_unlabeled is True, only sample M*2*k train_unlabeled_nodes (M = unlabeled_sample_factor).
+        Returns a PyG Data object with proper masks.
         """
         print(f"\nBuilding graph nodes using {self.embedding_type} embeddings...")
         embedding_field = f"{self.embedding_type}_embeddings"
-        print(f"Using embeddings from field: '{embedding_field}'")
-
         train_data = self.dataset["train"]
         test_data = self.dataset["test"]
 
-        # --- 1. Identify Labeled Nodes ---
+        # 1. Sample k-shot labeled nodes from train set
         print(f"Sampling {self.k_shot}-shot labeled nodes with seed={self.seed}")
-        labeled_indices_original, _ = sample_k_shot(train_data, self.k_shot, self.seed)
-        self.selected_labeled_indices_original = labeled_indices_original # Store original indices
-        print(f"  Selected {len(labeled_indices_original)} labeled nodes (original indices): {labeled_indices_original[:10]}...") # Show first few
+        train_labeled_indices, _ = sample_k_shot(train_data, self.k_shot, self.seed)
+        train_labeled_indices = np.array(train_labeled_indices)
+        self.selected_train_labeled_indices = train_labeled_indices
+        print(f"  Selected {len(train_labeled_indices)} labeled nodes: {train_labeled_indices} ...")
 
-        # --- 2. Handle Unlabeled Training Node Sampling ---
-        final_train_indices_original = None # Store original indices of all train nodes used
-        sampled_unlabeled_indices_original = None # Store original indices of sampled unlabeled
+        # 2. Get train_unlabeled_nodes (all train nodes not in train_labeled_indices)
+        all_train_indices = np.arange(len(train_data))
+        train_unlabeled_indices = np.setdiff1d(all_train_indices, train_labeled_indices, assume_unique=True)
 
+        # --- Sample train_unlabeled_nodes if required ---
         if self.sample_unlabeled:
-            print("Sampling unlabeled training nodes enabled.")
-            # Find all original indices of unlabeled training nodes
-            all_train_indices_original = np.arange(self.train_size_original)
-            unlabeled_indices_original = np.setdiff1d(all_train_indices_original, labeled_indices_original, assume_unique=True)
+            num_to_sample = min(self.unlabeled_sample_factor * 2 * self.k_shot, len(train_unlabeled_indices))
+            print(f"Sampling {num_to_sample} train_unlabeled_nodes (factor={self.unlabeled_sample_factor}, 2*k={2*self.k_shot}) from {len(train_unlabeled_indices)} available.")
+            train_unlabeled_indices = np.random.choice(train_unlabeled_indices, size=num_to_sample, replace=False)
+        self.selected_train_unlabeled_indices = train_unlabeled_indices
+        print(f"  Selected {len(train_unlabeled_indices)} unlabeled train nodes.")
 
-            num_unlabeled_available = len(unlabeled_indices_original)
-            num_to_sample = int(self.unlabeled_sample_factor * self.total_labeled_size) # M * (2*k)
+        # 3. Get all test node indices
+        test_indices = np.arange(len(test_data))
+        self.selected_test_indices = test_indices
+        print(f"  Test nodes: {len(test_indices)}")
 
-            # Ensure we don't sample more than available
-            num_to_sample = min(num_to_sample, num_unlabeled_available)
+        # 4. Extract embeddings and labels for each group
+        train_labeled_emb = np.array(train_data.select(train_labeled_indices.tolist())[embedding_field])
+        train_labeled_label = np.array(train_data.select(train_labeled_indices.tolist())["label"])
+        train_unlabeled_emb = np.array(train_data.select(train_unlabeled_indices.tolist())[embedding_field])
+        train_unlabeled_label = np.array(train_data.select(train_unlabeled_indices.tolist())["label"])
+        test_emb = np.array(test_data[embedding_field])
+        test_label = np.array(test_data["label"])
 
-            print(f"  Target sample size: {self.unlabeled_sample_factor} * {self.total_labeled_size} = {self.unlabeled_sample_factor * self.total_labeled_size}")
-            if num_unlabeled_available == 0:
-                 print("  Warning: No unlabeled training nodes available to sample.")
-                 num_to_sample = 0
-                 sampled_unlabeled_indices_original = np.array([], dtype=int)
-            elif num_to_sample == 0:
-                 print("  Warning: Calculated sample size is 0. No unlabeled nodes will be sampled.")
-                 sampled_unlabeled_indices_original = np.array([], dtype=int)
-            else:
-                print(f"  Sampling {num_to_sample} nodes from {num_unlabeled_available} available unlabeled training nodes...")
-                # Use numpy's random generator with the set seed for reproducibility
-                rng = np.random.default_rng(self.seed)
-                sampled_unlabeled_indices_original = rng.choice(
-                    unlabeled_indices_original, size=num_to_sample, replace=False
-                )
-                self.selected_unlabeled_indices_original = sampled_unlabeled_indices_original # Store them
-                print(f"  Selected {len(sampled_unlabeled_indices_original)} unlabeled nodes (original indices): {sampled_unlabeled_indices_original[:10]}...")
+        # 5. Concatenate all nodes
+        x = torch.tensor(np.concatenate([train_labeled_emb, train_unlabeled_emb, test_emb]), dtype=torch.float)
+        y = torch.tensor(np.concatenate([train_labeled_label, train_unlabeled_label, test_label]), dtype=torch.long)
 
-            # Combine labeled and sampled unlabeled indices
-            final_train_indices_original = np.concatenate([labeled_indices_original, sampled_unlabeled_indices_original])
-            # Sort for potentially easier processing later, although not strictly required
-            final_train_indices_original = np.sort(final_train_indices_original)
-            print(f"  Total training nodes included in graph: {len(final_train_indices_original)}")
+        # 6. Build masks
+        num_train_labeled = len(train_labeled_indices)      # train labeled nodes
+        num_train_unlabeled = len(train_unlabeled_indices)  # train unlabeled nodes
+        num_test = len(test_indices)                        # test nodes
+        num_nodes = num_train_labeled + num_train_unlabeled + num_test  # all nodes
 
-        else:
-            # Use all training nodes
-            print("Using ALL training nodes (sampling disabled).")
-            final_train_indices_original = np.arange(self.train_size_original)
-
-        # --- 3. Extract Data for Selected Nodes ---
-        # Ensure indices are list or array for slicing datasets
-        final_train_indices_list = final_train_indices_original.tolist()
-
-        # Use .select() for efficient slicing
-        train_data_subset = train_data.select(final_train_indices_list)
-
-        try:
-             train_embeddings_subset = np.array(train_data_subset[embedding_field])
-             train_labels_subset = np.array(train_data_subset["label"])
-        except KeyError:
-             print(f"Error: Embedding field '{embedding_field}' not found in train_data_subset.")
-             return None
-        except Exception as e:
-            print(f"Error extracting subset data from train_data: {e}")
-            return None
-
-        # Get all test data
-        try:
-            test_embeddings = np.array(test_data[embedding_field])
-            test_labels = np.array(test_data["label"])
-        except KeyError:
-             print(f"Error: Embedding field '{embedding_field}' not found in test_data.")
-             return None
-        except Exception as e:
-             print(f"Error extracting data from test_data: {e}")
-             return None
-
-
-        # --- 4. Concatenate Features and Labels ---
-        if train_embeddings_subset.ndim == 1: # Handle potential issue if only one train node selected
-             train_embeddings_subset = train_embeddings_subset.reshape(1, -1)
-        if test_embeddings.ndim == 1:
-             test_embeddings = test_embeddings.reshape(1, -1)
-
-        # Check feature dimensions match
-        if train_embeddings_subset.shape[1] != test_embeddings.shape[1]:
-            print(f"Error: Feature dimension mismatch! Train subset: {train_embeddings_subset.shape[1]}, Test: {test_embeddings.shape[1]}")
-            # This might happen if embeddings were processed differently or missing
-            # Try to identify the mismatch source
-            print("  Checking original dataset feature dimensions...")
-            try:
-                if embedding_field in train_data.features and embedding_field in test_data.features:
-                     d_train = len(train_data[0][embedding_field])
-                     d_test = len(test_data[0][embedding_field])
-                     print(f"  Original dimensions: Train={d_train}, Test={d_test}")
-                     if d_train != d_test:
-                         print("  -> Mismatch found in original dataset features!")
-                else:
-                    print("  Could not access features in original dataset to check dimensions.")
-            except Exception as e_dim:
-                print(f"  Error checking original dimensions: {e_dim}")
-            return None
-
-
-        x = torch.tensor(
-            np.concatenate([train_embeddings_subset, test_embeddings]), dtype=torch.float
-        )
-        y = torch.tensor(np.concatenate([train_labels_subset, test_labels]), dtype=torch.long)
-
-        # --- 5. Create Masks based on New Indexing ---
-        num_train_nodes_in_graph = len(final_train_indices_original)
-        num_test_nodes_in_graph = len(test_data)
-        num_nodes = num_train_nodes_in_graph + num_test_nodes_in_graph
-
-        train_mask = torch.zeros(num_nodes, dtype=torch.bool)
+        train_labeled_mask = torch.zeros(num_nodes, dtype=torch.bool)
+        train_unlabeled_mask = torch.zeros(num_nodes, dtype=torch.bool)
         test_mask = torch.zeros(num_nodes, dtype=torch.bool)
-        labeled_mask = torch.zeros(num_nodes, dtype=torch.bool)
+        train_labeled_mask[:num_train_labeled] = True
+        train_unlabeled_mask[num_train_labeled:num_train_labeled+num_train_unlabeled] = True
+        test_mask[num_train_labeled+num_train_unlabeled:] = True
 
-        train_mask[:num_train_nodes_in_graph] = True
-        test_mask[num_train_nodes_in_graph:] = True
-
-        # Create mapping from original labeled indices to new graph indices
-        # The first 'len(labeled_indices_original)' indices in final_train_indices_original
-        # *if sorted* correspond to the labeled nodes, BUT safer to map explicitly.
-        original_to_new_idx_map = {orig_idx: new_idx for new_idx, orig_idx in enumerate(final_train_indices_original)}
-
-        for orig_labeled_idx in labeled_indices_original:
-            if orig_labeled_idx in original_to_new_idx_map:
-                new_labeled_idx = original_to_new_idx_map[orig_labeled_idx]
-                # Ensure the index is within the bounds of the train part of the mask
-                if new_labeled_idx < num_train_nodes_in_graph:
-                     labeled_mask[new_labeled_idx] = True
-                else:
-                     # This should not happen if logic is correct, but good to check
-                     print(f"Warning: Original labeled index {orig_labeled_idx} mapped to new index {new_labeled_idx} which is outside the train node range ({num_train_nodes_in_graph}).")
-
-        # --- 6. Create Graph Data Object ---
-        # Start with empty edges, will be populated by build_graph
-        edge_index = torch.zeros((2, 0), dtype=torch.long)
-
+        # 7. Create Data object
         graph_data = Data(
             x=x.to(self.device),
             y=y.to(self.device),
-            train_mask=train_mask.to(self.device),
+            train_labeled_mask=train_labeled_mask.to(self.device),
+            train_unlabeled_mask=train_unlabeled_mask.to(self.device),
             test_mask=test_mask.to(self.device),
-            labeled_mask=labeled_mask.to(self.device),
-            edge_index=edge_index.to(self.device), # Start empty
+            edge_index=torch.zeros((2, 0), dtype=torch.long).to(self.device),
             num_nodes=num_nodes,
             num_features=x.shape[1],
         )
-        # Add edge_attr placeholder
         graph_data.edge_attr = None
 
         self.graph_data = graph_data
 
-        # Display graph structure info
+        # 8. Print summary
         print(f"\nGraph nodes built:")
-        print(f"  Total nodes in graph: {num_nodes}")
-        print(f"    - Train nodes: {num_train_nodes_in_graph} (from {self.train_size_original} originally)")
-        print(f"        - Labeled: {labeled_mask.sum().item()} (target: {self.total_labeled_size})")
-        if self.sample_unlabeled:
-             print(f"        - Unlabeled (sampled): {num_train_nodes_in_graph - labeled_mask.sum().item()}")
-        else:
-             print(f"        - Unlabeled (all): {num_train_nodes_in_graph - labeled_mask.sum().item()}")
-        print(f"    - Test nodes: {num_test_nodes_in_graph} (from {self.test_size_original} originally)")
+        print(f"  Total nodes: {num_nodes}")
+        print(f"    - Train Labeled: {num_train_labeled}")
+        print(f"    - Train Unlabeled: {num_train_unlabeled}")
+        print(f"    - Test: {num_test}")
         print(f"  Node features: {x.shape[1]}")
 
-        # Sanity check counts
-        if labeled_mask.sum().item() != self.total_labeled_size:
-             print(f"Warning: Number of nodes in labeled_mask ({labeled_mask.sum().item()}) does not match target ({self.total_labeled_size}). Check sampling/mapping logic.")
-        if train_mask.sum().item() != num_train_nodes_in_graph:
-             print("Warning: train_mask count mismatch.")
-        if test_mask.sum().item() != num_test_nodes_in_graph:
-             print("Warning: test_mask count mismatch.")
-
+        # Sanity checks
+        if train_labeled_mask.sum().item() != num_train_labeled:
+            print(f"Warning: train_labeled_mask count mismatch.")
+        if train_unlabeled_mask.sum().item() != num_train_unlabeled:
+            print(f"Warning: train_unlabeled_mask count mismatch.")
+        if test_mask.sum().item() != num_test:
+            print(f"Warning: test_mask count mismatch.")
+        if (train_labeled_mask.sum() + train_unlabeled_mask.sum() + test_mask.sum()).item() != num_nodes:
+            print(f"Warning: mask sum != num_nodes")
 
         return graph_data
 
-    # --- Edge Building Functions (_build_knn_edges, _build_mutual_knn_edges, etc.) ---
-    # These functions remain largely the same, but now operate on the potentially
-    # smaller embedding matrix passed from build_graph()
-    # Add checks for num_nodes > 1 at the beginning of these functions if needed.
-
-    def _build_knn_edges(
-        self, embeddings: np.ndarray, k: int
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _build_knn_edges(self, embeddings: np.ndarray, k: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """Build edges using k-nearest neighbors approach."""
         num_nodes = embeddings.shape[0]
         if num_nodes <= 1: return torch.zeros((2,0), dtype=torch.long), None
@@ -754,128 +631,58 @@ class GraphBuilder:
         print(f"  Created {edge_index.shape[1]} edges.")
         return edge_index, edge_attr
 
-    
 
     def _analyze_graph(self) -> None:
         """
-        Analyze the graph and compute comprehensive metrics, providing detailed output.
+        Analyze the graph and compute comprehensive metrics, using only train_labeled_mask, train_unlabeled_mask, and test_mask for all node/edge type stats.
         """
         print("\n" + "=" * 60)
         print("       Detailed Graph Analysis & Metrics")
         print("=" * 60)
 
-        # --- Initial Checks ---
-        if self.graph_data is None:
-            print("Error: Graph data not built. Cannot analyze.")
-            self.graph_metrics = {"error": "Graph data not available"}
-            return
-        if not hasattr(self.graph_data, 'edge_index') or self.graph_data.edge_index is None:
-            print("Warning: Graph data lacks 'edge_index'. Cannot analyze edges.")
-            num_nodes = self.graph_data.num_nodes if hasattr(self.graph_data, 'num_nodes') else 0
-            self.graph_metrics = {
-                "nodes": num_nodes, "edges": 0, "avg_degree": 0.0,
-                "warning": "Missing edge_index, edge analysis skipped."
-            }
-            # Add sampling info if available
-            if hasattr(self, 'sample_unlabeled'):
-                self.graph_metrics["sampling_info"] = {
-                    "sampled_unlabeled": self.sample_unlabeled,
-                    "unlabeled_sample_factor": self.unlabeled_sample_factor if self.sample_unlabeled else None,
-                    "num_labeled_original": len(self.selected_labeled_indices_original) if self.selected_labeled_indices_original is not None else 'N/A',
-                    "num_unlabeled_sampled_original": len(self.selected_unlabeled_indices_original) if self.selected_unlabeled_indices_original is not None else 'N/A',
-                }
-            return # Stop analysis
-
         num_nodes = self.graph_data.num_nodes
         num_edges = self.graph_data.edge_index.shape[1]
 
-        # Handle case of no edges separately
-        if num_edges == 0:
-            print("Graph has 0 edges. Reporting basic node info and skipping edge-based analysis.")
-            self.graph_metrics = {
-                "nodes": num_nodes,
-                "edges": 0,
-                "avg_degree": 0.0,
-                "nodes_train": self.graph_data.train_mask.sum().item(),
-                "nodes_test": self.graph_data.test_mask.sum().item(),
-                "nodes_labeled": self.graph_data.labeled_mask.sum().item(),
-                "isolated_nodes": num_nodes, # All nodes are isolated
-                "connected_components": num_nodes, # Each node is a component
-                "largest_component_size": 1 if num_nodes > 0 else 0,
-                "density": 0.0,
-                "avg_clustering": 0.0,
-                "assortativity": None,
-                "avg_path_length": None,
-                "homophily_ratio": None,
-                "edge_types": {"train-train": 0, "train-test": 0, "test-test": 0},
-                "class_connectivity": {"ff": 0, "rr": 0, "fr": 0},
-                "test_node_connectivity": {
-                    "test_nodes_total": self.graph_data.test_mask.sum().item(),
-                    "test_nodes_isolated": self.graph_data.test_mask.sum().item(),
-                    "test_nodes_only_to_test": 0,
-                    "test_nodes_to_train": 0,
-                },
-                "sampling_info": { # Add sampling info
-                    "sampled_unlabeled": self.sample_unlabeled,
-                    "unlabeled_sample_factor": self.unlabeled_sample_factor if self.sample_unlabeled else None,
-                    "num_labeled_original": len(self.selected_labeled_indices_original) if self.selected_labeled_indices_original is not None else 'N/A',
-                    "num_unlabeled_sampled_original": len(self.selected_unlabeled_indices_original) if self.selected_unlabeled_indices_original is not None else 'N/A',
-                },
-                "status": "No edges found"
-            }
-            # Print summary for no-edge case
-            print(f"\n--- Basic Info ---")
-            print(f"  Nodes: {num_nodes}")
-            print(f"  Edges: 0")
-            print(f"  Train Nodes: {self.graph_metrics['nodes_train']}")
-            print(f"  Test Nodes: {self.graph_metrics['nodes_test']}")
-            print(f"  Labeled Nodes: {self.graph_metrics['nodes_labeled']}")
-            if self.sample_unlabeled:
-                print(f"  Unlabeled Sampling: Enabled (Factor={self.unlabeled_sample_factor})")
-            else:
-                print(f"  Unlabeled Sampling: Disabled (Used all)")
-            print("-" * 60)
-            return # Stop analysis
+        # --- Node counts ---
+        num_train_labeled = self.graph_data.train_labeled_mask.sum().item()
+        num_train_unlabeled = self.graph_data.train_unlabeled_mask.sum().item()
+        num_test = self.graph_data.test_mask.sum().item()
 
         # --- Basic Graph Stats ---
         avg_degree = num_edges / num_nodes if num_nodes > 0 else 0.0
         self.graph_metrics = {
             "nodes": num_nodes,
-            "edges": num_edges, # Number of directed edges from edge_index
-            "avg_degree": avg_degree, # Based on directed edges
-            "nodes_train": self.graph_data.train_mask.sum().item(),
-            "nodes_test": self.graph_data.test_mask.sum().item(),
-            "nodes_labeled": self.graph_data.labeled_mask.sum().item(),
+            "edges": num_edges,
+            "avg_degree": avg_degree,
+            "nodes_train_labeled": num_train_labeled,
+            "nodes_train_unlabeled": num_train_unlabeled,
+            "nodes_test": num_test,
             "sampling_info": {
                 "sampled_unlabeled": self.sample_unlabeled,
                 "unlabeled_sample_factor": self.unlabeled_sample_factor if self.sample_unlabeled else None,
-                "num_labeled_original": len(self.selected_labeled_indices_original) if self.selected_labeled_indices_original is not None else 'N/A',
-                "num_unlabeled_sampled_original": len(self.selected_unlabeled_indices_original) if self.selected_unlabeled_indices_original is not None else 'N/A',
+                "num_labeled_original": len(self.selected_train_labeled_indices) if self.selected_train_labeled_indices is not None else 'N/A',
+                "num_unlabeled_sampled_original": len(self.selected_train_unlabeled_indices) if self.selected_train_unlabeled_indices is not None else 'N/A',
             }
         }
         print(f"\n--- Basic Info ---")
         print(f"  Nodes: {num_nodes}")
         print(f"  Edges (directed): {num_edges}")
         print(f"  Avg Degree (directed): {avg_degree:.2f}")
-        print(f"  Train Nodes: {self.graph_metrics['nodes_train']}")
-        print(f"  Test Nodes: {self.graph_metrics['nodes_test']}")
-        print(f"  Labeled Nodes: {self.graph_metrics['nodes_labeled']}")
+        print(f"  Train Labeled Nodes: {num_train_labeled}")
+        print(f"  Train Unlabeled Nodes: {num_train_unlabeled}")
+        print(f"  Test Nodes: {num_test}")
         if self.sample_unlabeled:
             print(f"  Unlabeled Sampling: Enabled (Factor={self.unlabeled_sample_factor})")
         else:
             print(f"  Unlabeled Sampling: Disabled (Used all)")
 
-
         # --- Convert to NetworkX for Advanced Analysis (Undirected View) ---
-        G_nx = None
         G_undirected = None
         networkx_analysis_possible = False
         try:
             print("\n--- NetworkX Analysis Setup ---")
             print("  Converting to NetworkX graph (undirected)...")
-            # Ensure data is on CPU for NetworkX conversion
             edge_index_cpu = self.graph_data.edge_index.cpu().long()
-            # Create a minimal Data object on CPU for conversion
             data_cpu = Data(edge_index=edge_index_cpu, num_nodes=num_nodes)
             G_undirected = to_networkx(data_cpu, to_undirected=True)
             num_undirected_edges = G_undirected.number_of_edges()
@@ -888,8 +695,6 @@ class GraphBuilder:
             })
 
         # --- Degree Analysis ---
-        # Calculate degrees using original directed edges for potential in/out degree if needed later
-        # For general stats, undirected degree from NetworkX is common and simpler here
         degrees_np = np.zeros(num_nodes, dtype=int)
         if networkx_analysis_possible:
             degrees_list = [d for n, d in G_undirected.degree()]
@@ -897,9 +702,7 @@ class GraphBuilder:
                 degrees_np = np.array(degrees_list)
             else:
                 print("  Warning: Degree list length mismatch from NetworkX. Calculating degree manually.")
-                # Manual calculation if NetworkX fails unexpectedly
-                np.add.at(degrees_np, edge_index_cpu[0].numpy(), 1) # Out-degree
-                # If considering undirected for stats: np.add.at(degrees_np, edge_index_cpu[1].numpy(), 1) # Add in-degree? Depends on definition. Let's stick to undirected view from G_undirected if possible.
+                np.add.at(degrees_np, edge_index_cpu[0].numpy(), 1)
 
         isolated_nodes = int(np.sum(degrees_np == 0))
         self.graph_metrics["isolated_nodes"] = isolated_nodes
@@ -933,11 +736,9 @@ class GraphBuilder:
             if not is_connected and num_components > 0:
                 largest_cc = max(nx.connected_components(G_undirected), key=len)
                 largest_component_nodes = len(largest_cc)
-                # Create subgraph for LCC analysis
                 G_lcc = G_undirected.subgraph(largest_cc).copy()
                 lcc_edges = G_lcc.number_of_edges()
                 print(f"  Largest Component: {largest_component_nodes} nodes ({largest_component_nodes/num_nodes*100:.1f}%), {lcc_edges} edges")
-                # Calculate Avg Path Length only for the LCC if graph is disconnected
                 try:
                     avg_path_length = nx.average_shortest_path_length(G_lcc)
                     print(f"  Avg Shortest Path Length (Largest Comp.): {avg_path_length:.2f}")
@@ -947,7 +748,6 @@ class GraphBuilder:
             elif is_connected:
                 largest_component_nodes = num_nodes
                 print(f"  Largest Component: {num_nodes} nodes (100.0%)")
-                # Calculate Avg Path Length for the whole graph
                 try:
                     avg_path_length = nx.average_shortest_path_length(G_undirected)
                     print(f"  Avg Shortest Path Length (Overall): {avg_path_length:.2f}")
@@ -967,24 +767,18 @@ class GraphBuilder:
         assortativity = None
         if networkx_analysis_possible:
             print(f"\n--- Graph Structure Metrics ---")
-            # Density
             try:
                 density = nx.density(G_undirected)
                 print(f"  Density: {density:.4f} (Ratio of actual edges to potential edges)")
                 self.graph_metrics["density"] = density
             except Exception as e: print(f"  Warning: Could not calculate density: {e}")
-
-            # Clustering Coefficient
             try:
                 avg_clustering = nx.average_clustering(G_undirected)
                 print(f"  Avg Clustering Coefficient: {avg_clustering:.4f} (Tendency of nodes to cluster together)")
                 self.graph_metrics["avg_clustering"] = avg_clustering
             except Exception as e: print(f"  Warning: Could not calculate clustering: {e}")
-
-            # Assortativity (Degree Correlation)
             try:
-                # Handle potential division by zero or constant degrees
-                if max_degree > min_degree : # Avoid issues if all nodes have same degree
+                if max_degree > min_degree:
                     assortativity = nx.degree_assortativity_coefficient(G_undirected)
                     print(f"  Degree Assortativity: {assortativity:.4f} (+ve: high-deg connects high-deg, -ve: high-deg connects low-deg)")
                     self.graph_metrics["assortativity"] = assortativity
@@ -993,55 +787,58 @@ class GraphBuilder:
                     self.graph_metrics["assortativity"] = None
             except Exception as e: print(f"  Warning: Could not calculate assortativity: {e}")
 
-
         # --- Edge Type Distribution ---
-        # (Using directed edges as originally intended)
         print(f"\n--- Edge Type Distribution (Directed Edges) ---")
-        edge_types = {"train-train": 0, "train-test": 0, "test-test": 0, "other": 0}
-        train_mask_np = self.graph_data.train_mask.cpu().numpy()
+        edge_types = {"train_labeled-train_labeled": 0, "train_labeled-train_unlabeled": 0, "train_labeled-test": 0, "train_unlabeled-train_unlabeled": 0, "train_unlabeled-test": 0, "test-test": 0, "other": 0}
+        train_labeled_mask_np = self.graph_data.train_labeled_mask.cpu().numpy()
+        train_unlabeled_mask_np = self.graph_data.train_unlabeled_mask.cpu().numpy()
         test_mask_np = self.graph_data.test_mask.cpu().numpy()
-        edge_index_cpu = self.graph_data.edge_index.cpu() # Ensure CPU
-
+        edge_index_cpu = self.graph_data.edge_index.cpu()
         for i in tqdm(range(num_edges), desc="Analyzing edge types", leave=False):
             source = edge_index_cpu[0, i].item()
             target = edge_index_cpu[1, i].item()
-            s_is_train, t_is_train = train_mask_np[source], train_mask_np[target]
-            s_is_test, t_is_test = test_mask_np[source], test_mask_np[target]
-
-            if s_is_train and t_is_train: edge_types["train-train"] += 1
-            elif (s_is_train and t_is_test) or (s_is_test and t_is_train): edge_types["train-test"] += 1
-            elif s_is_test and t_is_test: edge_types["test-test"] += 1
-            else: edge_types["other"] += 1 # Should ideally be 0 if masks cover all nodes
-
+            s_labeled, t_labeled = train_labeled_mask_np[source], train_labeled_mask_np[target]
+            s_unlabeled, t_unlabeled = train_unlabeled_mask_np[source], train_unlabeled_mask_np[target]
+            s_test, t_test = test_mask_np[source], test_mask_np[target]
+            if s_labeled and t_labeled:
+                edge_types["train_labeled-train_labeled"] += 1
+            elif (s_labeled and t_unlabeled) or (s_unlabeled and t_labeled):
+                edge_types["train_labeled-train_unlabeled"] += 1
+            elif (s_labeled and t_test) or (s_test and t_labeled):
+                edge_types["train_labeled-test"] += 1
+            elif s_unlabeled and t_unlabeled:
+                edge_types["train_unlabeled-train_unlabeled"] += 1
+            elif (s_unlabeled and t_test) or (s_test and t_unlabeled):
+                edge_types["train_unlabeled-test"] += 1
+            elif s_test and t_test:
+                edge_types["test-test"] += 1
+            else:
+                edge_types["other"] += 1
         total_reported_edges = sum(edge_types.values())
         print(f"  Total Directed Edges Analyzed: {total_reported_edges}")
-        if total_reported_edges > 0:
-            for edge_type, count in edge_types.items():
-                percentage = (count / total_reported_edges * 100)
-                print(f"    - {edge_type:<12}: {count:>8} ({percentage:>5.1f}%)")
-        else: print("    No edges to analyze.")
-        if edge_types["other"] > 0: print("    Warning: Found 'other' edge types - check mask definitions.")
+        for edge_type, count in edge_types.items():
+            percentage = (count / total_reported_edges * 100) if total_reported_edges > 0 else 0.0
+            print(f"    - {edge_type:<28}: {count:>8} ({percentage:>5.1f}%)")
+        if edge_types["other"] > 0:
+            print("    Warning: Found 'other' edge types - check mask definitions.")
         self.graph_metrics["edge_types"] = edge_types
 
         # --- Class Connectivity & Homophily ---
         print(f"\n--- Class Connectivity & Homophily (Undirected View) ---")
         y_np = self.graph_data.y.cpu().numpy()
         fake_to_fake, real_to_real, fake_to_real = 0, 0, 0
-        # Iterate through UNDIRECTED edges for homophily
-        if networkx_analysis_possible and num_undirected_edges > 0:
-            for u, v in tqdm(G_undirected.edges(), desc="Analyzing class connectivity", total=num_undirected_edges, leave=False):
+        if networkx_analysis_possible and G_undirected is not None and G_undirected.number_of_edges() > 0:
+            for u, v in tqdm(G_undirected.edges(), desc="Analyzing class connectivity", total=G_undirected.number_of_edges(), leave=False):
                 l1, l2 = y_np[u], y_np[v]
                 if l1 == 1 and l2 == 1: fake_to_fake += 1
                 elif l1 == 0 and l2 == 0: real_to_real += 1
                 else: fake_to_real += 1
-
             homophilic_edges = fake_to_fake + real_to_real
-            homophily_ratio = homophilic_edges / num_undirected_edges if num_undirected_edges > 0 else 0.0
-
-            print(f"  Total Undirected Edges Analyzed: {num_undirected_edges}")
-            print(f"    - Fake -> Fake: {fake_to_fake:>8} ({fake_to_fake/num_undirected_edges*100:>5.1f}%)")
-            print(f"    - Real -> Real: {real_to_real:>8} ({real_to_real/num_undirected_edges*100:>5.1f}%)")
-            print(f"    - Fake <-> Real: {fake_to_real:>7} ({fake_to_real/num_undirected_edges*100:>5.1f}%)")
+            homophily_ratio = homophilic_edges / G_undirected.number_of_edges() if G_undirected.number_of_edges() > 0 else 0.0
+            print(f"  Total Undirected Edges Analyzed: {G_undirected.number_of_edges()}")
+            print(f"    - Fake -> Fake: {fake_to_fake:>8} ({fake_to_fake/G_undirected.number_of_edges()*100:>5.1f}%)")
+            print(f"    - Real -> Real: {real_to_real:>8} ({real_to_real/G_undirected.number_of_edges()*100:>5.1f}%)")
+            print(f"    - Fake <-> Real: {fake_to_real:>7} ({fake_to_real/G_undirected.number_of_edges()*100:>5.1f}%)")
             print(f"  Homophily Ratio: {homophily_ratio:.4f} (Fraction of edges connecting nodes of same class)")
             self.graph_metrics["class_connectivity"] = {"ff": fake_to_fake, "rr": real_to_real, "fr": fake_to_real}
             self.graph_metrics["homophily_ratio"] = homophily_ratio
@@ -1050,36 +847,26 @@ class GraphBuilder:
             self.graph_metrics["class_connectivity"] = None
             self.graph_metrics["homophily_ratio"] = None
 
-
-        # --- Test Node Connectivity Analysis (NEW) ---
+        # --- Test Node Connectivity Analysis ---
         print(f"\n--- Test Node Connectivity ---")
         test_nodes_indices = torch.where(self.graph_data.test_mask)[0].cpu().numpy()
         num_test_nodes = len(test_nodes_indices)
         print(f"  Total Test Nodes in Graph: {num_test_nodes}")
-
         if num_test_nodes > 0 and networkx_analysis_possible:
             test_nodes_isolated = 0
             test_nodes_only_to_test = 0
             test_nodes_to_train = 0
-
-            # Get train node indices in the current graph
-            train_nodes_in_graph_indices = set(torch.where(self.graph_data.train_mask)[0].cpu().numpy())
-
+            train_nodes_in_graph_indices = set(np.where(self.graph_data.train_labeled_mask.cpu().numpy() | self.graph_data.train_unlabeled_mask.cpu().numpy())[0])
             for node_idx in test_nodes_indices:
                 if G_undirected.degree(node_idx) == 0:
                     test_nodes_isolated += 1
-                    continue # Skip neighbor check if isolated
-
+                    continue
                 neighbors = set(G_undirected.neighbors(node_idx))
-                # Check if any neighbor is a training node
                 has_train_neighbor = any(neighbor in train_nodes_in_graph_indices for neighbor in neighbors)
-
                 if has_train_neighbor:
                     test_nodes_to_train += 1
                 else:
-                    # If no train neighbor, all neighbors must be test nodes
                     test_nodes_only_to_test += 1
-
             print(f"  Test Nodes Isolated (degree 0): {test_nodes_isolated} ({test_nodes_isolated/num_test_nodes*100:.1f}%)")
             print(f"  Test Nodes Connected ONLY to other Test Nodes: {test_nodes_only_to_test} ({test_nodes_only_to_test/num_test_nodes*100:.1f}%)")
             print(f"  Test Nodes Connected to at least one Train Node: {test_nodes_to_train} ({test_nodes_to_train/num_test_nodes*100:.1f}%)")
@@ -1096,8 +883,8 @@ class GraphBuilder:
             print("  Skipping test node connectivity analysis (NetworkX graph not available).")
             self.graph_metrics["test_node_connectivity"] = None
 
-        # --- Optional: Power-Law Fit (requires scipy) ---
-        if networkx_analysis_possible: # Only if degrees were calculated reliably
+        # --- Power-Law Fit (optional) ---
+        if networkx_analysis_possible:
             try:
                 from scipy import stats
                 print(f"\n--- Power-Law Fit Analysis ---")
@@ -1110,7 +897,7 @@ class GraphBuilder:
                         slope, intercept, r_value, p_value, std_err = stats.linregress(log_degrees, log_counts)
                         exponent = -slope
                         r_squared = r_value**2
-                        is_power_law = p_value < 0.05 and r_squared > 0.6 # Adjusted criteria slightly
+                        is_power_law = p_value < 0.05 and r_squared > 0.6
                         print(f"  Exponent (alpha): {exponent:.2f}")
                         print(f"  R-squared: {r_squared:.4f}")
                         print(f"  P-value: {p_value:.4f}")
@@ -1189,28 +976,26 @@ class GraphBuilder:
             "seed": int(self.seed),
             "sampled_unlabeled": self.sample_unlabeled,
         }
-        if self.selected_labeled_indices_original is not None:
-             indices_data["labeled_indices_original"] = [int(i) for i in self.selected_labeled_indices_original]
+        if self.selected_train_labeled_indices is not None:
+             indices_data["train_labeled_indices"] = [int(i) for i in self.selected_train_labeled_indices]
              # Add label distribution for labeled nodes
-             train_labels = self.dataset["train"]["label"]
+             train_labels_full = self.dataset["train"]["label"] # Use full train labels
              label_dist = {}
-             for idx in self.selected_labeled_indices_original:
-                  label = train_labels[idx]
+             for idx in self.selected_train_labeled_indices:
+                  label = train_labels_full[idx] # Access from full list
                   label_dist[label] = label_dist.get(label, 0) + 1
-             indices_data["labeled_label_distribution"] = {int(k): int(v) for k, v in label_dist.items()}
+             indices_data["train_labeled_label_distribution"] = {int(k): int(v) for k, v in label_dist.items()}
 
-        if self.sample_unlabeled and self.selected_unlabeled_indices_original is not None:
+        if self.sample_unlabeled and self.selected_train_unlabeled_indices is not None:
              indices_data["unlabeled_sample_factor"] = int(self.unlabeled_sample_factor)
-             indices_data["unlabeled_indices_original_sampled"] = [int(i) for i in self.selected_unlabeled_indices_original]
+             indices_data["train_unlabeled_indices"] = [int(i) for i in self.selected_train_unlabeled_indices]
 
         indices_path = os.path.join(self.output_dir, f"{graph_name}_indices.json")
         with open(indices_path, "w") as f:
             json.dump(indices_data, f, indent=2)
         print(f"Selected indices info saved to {indices_path}")
+        print(f"Graph saved to {graph_path}")
 
-        print(f"\nGraph saved to {graph_path}")
-
-        # Plot graph if requested
         if self.plot:
             try:
                 self.visualize_graph(graph_name)
@@ -1236,11 +1021,21 @@ class GraphBuilder:
             node_indices = torch.arange(max_nodes)
             subgraph_data = self.graph_data.subgraph(node_indices.to(self.device)).cpu()
             G_nx = to_networkx(subgraph_data, to_undirected=True)
-            masks_viz = {'train': subgraph_data.train_mask, 'test': subgraph_data.test_mask, 'labeled': subgraph_data.labeled_mask}
+            masks_viz = {
+                'train_labeled': subgraph_data.train_labeled_mask,
+                'train_unlabeled': subgraph_data.train_unlabeled_mask, # Add this
+                'train': subgraph_data.train_mask, # Keep overall train mask if needed for other logic
+                'test': subgraph_data.test_mask
+            }
             num_nodes_viz = max_nodes
         else:
             G_nx = to_networkx(self.graph_data.cpu(), to_undirected=True)
-            masks_viz = {'train': self.graph_data.train_mask.cpu(), 'test': self.graph_data.test_mask.cpu(), 'labeled': self.graph_data.labeled_mask.cpu()}
+            masks_viz = {
+                'train_labeled': self.graph_data.train_labeled_mask.cpu(),
+                'train_unlabeled': self.graph_data.train_unlabeled_mask.cpu(),
+                'train': self.graph_data.train_mask.cpu(),
+                'test': self.graph_data.test_mask.cpu()
+            }
             num_nodes_viz = num_nodes_actual
 
         if G_nx is None or G_nx.number_of_nodes() == 0:
@@ -1251,9 +1046,11 @@ class GraphBuilder:
         # Set node colors
         node_colors = ['gray'] * num_nodes_viz
         for i in range(num_nodes_viz):
-            if masks_viz['labeled'][i]: node_colors[i] = 'green' # Labeled overrides train
-            elif masks_viz['train'][i]: node_colors[i] = 'blue'
-            elif masks_viz['test'][i]: node_colors[i] = 'red'
+            if masks_viz['train_labeled'][i]: node_colors[i] = 'green' # Labeled (Train)
+            elif masks_viz['train_unlabeled'][i]: node_colors[i] = 'blue'  # Unlabeled Train
+            elif masks_viz['test'][i]: node_colors[i] = 'red'    # Test
+            # Fallback if a node is in train_mask but not in train_labeled or train_unlabeled (should not happen if masks are correct)
+            elif masks_viz['train'][i]: node_colors[i] = 'skyblue' # A different shade for general train if specific masks don't cover
 
         plt.figure(figsize=(14, 12))
         print("  Calculating layout...")
@@ -1265,7 +1062,11 @@ class GraphBuilder:
         nx.draw_networkx_nodes(G_nx, pos, node_color=node_colors, node_size=node_size, alpha=0.8)
         if G_nx.number_of_edges() > 0: nx.draw_networkx_edges(G_nx, pos, edge_color="gray", width=edge_width, alpha=0.5)
 
-        legend_elements = [Patch(facecolor="green", label="Labeled (Train)"), Patch(facecolor="blue", label="Unlabeled Train"), Patch(facecolor="red", label="Unlabeled Test")]
+        legend_elements = [
+            Patch(facecolor="green", label="Train Labeled"),
+            Patch(facecolor="blue", label="Train Unlabeled"),
+            Patch(facecolor="red", label="Test")
+        ]
         plt.legend(handles=legend_elements, loc="upper right", fontsize='medium')
 
         title = f"{self.dataset_name.capitalize()} Graph ({self.edge_policy.replace('_', ' ').title()})"
@@ -1279,17 +1080,12 @@ class GraphBuilder:
         plt.close()
         print(f"Graph visualization saved to {plot_path}")
 
-
     def run_pipeline(self) -> Optional[Data]:
         """Run the complete graph building pipeline."""
         self.load_dataset()
         graph_data = self.build_graph()
-        if graph_data is not None and graph_data.num_nodes > 0:
-             self.save_graph()
-             return graph_data
-        else:
-             print("Graph building failed or resulted in an empty graph. No graph saved.")
-             return None
+        self.save_graph()
+        return graph_data
 
 
 def parse_arguments():
@@ -1307,7 +1103,6 @@ def parse_arguments():
     parser.add_argument("--alpha", type=float, default=DEFAULT_ALPHA, help=f"Alpha (mean+alpha*std) for 'global_threshold' policy (default: {DEFAULT_ALPHA})")
     parser.add_argument("--quantile_p", type=float, default=DEFAULT_QUANTILE_P, help=f"Percentile for 'quantile' policy (default: {DEFAULT_QUANTILE_P})")
     parser.add_argument("--k_top_sim", type=int, default=10, help="K for 'topk_mean' policy (default: 10)")
-    # Note: topk_mean reuses --local_threshold_factor for its final threshold adjustment factor
 
     # Unlabeled Node Sampling Arguments (NEW)
     parser.add_argument("--sample_unlabeled", action='store_true', default=False, help="Enable sampling of unlabeled training nodes.")
@@ -1328,7 +1123,10 @@ def main() -> None:
     """Main function to run the graph building pipeline."""
     args = parse_arguments()
     set_seed(args.seed)
-    if torch.cuda.is_available(): torch.cuda.empty_cache(); gc.collect()
+    
+    if torch.cuda.is_available(): 
+        torch.cuda.empty_cache()
+        gc.collect()
 
     print("\n" + "=" * 60)
     print("Fake News Detection - Graph Building Pipeline")
@@ -1338,17 +1136,25 @@ def main() -> None:
     print(f"Few-shot k:       {args.k_shot} per class")
     print("-" * 20 + " Edge Policy " + "-" * 20)
     print(f"Policy:           {args.edge_policy}")
-    if args.edge_policy in ["knn", "mutual_knn"]: print(f"K neighbors:      {args.k_neighbors}")
-    elif args.edge_policy == "local_threshold": print(f"Local Factor:     {args.local_threshold_factor}")
-    elif args.edge_policy == "global_threshold": print(f"Alpha:            {args.alpha}")
-    elif args.edge_policy == "quantile": print(f"Quantile p:       {args.quantile_p}")
+    if args.edge_policy == "knn": 
+        print(f"K neighbors:      {args.k_neighbors}")
+    elif args.edge_policy == "mutual_knn": 
+        print(f"K neighbors:      {args.k_neighbors}")
+    elif args.edge_policy == "local_threshold": 
+        print(f"Local Factor:     {args.local_threshold_factor}")
+    elif args.edge_policy == "global_threshold": 
+        print(f"Alpha:            {args.alpha}")
+    elif args.edge_policy == "quantile": 
+        print(f"Quantile p:       {args.quantile_p}")
     elif args.edge_policy == "topk_mean":
         print(f"K Top Sim:        {args.k_top_sim}")
-        print(f"Threshold Factor: {args.local_threshold_factor}") # Reused factor
+        print(f"Threshold Factor: {args.local_threshold_factor}")
     print("-" * 20 + " Node Sampling " + "-" * 20)
     print(f"Sample Unlabeled: {args.sample_unlabeled}")
-    if args.sample_unlabeled: print(f"Sample Factor(M): {args.unlabeled_sample_factor} (target M*2*k nodes)")
-    else: print(f"Sample Factor(M): N/A (using all unlabeled train nodes)")
+    if args.sample_unlabeled: 
+        print(f"Sample Factor(M): {args.unlabeled_sample_factor} (target M*2*k nodes)")
+    else: 
+        print(f"Sample Factor(M): N/A (using all unlabeled train nodes)")
     print("-" * 20 + " Output & Settings " + "-" * 20)
     print(f"Output directory: {args.output_dir}")
     print(f"Plot:             {args.plot}")
@@ -1362,8 +1168,8 @@ def main() -> None:
         edge_policy=args.edge_policy, k_neighbors=args.k_neighbors,
         local_threshold_factor=args.local_threshold_factor, alpha=args.alpha,
         quantile_p=args.quantile_p, k_top_sim=args.k_top_sim,
-        sample_unlabeled=args.sample_unlabeled, # Pass new arg
-        unlabeled_sample_factor=args.unlabeled_sample_factor, # Pass new arg
+        sample_unlabeled=args.sample_unlabeled,
+        unlabeled_sample_factor=args.unlabeled_sample_factor,
         output_dir=args.output_dir, plot=args.plot, seed=args.seed,
         embedding_type=args.embedding_type,
     )
@@ -1373,21 +1179,17 @@ def main() -> None:
     print("\n" + "=" * 60)
     print("Graph Building Complete")
     print("=" * 60)
-    if graph_data and hasattr(graph_data, 'num_nodes') and graph_data.num_nodes > 0:
-        graph_file_name = f"{args.k_shot}_shot_{args.embedding_type}_{builder.edge_policy}_..." # Example structure
-        print(f"Graph saved in:   {builder.output_dir}/")
-        print(f"  Nodes:          {graph_data.num_nodes}")
-        print(f"  Edges:          {graph_data.num_edges}")
-        print(f"  Features:       {graph_data.num_features}")
-        print(f"  Train nodes:    {graph_data.train_mask.sum().item()}")
-        print(f"  Test nodes:     {graph_data.test_mask.sum().item()}")
-        print(f"  Labeled nodes:  {graph_data.labeled_mask.sum().item()}")
-        print("\nNext Steps:")
-        print(f"  1. Train a GNN model, e.g.:")
-        print(f"     python train_graph.py --graph_path {os.path.join(builder.output_dir, '<graph_file_name>.pt')}")
-    else:
-        print("Graph building failed or resulted in an empty/invalid graph.")
-
+    print(f"Graph saved in:   {builder.output_dir}/")
+    print(f"  Nodes:          {graph_data.num_nodes}")
+    print(f"  Edges:          {graph_data.num_edges}")
+    print(f"  Features:       {graph_data.num_features}")
+    print(f"  Train nodes (total):    {graph_data.train_labeled_mask.sum().item() + graph_data.train_unlabeled_mask.sum().item()}")
+    print(f"  Train Labeled nodes:  {graph_data.train_labeled_mask.sum().item()}")
+    print(f"  Train Unlabeled nodes: {graph_data.train_unlabeled_mask.sum().item()}")
+    print(f"  Test nodes:     {graph_data.test_mask.sum().item()}")
+    print("\nNext Steps:")
+    print(f"Train a GNN model, e.g.:")
+    print(f"python train_graph.py --graph_path {os.path.join(builder.output_dir, '<graph_file_name>.pt')}")
     print("=" * 60 + "\n")
 
 

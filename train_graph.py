@@ -190,7 +190,7 @@ def load_graph(path: str, device: torch.device) -> Data:
             raise ValueError(f"Could not load graph data from {path}") from e
 
     # Validate essential attributes
-    required_attrs = ['x', 'y', 'train_mask', 'test_mask', 'labeled_mask', 'edge_index']
+    required_attrs = ['x', 'y', 'train_labeled_mask', 'train_unlabeled_mask', 'test_mask', 'edge_index']
     for attr in required_attrs:
         if not hasattr(graph, attr):
             raise AttributeError(f"Loaded graph is missing required attribute: {attr}")
@@ -209,17 +209,13 @@ def load_graph(path: str, device: torch.device) -> Data:
         print(f"Graph has edge_attr with shape: {graph.edge_attr.shape}") # Log shape
 
     # Ensure masks are boolean type
-    graph.train_mask = graph.train_mask.bool()
+    graph.train_labeled_mask = graph.train_labeled_mask.bool()
+    graph.train_unlabeled_mask = graph.train_unlabeled_mask.bool()
     graph.test_mask = graph.test_mask.bool()
-    graph.labeled_mask = graph.labeled_mask.bool()
 
-    # Fallback: If labeled_mask is empty, use train_mask for training
-    if graph.labeled_mask.sum() == 0:
-        print("Warning: labeled_mask has no True values. Using train_mask for training.")
-        graph.labeled_mask = graph.train_mask
-
-    if graph.labeled_mask.sum() == 0:
-         raise ValueError("Cannot train: No nodes available in labeled_mask (or train_mask fallback).")
+    # Check if train_labeled_mask has any True values for training supervision
+    if graph.train_labeled_mask.sum() == 0:
+         raise ValueError("Cannot train: No nodes available in train_labeled_mask for supervision.")
 
 
     return graph
@@ -273,14 +269,14 @@ def train_epoch(model: nn.Module, data: Data, optimizer: torch.optim.Optimizer, 
     optimizer.zero_grad()
     # *** Pass edge_attr to the model ***
     out = model(data.x, data.edge_index, data.edge_attr)
-    loss = criterion(out[data.labeled_mask], data.y[data.labeled_mask])
+    loss = criterion(out[data.train_labeled_mask], data.y[data.train_labeled_mask])
     loss.backward()
     optimizer.step()
 
     # Calculate training accuracy on labeled nodes
-    pred = out[data.labeled_mask].argmax(dim=1)
-    correct = (pred == data.y[data.labeled_mask]).sum().item()
-    acc = correct / data.labeled_mask.sum().item()
+    pred = out[data.train_labeled_mask].argmax(dim=1)
+    correct = (pred == data.y[data.train_labeled_mask]).sum().item()
+    acc = correct / data.train_labeled_mask.sum().item()
 
     return loss.item(), acc
 
@@ -549,9 +545,10 @@ def main() -> None:
     print(f"Edges:           {graph_data.num_edges}")
     print(f"Features:        {graph_data.num_features}")
     print(f"Classes:         {int(graph_data.y.max()) + 1}")
-    print(f"Train nodes:     {graph_data.train_mask.sum().item()}")
-    print(f"Test nodes:      {graph_data.test_mask.sum().item()}")
-    print(f"Labeled nodes:   {graph_data.labeled_mask.sum().item()}")
+    print(f"Train nodes(total):   {graph_data.train_labeled_mask.sum().item() + graph_data.train_unlabeled_mask.sum().item()}")
+    print(f"Train Labeled nodes:   {graph_data.train_labeled_mask.sum().item()}")
+    print(f"Train Unlabeled nodes: {graph_data.train_unlabeled_mask.sum().item()}")
+    print(f"Test nodes:              {graph_data.test_mask.sum().item()}")
     if hasattr(graph_data, 'edge_attr') and graph_data.edge_attr is not None:
         print(f"Edge Attr Dim:   {graph_data.edge_attr.shape[1] if graph_data.edge_attr.dim() > 1 else 1}")
     else:
