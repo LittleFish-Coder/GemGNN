@@ -18,8 +18,13 @@ from utils.sample_k_shot import sample_k_shot
 
 
 # Constants
-DEFAULT_LEARNING_RATE = 2e-5
-DEFAULT_WEIGHT_DECAY = 0.01
+DEFAULT_MODEL_NAME = "distilbert-base-uncased"
+DEFAULT_DATASET_NAME = "politifact"
+DEFAULT_K_SHOT = 8
+DEFAULT_NUM_EPOCHS = 5
+DEFAULT_BATCH_SIZE = 64
+DEFAULT_LEARNING_RATE = 1e-5
+DEFAULT_WEIGHT_DECAY = 0.001
 DEFAULT_MAX_LENGTH = 512
 LOG_DIR = "logs"
 SEED = 42
@@ -32,18 +37,22 @@ class FakeNewsTrainer:
     
     def __init__(
         self,
-        model_name: str,
-        dataset_name: str,
-        k_shot: int,
-        num_epochs: int,
-        batch_size: int,
-        output_dir: str
+        model_name: str = DEFAULT_MODEL_NAME,
+        dataset_name: str = DEFAULT_DATASET_NAME,
+        k_shot: int = DEFAULT_K_SHOT,
+        num_epochs: int = DEFAULT_NUM_EPOCHS,
+        batch_size: int = DEFAULT_BATCH_SIZE,
+        output_dir: str = "results",
+        learning_rate: float = DEFAULT_LEARNING_RATE,
+        weight_decay: float = DEFAULT_WEIGHT_DECAY,
     ):
         self.model_name = model_name
         self.dataset_name = dataset_name
         self.k_shot = k_shot
         self.num_epochs = num_epochs
         self.batch_size = batch_size
+        self.learning_rate = learning_rate
+        self.weight_decay = weight_decay
 
         # Add these new attributes
         self.selected_indices = None
@@ -52,11 +61,8 @@ class FakeNewsTrainer:
         # Determine model type from model name
         self.model_type = self._get_model_type(model_name)
         
-        # Get the shot string (e.g., "8-shot" or "full" for k=0)
-        shot_str = "full" if k_shot == 0 else f"{k_shot}-shot"
-        
         # Setup directory paths using a single base output directory
-        self.model_dir = os.path.join(output_dir, self.model_type, dataset_name, shot_str)
+        self.model_dir = os.path.join(output_dir, self.model_type, dataset_name, f"{k_shot}-shot")
         
         # Create directory
         os.makedirs(self.model_dir, exist_ok=True)
@@ -144,11 +150,11 @@ class FakeNewsTrainer:
         # Set up trainer
         training_args = TrainingArguments(
             output_dir=os.path.join(self.model_dir, "checkpoints"),
-            learning_rate=DEFAULT_LEARNING_RATE,
+            learning_rate=self.learning_rate,
             num_train_epochs=self.num_epochs,
             per_device_train_batch_size=self.batch_size,
             per_device_eval_batch_size=self.batch_size,
-            weight_decay=DEFAULT_WEIGHT_DECAY,
+            weight_decay=self.weight_decay,
             eval_strategy="epoch",
             save_strategy="epoch",
             load_best_model_at_end=True,
@@ -259,6 +265,11 @@ class FakeNewsTrainer:
         self.train()
         return self.evaluate()
 
+    def push_to_hub(self, repo_name: str):
+        print(f"Pushing model and tokenizer to Huggingface Hub: {repo_name}")
+        self.model.push_to_hub(repo_name)
+        self.tokenizer.push_to_hub(repo_name)
+
 def set_seed(seed: int = SEED) -> None:
     """Set seed for reproducibility."""
     torch.manual_seed(seed)
@@ -282,8 +293,8 @@ def parse_arguments() -> Namespace:
     parser.add_argument(
         "--model_name",
         type=str,
-        default="bert-base-uncased",
-        help="Model to use (default: bert-base-uncased)",
+        default=DEFAULT_MODEL_NAME,
+        help=f"Model to use (default: {DEFAULT_MODEL_NAME})",
         choices=["bert-base-uncased", "distilbert-base-uncased", "roberta-base"],
     )
     
@@ -291,8 +302,8 @@ def parse_arguments() -> Namespace:
     parser.add_argument(
         "--dataset_name",
         type=str,
-        default="politifact",
-        help="Dataset to use (default: politifact)",
+        default=DEFAULT_DATASET_NAME,
+        help=f"Dataset to use (default: {DEFAULT_DATASET_NAME})",
         choices=["gossipcop", "politifact"],
     )
     
@@ -300,8 +311,8 @@ def parse_arguments() -> Namespace:
     parser.add_argument(
         "--k_shot",
         type=int,
-        default=8,
-        help="Number of samples per class for few-shot learning (default: 8)",
+        default=DEFAULT_K_SHOT,
+        help=f"Number of samples per class for few-shot learning (default: {DEFAULT_K_SHOT})",
         choices=[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
     )
     
@@ -309,14 +320,26 @@ def parse_arguments() -> Namespace:
     parser.add_argument(
         "--num_epochs",
         type=int,
-        default=5,
-        help="Number of training epochs (default: 5)",
+        default=DEFAULT_NUM_EPOCHS,
+        help=f"Number of training epochs (default: {DEFAULT_NUM_EPOCHS})",
     )
     parser.add_argument(
         "--batch_size",
         type=int,
-        default=64,
+        default=DEFAULT_BATCH_SIZE,
         help="Batch size for training (default: 64)",
+    )
+    parser.add_argument(
+        "--learning_rate",
+        type=float,
+        default=DEFAULT_LEARNING_RATE,
+        help="Learning rate (default: 1e-5)",
+    )
+    parser.add_argument(
+        "--weight_decay",
+        type=float,
+        default=DEFAULT_WEIGHT_DECAY,
+        help="Weight decay (default: 0.01)",
     )
     
     # Single output directory
@@ -331,6 +354,12 @@ def parse_arguments() -> Namespace:
         "--keep_checkpoints",
         action="store_true",
         help="Keep intermediate checkpoints (warning: uses a lot of disk space)",
+    )
+    
+    parser.add_argument(
+        "--push_to_hub",
+        action="store_true",
+        help="Push the trained model to Huggingface Hub after training",
     )
     
     return parser.parse_args()
@@ -352,15 +381,17 @@ def main() -> None:
     print("\n" + "="*50)
     print("Fake News Detection - Model Fine-tuning")
     print("="*50)
-    print(f"Model:        {args.model_name}")
-    print(f"Dataset:      {args.dataset_name}")
-    print(f"K-shot:       {args.k_shot}")
-    print(f"Epochs:       {args.num_epochs}")
-    print(f"Batch size:   {args.batch_size}")
-    print(f"Output dir:   {args.output_dir}")
-    print(f"Device:       {'CUDA' if torch.cuda.is_available() else 'CPU'}")
+    print(f"Model:         {args.model_name}")
+    print(f"Dataset:       {args.dataset_name}")
+    print(f"K-shot:        {args.k_shot}")
+    print(f"Epochs:        {args.num_epochs}")
+    print(f"Batch size:    {args.batch_size}")
+    print(f"Learning rate: {args.learning_rate}")
+    print(f"Weight decay:   {args.weight_decay}")
+    print(f"Output dir:     {args.output_dir}")
+    print(f"Device:         {'CUDA' if torch.cuda.is_available() else 'CPU'}")
     if torch.cuda.is_available():
-        print(f"GPU:          {torch.cuda.get_device_name(0)}")
+        print(f"GPU:            {torch.cuda.get_device_name(0)}")
     print("="*50 + "\n")
     
     # Create and run trainer
@@ -370,7 +401,9 @@ def main() -> None:
         k_shot=args.k_shot,
         num_epochs=args.num_epochs,
         batch_size=args.batch_size,
-        output_dir=args.output_dir
+        output_dir=args.output_dir,
+        learning_rate=args.learning_rate,
+        weight_decay=args.weight_decay,
     )
     
     # Run the pipeline
@@ -387,6 +420,12 @@ def main() -> None:
     if metrics.get("confusion_matrix") != "N/A":
         print(f"Confusion Matrix:\n{np.array(metrics['confusion_matrix'])}")
     print("="*50 + "\n")
+
+    # Push to hub if requested
+    if args.push_to_hub:
+        repo_name = f"{args.dataset_name}_pseudo_labeler"
+        trainer.push_to_hub(repo_name)
+        print(f"Model and tokenizer pushed to Huggingface Hub as '{repo_name}'")
 
 
 if __name__ == "__main__":
