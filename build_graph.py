@@ -1108,7 +1108,7 @@ def parse_arguments():
     parser.add_argument("--unlabeled_sample_factor", type=int, default=DEFAULT_UNLABELED_SAMPLE_FACTOR, help=f"Factor M to sample M*2*k unlabeled training nodes (default: {DEFAULT_UNLABELED_SAMPLE_FACTOR}). Used if --sample_unlabeled.")
 
     # news embedding type
-    parser.add_argument("--embedding_type", type=str, default=DEFAULT_EMBEDDING_TYPE, choices=["bert", "roberta", "combined", "distilbert"], help=f"Type of embeddings to use (default: {DEFAULT_EMBEDDING_TYPE})")
+    parser.add_argument("--embedding_type", type=str, default=DEFAULT_EMBEDDING_TYPE, choices=["bert", "roberta", "combined", "distilbert", "bigbird"], help=f"Type of embeddings to use (default: {DEFAULT_EMBEDDING_TYPE})")
 
     # output arguments
     parser.add_argument("--output_dir", type=str, default=GRAPH_DIR, help=f"Directory to save graphs (default: {GRAPH_DIR})")
