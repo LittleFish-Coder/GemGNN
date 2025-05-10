@@ -125,7 +125,8 @@ def load_hetero_graph(path: str, device: torch.device, target_node_type: str) ->
     if target_node_type not in data.node_types:
         raise ValueError(f"Target node type '{target_node_type}' not found in graph. Available: {data.node_types}")
 
-    required_attrs = ['x', 'y', 'train_mask', 'test_mask', 'labeled_mask']
+    # Use new mask names: train_labeled_mask, train_unlabeled_mask, test_mask
+    required_attrs = ['x', 'y', 'train_labeled_mask', 'train_unlabeled_mask', 'test_mask']
     for attr in required_attrs:
         if not hasattr(data[target_node_type], attr):
             raise AttributeError(f"Target node type '{target_node_type}' is missing required attribute: {attr}")
@@ -135,17 +136,13 @@ def load_hetero_graph(path: str, device: torch.device, target_node_type: str) ->
     print(f"HeteroData moved to {device}")
 
     # Ensure masks are boolean type for the target node
-    data[target_node_type].train_mask = data[target_node_type].train_mask.bool()
+    data[target_node_type].train_labeled_mask = data[target_node_type].train_labeled_mask.bool()
+    data[target_node_type].train_unlabeled_mask = data[target_node_type].train_unlabeled_mask.bool()
     data[target_node_type].test_mask = data[target_node_type].test_mask.bool()
-    data[target_node_type].labeled_mask = data[target_node_type].labeled_mask.bool()
 
-    # Fallback: If labeled_mask is empty, use train_mask for training
-    if data[target_node_type].labeled_mask.sum() == 0:
-        print(f"Warning: labeled_mask for '{target_node_type}' has no True values. Using its train_mask for training.")
-        data[target_node_type].labeled_mask = data[target_node_type].train_mask
-
-    if data[target_node_type].labeled_mask.sum() == 0:
-         raise ValueError(f"Cannot train: No nodes available in labeled_mask (or train_mask fallback) for target node '{target_node_type}'.")
+    # Check if train_labeled_mask has any True values for training supervision
+    if data[target_node_type].train_labeled_mask.sum() == 0:
+        raise ValueError(f"Cannot train: No nodes available in train_labeled_mask for target node '{target_node_type}'.")
 
     return data
 
@@ -184,7 +181,7 @@ def train_epoch(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optim
     
     out = model(data.x_dict, data.edge_index_dict)
     
-    mask = data[target_node_type].labeled_mask
+    mask = data[target_node_type].train_labeled_mask
     loss = criterion(out[mask], data[target_node_type].y[mask])
     loss.backward()
     optimizer.step()
@@ -202,7 +199,7 @@ def evaluate(model: nn.Module, data: HeteroData, eval_mask_name: str, criterion:
     
     out = model(data.x_dict, data.edge_index_dict)
     
-    mask = data[target_node_type][eval_mask_name] # e.g., 'test_mask' or 'train_mask' for validation during training
+    mask = data[target_node_type][eval_mask_name] # e.g., 'test_mask' or 'train_unlabeled_mask' for validation
     loss = criterion(out[mask], data[target_node_type].y[mask])
 
     pred = out[mask].argmax(dim=1)
@@ -445,9 +442,9 @@ def main() -> None:
         if hasattr(data[node_type], 'x') and data[node_type].x is not None:
             print(f"    - Features: {data[node_type].x.shape[1]}")
         if node_type == args.target_node_type:
-            print(f"    - Train mask sum: {data[node_type].train_mask.sum().item()}")
+            print(f"    - Train labeled mask sum: {data[node_type].train_labeled_mask.sum().item()}")
+            print(f"    - Train unlabeled mask sum: {data[node_type].train_unlabeled_mask.sum().item()}")
             print(f"    - Test mask sum: {data[node_type].test_mask.sum().item()}")
-            print(f"    - Labeled mask sum: {data[node_type].labeled_mask.sum().item()}")
             if hasattr(data[node_type],'y') and data[node_type].y is not None:
                  print(f"    - Num classes: {data[node_type].y.max().item() + 1}")
 
