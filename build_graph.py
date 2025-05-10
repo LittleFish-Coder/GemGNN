@@ -158,8 +158,6 @@ class GraphBuilder:
         self.graph_data.num_edges = self.graph_data.edge_index.shape[1]
         print(f"Graph edges built: {self.graph_data.num_edges} edges created")
 
-        self._analyze_graph()
-
         return self.graph_data
 
     def build_empty_graph(self) -> Optional[Data]:
@@ -632,7 +630,7 @@ class GraphBuilder:
         return edge_index, edge_attr
 
 
-    def _analyze_graph(self) -> None:
+    def analyze_graph(self) -> None:
         """
         Analyze the graph and compute comprehensive metrics, using only train_labeled_mask, train_unlabeled_mask, and test_mask for all node/edge type stats.
         """
@@ -1084,6 +1082,7 @@ class GraphBuilder:
         """Run the complete graph building pipeline."""
         self.load_dataset()
         graph_data = self.build_graph()
+        self.analyze_graph()
         self.save_graph()
         return graph_data
 
@@ -1109,7 +1108,7 @@ def parse_arguments():
     parser.add_argument("--unlabeled_sample_factor", type=int, default=DEFAULT_UNLABELED_SAMPLE_FACTOR, help=f"Factor M to sample M*2*k unlabeled training nodes (default: {DEFAULT_UNLABELED_SAMPLE_FACTOR}). Used if --sample_unlabeled.")
 
     # news embedding type
-    parser.add_argument("--embedding_type", type=str, default=DEFAULT_EMBEDDING_TYPE, choices=["bert", "roberta", "combined"], help=f"Type of embeddings to use (default: {DEFAULT_EMBEDDING_TYPE})")
+    parser.add_argument("--embedding_type", type=str, default=DEFAULT_EMBEDDING_TYPE, choices=["bert", "roberta", "combined", "distilbert"], help=f"Type of embeddings to use (default: {DEFAULT_EMBEDDING_TYPE})")
 
     # output arguments
     parser.add_argument("--output_dir", type=str, default=GRAPH_DIR, help=f"Directory to save graphs (default: {GRAPH_DIR})")
