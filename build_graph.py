@@ -16,6 +16,7 @@ from argparse import ArgumentParser
 from matplotlib.patches import Patch
 from utils.sample_k_shot import sample_k_shot
 from sklearn.metrics.pairwise import cosine_similarity
+from collections import Counter
 
 # constants
 GRAPH_DIR = "graphs"
@@ -57,6 +58,8 @@ class GraphBuilder:
         seed: int = DEFAULT_SEED,
         embedding_type: str = DEFAULT_EMBEDDING_TYPE,
         device: str = None,
+        use_pseudo_label_sampling: bool = False,
+        pseudo_label_cache_path: str = None,
     ):
         """Initialize the GraphBuilder with configuration parameters."""
         ## Dataset configuration
@@ -74,6 +77,11 @@ class GraphBuilder:
         ## Sampling
         self.sample_unlabeled = sample_unlabeled
         self.unlabeled_sample_factor = unlabeled_sample_factor
+        self.use_pseudo_label_sampling = use_pseudo_label_sampling
+        if pseudo_label_cache_path:
+            self.pseudo_label_cache_path = pseudo_label_cache_path
+        else:
+            self.pseudo_label_cache_path = f"utils/pseudo_label_cache_{self.dataset_name}.json"
         self.plot = plot
         self.seed = seed
         
@@ -187,9 +195,44 @@ class GraphBuilder:
 
         # --- Sample train_unlabeled_nodes if required ---
         if self.sample_unlabeled:
-            num_to_sample = min(self.unlabeled_sample_factor * 2 * self.k_shot, len(train_unlabeled_indices))
-            print(f"Sampling {num_to_sample} train_unlabeled_nodes (factor={self.unlabeled_sample_factor}, 2*k={2*self.k_shot}) from {len(train_unlabeled_indices)} available.")
-            train_unlabeled_indices = np.random.choice(train_unlabeled_indices, size=num_to_sample, replace=False)
+            use_pseudo_label_sampling = self.use_pseudo_label_sampling
+            pseudo_label_cache_path = self.pseudo_label_cache_path
+            if use_pseudo_label_sampling:
+                print(f"Using pseudo-label cache for balanced sampling: {pseudo_label_cache_path}")
+                with open(pseudo_label_cache_path, "r") as f:
+                    pseudo_data = json.load(f)
+                label_groups = {0: [], 1: []}
+                for item in pseudo_data:
+                    label = int(item["pseudo_label"])
+                    label_groups[label].append({"index": item["index"], "score": item["score"]})
+                for label in label_groups:
+                    label_groups[label].sort(key=lambda x: -x["score"])
+                num_to_sample = min(self.unlabeled_sample_factor * 2 * self.k_shot, len(train_unlabeled_indices))
+                num_per_class = num_to_sample // 2
+                sampled = []
+                for label in [0, 1]:
+                    group = [x for x in label_groups[label] if x["index"] in train_unlabeled_indices]
+                    n = min(num_per_class, len(group))
+                    sampled += [x["index"] for x in group[:n]]
+                if len(sampled) < num_to_sample:
+                    leftovers = []
+                    for label in [0, 1]:
+                        group = [x for x in label_groups[label] if x["index"] in train_unlabeled_indices][num_per_class:]
+                        leftovers += [x["index"] for x in group]
+                    needed = num_to_sample - len(sampled)
+                    if needed > 0 and leftovers:
+                        sampled += leftovers[:needed]
+                train_unlabeled_indices = np.array(sampled)
+                # based on the sampled indices, show the distribution of the pseudo-label
+                pseudo_label_map = {int(item["index"]): int(item["pseudo_label"]) for item in pseudo_data}
+                sampled_pseudo_labels = [pseudo_label_map[idx] for idx in train_unlabeled_indices if idx in pseudo_label_map]
+                label_dist = Counter(sampled_pseudo_labels)
+                print(f"  Balanced sampled {len(train_unlabeled_indices)} unlabeled nodes (pseudo-label, high confidence)")
+                print(f"  Distribution of sampled pseudo-label: {dict(label_dist)}")
+            else:
+                num_to_sample = min(self.unlabeled_sample_factor * 2 * self.k_shot, len(train_unlabeled_indices))
+                print(f"Sampling {num_to_sample} train_unlabeled_nodes (factor={self.unlabeled_sample_factor}, 2*k={2*self.k_shot}) from {len(train_unlabeled_indices)} available.")
+                train_unlabeled_indices = np.random.choice(train_unlabeled_indices, size=num_to_sample, replace=False)
         self.selected_train_unlabeled_indices = train_unlabeled_indices
         print(f"  Selected {len(train_unlabeled_indices)} unlabeled train nodes.")
 
@@ -936,7 +979,10 @@ class GraphBuilder:
         # Add sampling info to filename if sampling was used
         sampling_suffix = ""
         if self.sample_unlabeled:
-            sampling_suffix = f"_smpf{self.unlabeled_sample_factor}"
+            if self.use_pseudo_label_sampling:
+                sampling_suffix = f"_psl{self.unlabeled_sample_factor}"
+            else:
+                sampling_suffix = f"_smpf{self.unlabeled_sample_factor}"
 
         graph_name = f"{self.k_shot}_shot_{self.embedding_type}_{edge_policy_name}_{edge_param_str}{sampling_suffix}"
         # --- End filename generation ---
@@ -974,19 +1020,41 @@ class GraphBuilder:
             "seed": int(self.seed),
             "sampled_unlabeled": self.sample_unlabeled,
         }
+        # Add label distribution for labeled nodes
+        train_labels_full = self.dataset["train"]["label"] # Use full train labels
         if self.selected_train_labeled_indices is not None:
-             indices_data["train_labeled_indices"] = [int(i) for i in self.selected_train_labeled_indices]
-             # Add label distribution for labeled nodes
-             train_labels_full = self.dataset["train"]["label"] # Use full train labels
-             label_dist = {}
-             for idx in self.selected_train_labeled_indices:
-                  label = train_labels_full[idx] # Access from full list
-                  label_dist[label] = label_dist.get(label, 0) + 1
-             indices_data["train_labeled_label_distribution"] = {int(k): int(v) for k, v in label_dist.items()}
+            indices_data["train_labeled_indices"] = [int(i) for i in self.selected_train_labeled_indices]
+            label_dist = {}
+            for idx in self.selected_train_labeled_indices:
+                label = train_labels_full[idx] # Access from full list
+                label_dist[label] = label_dist.get(label, 0) + 1
+            indices_data["train_labeled_label_distribution"] = {int(k): int(v) for k, v in label_dist.items()}
 
         if self.sample_unlabeled and self.selected_train_unlabeled_indices is not None:
-             indices_data["unlabeled_sample_factor"] = int(self.unlabeled_sample_factor)
-             indices_data["train_unlabeled_indices"] = [int(i) for i in self.selected_train_unlabeled_indices]
+            indices_data["unlabeled_sample_factor"] = int(self.unlabeled_sample_factor)
+        
+        if self.selected_train_unlabeled_indices is not None:
+            indices_data["train_unlabeled_indices"] = [int(i) for i in self.selected_train_unlabeled_indices]
+            # 真實 label 分布
+            true_label_dist = {}
+            for idx in self.selected_train_unlabeled_indices:
+                label = train_labels_full[idx]
+                true_label_dist[label] = true_label_dist.get(label, 0) + 1
+            indices_data["train_unlabeled_true_label_distribution"] = {int(k): int(v) for k, v in true_label_dist.items()}
+            # pseudo label 分布
+            if self.use_pseudo_label_sampling:
+                try:
+                    with open(self.pseudo_label_cache_path, "r") as f:
+                        pseudo_data = json.load(f)
+                    pseudo_label_map = {int(item["index"]): int(item["pseudo_label"]) for item in pseudo_data}
+                    # 全體 pseudo label cache 分布
+                    all_pseudo_labels = list(pseudo_label_map.values())
+                    indices_data["pseudo_label_cache_distribution"] = dict(Counter(all_pseudo_labels))
+                    # sample 出來的 pseudo label 分布
+                    sampled_pseudo_labels = [pseudo_label_map[idx] for idx in self.selected_train_unlabeled_indices if idx in pseudo_label_map]
+                    indices_data["train_unlabeled_pseudo_label_distribution"] = dict(Counter(sampled_pseudo_labels))
+                except Exception as e:
+                    print(f"Warning: Could not compute pseudo-label stats for indices.json: {e}")
 
         indices_path = os.path.join(self.output_dir, f"{graph_name}_indices.json")
         with open(indices_path, "w") as f:
@@ -1114,6 +1182,8 @@ def parse_arguments():
     parser.add_argument("--output_dir", type=str, default=GRAPH_DIR, help=f"Directory to save graphs (default: {GRAPH_DIR})")
     parser.add_argument("--plot", action="store_true", help="Enable graph visualization")
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help=f"Random seed for reproducibility (default: {DEFAULT_SEED})")
+    parser.add_argument("--use_pseudo_label_sampling", action="store_true", help="Enable balanced sampling of unlabeled nodes using pseudo-label cache.")
+    parser.add_argument("--pseudo_label_cache_path", type=str, default=None, help="Path to pseudo-label cache (json). Default: utils/pseudo_label_cache_<dataset>.json")
 
     return parser.parse_args()
 
@@ -1122,6 +1192,9 @@ def main() -> None:
     """Main function to run the graph building pipeline."""
     args = parse_arguments()
     set_seed(args.seed)
+
+    if args.use_pseudo_label_sampling:
+        args.sample_unlabeled = True
     
     if torch.cuda.is_available(): 
         torch.cuda.empty_cache()
@@ -1154,6 +1227,9 @@ def main() -> None:
         print(f"Sample Factor(M): {args.unlabeled_sample_factor} (target M*2*k nodes)")
     else: 
         print(f"Sample Factor(M): N/A (using all unlabeled train nodes)")
+    print(f"Pseudo-label Sampling: {args.use_pseudo_label_sampling}")
+    if args.use_pseudo_label_sampling:
+        print(f"Pseudo-label Cache: {args.pseudo_label_cache_path or f'utils/pseudo_label_cache_{args.dataset_name}.json'}")
     print("-" * 20 + " Output & Settings " + "-" * 20)
     print(f"Output directory: {args.output_dir}")
     print(f"Plot:             {args.plot}")
@@ -1171,6 +1247,8 @@ def main() -> None:
         unlabeled_sample_factor=args.unlabeled_sample_factor,
         output_dir=args.output_dir, plot=args.plot, seed=args.seed,
         embedding_type=args.embedding_type,
+        use_pseudo_label_sampling=args.use_pseudo_label_sampling,
+        pseudo_label_cache_path=args.pseudo_label_cache_path,
     )
 
     graph_data = builder.run_pipeline()
