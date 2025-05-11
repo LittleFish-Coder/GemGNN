@@ -13,6 +13,7 @@ from tqdm.auto import tqdm
 from argparse import ArgumentParser
 from utils.sample_k_shot import sample_k_shot
 from sklearn.metrics.pairwise import cosine_similarity
+from collections import Counter
 
 
 # --- Constants ---
@@ -64,6 +65,8 @@ class HeteroGraphBuilder:
         plot: bool = False,
         seed: int = DEFAULT_SEED,
         device: str = None,
+        use_pseudo_label_sampling: bool = False,
+        pseudo_label_cache_path: str = None,
     ):
         """Initialize the HeteroGraphBuilder."""
         self.dataset_name = dataset_name.lower()
@@ -81,6 +84,11 @@ class HeteroGraphBuilder:
         ## Sampling
         self.sample_unlabeled = sample_unlabeled
         self.unlabeled_sample_factor = unlabeled_sample_factor
+        self.use_pseudo_label_sampling = use_pseudo_label_sampling
+        if pseudo_label_cache_path:
+            self.pseudo_label_cache_path = pseudo_label_cache_path
+        else:
+            self.pseudo_label_cache_path = f"utils/pseudo_label_cache_{self.dataset_name}.json"
         self.plot = plot
         self.seed = seed
 
@@ -515,7 +523,64 @@ class HeteroGraphBuilder:
         if self.sample_unlabeled:
             num_to_sample = min(self.unlabeled_sample_factor * 2 * self.k_shot, len(train_unlabeled_indices))
             print(f"Sampling {num_to_sample} train_unlabeled_nodes (factor={self.unlabeled_sample_factor}, 2*k={2*self.k_shot}) from {len(train_unlabeled_indices)} available.")
-            train_unlabeled_indices = np.random.choice(train_unlabeled_indices, size=num_to_sample, replace=False)
+            
+            if self.use_pseudo_label_sampling:
+                print("Using pseudo-label based sampling...")
+                try:
+                    with open(self.pseudo_label_cache_path, "r") as f:
+                        pseudo_data = json.load(f)
+                    pseudo_label_map = {int(item["index"]): int(item["pseudo_label"]) for item in pseudo_data}
+                    
+                    # Filter unlabeled indices to those with pseudo labels
+                    valid_unlabeled = [idx for idx in train_unlabeled_indices if idx in pseudo_label_map]
+                    if not valid_unlabeled:
+                        print("Warning: No valid pseudo labels found. Falling back to random sampling.")
+                        train_unlabeled_indices = np.random.choice(train_unlabeled_indices, size=num_to_sample, replace=False)
+                    else:
+                        # Group indices by pseudo label
+                        pseudo_label_groups = {}
+                        for idx in valid_unlabeled:
+                            label = pseudo_label_map[idx]
+                            if label not in pseudo_label_groups:
+                                pseudo_label_groups[label] = []
+                            pseudo_label_groups[label].append(idx)
+                        
+                        # Calculate samples per class
+                        num_classes = len(pseudo_label_groups)
+                        samples_per_class = num_to_sample // num_classes
+                        remainder = num_to_sample % num_classes
+                        
+                        # Sample from each class
+                        sampled_indices = []
+                        for label, indices in pseudo_label_groups.items():
+                            n_samples = min(samples_per_class + (1 if remainder > 0 else 0), len(indices))
+                            if remainder > 0:
+                                remainder -= 1
+                            if n_samples > 0:
+                                sampled = np.random.choice(indices, size=n_samples, replace=False)
+                                sampled_indices.extend(sampled)
+                        
+                        # If we still need more samples (due to insufficient pseudo labels in some classes)
+                        if len(sampled_indices) < num_to_sample:
+                            remaining = num_to_sample - len(sampled_indices)
+                            print(f"Warning: Only found {len(sampled_indices)} nodes with pseudo labels. "
+                                  f"Randomly sampling {remaining} more nodes.")
+                            remaining_indices = list(set(train_unlabeled_indices) - set(sampled_indices))
+                            if remaining_indices:
+                                additional = np.random.choice(remaining_indices, 
+                                                           size=min(remaining, len(remaining_indices)), 
+                                                           replace=False)
+                                sampled_indices.extend(additional)
+                        
+                        train_unlabeled_indices = np.array(sampled_indices)
+                        print(f"  Sampled {len(train_unlabeled_indices)} unlabeled nodes using pseudo labels")
+                        
+                except Exception as e:
+                    print(f"Warning: Error during pseudo-label sampling: {e}. Falling back to random sampling.")
+                    train_unlabeled_indices = np.random.choice(train_unlabeled_indices, size=num_to_sample, replace=False)
+            else:
+                train_unlabeled_indices = np.random.choice(train_unlabeled_indices, size=num_to_sample, replace=False)
+        
         self.train_unlabeled_indices = train_unlabeled_indices
         print(f"  Selected {len(train_unlabeled_indices)} unlabeled train nodes.")
 
@@ -819,7 +884,10 @@ class HeteroGraphBuilder:
         # Add sampling info to filename if sampling was used
         sampling_suffix = ""
         if self.sample_unlabeled:
-            sampling_suffix = f"_smpf{self.unlabeled_sample_factor}"
+            if self.use_pseudo_label_sampling:
+                sampling_suffix = f"_psl{self.unlabeled_sample_factor}"
+            else:
+                sampling_suffix = f"_smpf{self.unlabeled_sample_factor}"
 
         # Include text embedding type in name
         graph_name = f"{self.k_shot}_shot_{self.embedding_type}_hetero_{edge_policy_name}_{edge_param_str}{sampling_suffix}"
@@ -874,20 +942,33 @@ class HeteroGraphBuilder:
             # Add label distribution if possible
             try:
                 train_labels = self.train_data['label']
-                label_dist = {}
+                true_label_dist = {}
                 for idx in self.train_unlabeled_indices:
                     label = train_labels[int(idx)]
-                    label_dist[label] = label_dist.get(label, 0) + 1
-                indices_data["train_unlabeled_label_distribution"] = {int(k): int(v) for k, v in label_dist.items()}
+                    true_label_dist[label] = true_label_dist.get(label, 0) + 1
+                indices_data["train_unlabeled_true_label_distribution"] = {int(k): int(v) for k, v in true_label_dist.items()}
+                
+                # Add pseudo label distribution if using pseudo label sampling
+                if self.use_pseudo_label_sampling:
+                    try:
+                        with open(self.pseudo_label_cache_path, "r") as f:
+                            pseudo_data = json.load(f)
+                        pseudo_label_map = {int(item["index"]): int(item["pseudo_label"]) for item in pseudo_data}
+                        # Overall pseudo label cache distribution
+                        all_pseudo_labels = list(pseudo_label_map.values())
+                        indices_data["pseudo_label_cache_distribution"] = dict(Counter(all_pseudo_labels))
+                        # Distribution of sampled pseudo labels
+                        sampled_pseudo_labels = [pseudo_label_map[idx] for idx in self.train_unlabeled_indices if idx in pseudo_label_map]
+                        indices_data["train_unlabeled_pseudo_label_distribution"] = dict(Counter(sampled_pseudo_labels))
+                    except Exception as e:
+                        print(f"Warning: Could not compute pseudo-label stats for indices.json: {e}")
             except Exception as e_label: print(f"Warning: Could not get label distribution for indices: {e_label}")
 
         indices_path = os.path.join(self.output_dir, f"{graph_name}_indices.json")
-        try:
-             with open(indices_path, "w") as f:
-                 json.dump(indices_data, f, indent=2)
-             print(f"  Selected indices info saved to {indices_path}")
-        except Exception as e:
-             print(f"  Error saving indices JSON: {e}")
+        with open(indices_path, "w") as f:
+            json.dump(indices_data, f, indent=2)
+        print(f"Selected indices info saved to {indices_path}")
+        print(f"Graph saved to {graph_path}")
 
         return graph_path
 
@@ -924,6 +1005,8 @@ def parse_arguments():
     # Unlabeled Node Sampling Args
     parser.add_argument("--sample_unlabeled", action='store_true', default=False, help="Enable sampling of unlabeled training 'news' nodes.")
     parser.add_argument("--unlabeled_sample_factor", type=int, default=DEFAULT_UNLABELED_SAMPLE_FACTOR, help=f"Factor M to sample M*2*k unlabeled training 'news' nodes (default: {DEFAULT_UNLABELED_SAMPLE_FACTOR}). Used if --sample_unlabeled.")
+    parser.add_argument("--use_pseudo_label_sampling", action="store_true", help="Enable balanced sampling of unlabeled nodes using pseudo-label cache.")
+    parser.add_argument("--pseudo_label_cache_path", type=str, default=None, help="Path to pseudo-label cache (json). Default: utils/pseudo_label_cache_<dataset>.json")
 
     # Output & Settings Args
     parser.add_argument("--output_dir", type=str, default=GRAPH_DIR, help=f"Directory to save graphs (default: {GRAPH_DIR})")
@@ -938,6 +1021,10 @@ def main() -> None:
     """Main function to run the heterogeneous graph building pipeline."""
     args = parse_arguments()
     set_seed(args.seed)
+    
+    if args.use_pseudo_label_sampling:
+        args.sample_unlabeled = True
+        
     if torch.cuda.is_available(): torch.cuda.empty_cache(); gc.collect()
 
     print("\n" + "=" * 60)
@@ -958,8 +1045,13 @@ def main() -> None:
         print(f"Threshold Factor: {args.local_threshold_factor}")
     print("-" * 20 + " News Node Sampling " + "-" * 20)
     print(f"Sample Unlabeled: {args.sample_unlabeled}")
-    if args.sample_unlabeled: print(f"Sample Factor(M): {args.unlabeled_sample_factor} (target M*2*k nodes)")
-    else: print(f"Sample Factor(M): N/A (using all unlabeled train news nodes)")
+    if args.sample_unlabeled: 
+        print(f"Sample Factor(M): {args.unlabeled_sample_factor} (target M*2*k nodes)")
+        print(f"Pseudo-label Sampling: {args.use_pseudo_label_sampling}")
+        if args.use_pseudo_label_sampling:
+            print(f"Pseudo-label Cache: {args.pseudo_label_cache_path or f'utils/pseudo_label_cache_{args.dataset_name}.json'}")
+    else: 
+        print(f"Sample Factor(M): N/A (using all unlabeled train news nodes)")
     print("-" * 20 + " Output & Settings " + "-" * 20)
     print(f"Output directory: {args.output_dir}")
     print(f"Plot:             {args.plot}")
@@ -984,6 +1076,8 @@ def main() -> None:
         output_dir=args.output_dir,
         plot=args.plot,
         seed=args.seed,
+        use_pseudo_label_sampling=args.use_pseudo_label_sampling,
+        pseudo_label_cache_path=args.pseudo_label_cache_path,
     )
 
     hetero_graph = builder.run_pipeline()
