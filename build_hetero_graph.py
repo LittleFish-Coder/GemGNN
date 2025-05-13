@@ -67,6 +67,7 @@ class HeteroGraphBuilder:
         device: str = None,
         use_pseudo_label_sampling: bool = False,
         pseudo_label_cache_path: str = None,
+        multi_view: int = 3,
     ):
         """Initialize the HeteroGraphBuilder."""
         self.dataset_name = dataset_name.lower()
@@ -80,6 +81,7 @@ class HeteroGraphBuilder:
         self.local_threshold_factor = local_threshold_factor
         self.alpha = alpha
         self.quantile_p = quantile_p
+        self.multi_view = multi_view
 
         ## Sampling
         self.sample_unlabeled = sample_unlabeled
@@ -137,11 +139,16 @@ class HeteroGraphBuilder:
         print(f"  Labeled set: {self.k_shot}-shot * {self.num_classes} classes = {self.total_labeled_size} total labeled nodes")
         print(f"  Required Fields Check: OK ({self.text_embedding_field}, {self.interaction_embedding_field}, label)")
 
-    def _build_knn_edges(self, embeddings: np.ndarray, k: int) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+    def _build_knn_edges(self, embeddings: np.ndarray, k: int) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]:
         num_nodes = embeddings.shape[0]
-        if num_nodes <= 1: return torch.zeros((2,0), dtype=torch.long), None
+        if num_nodes <= 1: 
+            return (torch.zeros((2,0), dtype=torch.long), None, 
+                    torch.zeros((2,0), dtype=torch.long), None)
         k = min(k, num_nodes - 1) # Adjust k if it's too large
-        if k <= 0: return torch.zeros((2,0), dtype=torch.long), None
+        if k <= 0: 
+            return (torch.zeros((2,0), dtype=torch.long), None,
+                    torch.zeros((2,0), dtype=torch.long), None)
+        
         print(f"    Building KNN graph (k={k}) for 'news'-'news' edges...")
         try:
              distances = pairwise_distances(embeddings, metric="cosine", n_jobs=-1) # Use multiple cores if available
@@ -149,24 +156,65 @@ class HeteroGraphBuilder:
              print(f"      Error calculating pairwise distances: {e}. Using single core.")
              distances = pairwise_distances(embeddings, metric="cosine")
 
-        rows, cols, data = [], [], []
-        for i in tqdm(range(num_nodes), desc=f"      Finding {k} nearest neighbors", leave=False, ncols=100):
+        # For similar edges (nearest neighbors)
+        sim_rows, sim_cols, sim_data = [], [], []
+        # For dissimilar edges (farthest neighbors)
+        dis_rows, dis_cols, dis_data = [], [], []
+        
+        for i in tqdm(range(num_nodes), desc=f"      Finding {k} nearest/farthest neighbors", leave=False, ncols=100):
             dist_i = distances[i].copy()
-            dist_i[i] = np.inf
-            # Use argpartition for efficiency
-            indices = np.argpartition(dist_i, k)[:k]
-            # Ensure indices are valid before adding edges
-            valid_indices = indices[np.isfinite(dist_i[indices])] # Filter out potential inf if k >= N-1 somehow
-            for j in valid_indices:
-                rows.append(i)
-                cols.append(j)
-                sim = 1.0 - distances[i, j]
-                data.append(max(0.0, sim)) # Ensure similarity is non-negative
+            dist_i[i] = np.inf  # Exclude self
+            
+            # Find k nearest neighbors (most similar)
+            nearest_indices = np.argpartition(dist_i, k)[:k]
+            valid_nearest = nearest_indices[np.isfinite(dist_i[nearest_indices])]
+            
+            # Find k farthest neighbors (most dissimilar)
+            # 先排除无效值
+            valid_distances = dist_i[np.isfinite(dist_i)]
+            valid_indices = np.arange(len(dist_i))[np.isfinite(dist_i)]
+            if len(valid_distances) > k:
+                # 从有效值中选择最远的k个
+                farthest_k_indices = np.argpartition(valid_distances, -k)[-k:]
+                valid_farthest = valid_indices[farthest_k_indices]
+            else:
+                valid_farthest = valid_indices
+            
+            # 确保两种边的数量相等
+            min_valid = min(len(valid_nearest), len(valid_farthest))
+            if min_valid > 0:
+                # Similar edges
+                for j in valid_nearest[:min_valid]:
+                    sim_rows.append(i)
+                    sim_cols.append(j)
+                    sim = 1.0 - distances[i, j]  # Convert to similarity [0,1]
+                    sim_data.append(sim)  # Keep positive for similar edges
+                
+                # Dissimilar edges
+                for j in valid_farthest[:min_valid]:
+                    dis_rows.append(i)
+                    dis_cols.append(j)
+                    sim = 1.0 - distances[i, j]  # Convert to similarity [0,1]
+                    dis_data.append(-sim)  # Make negative for dissimilar edges
 
-        if not rows: return torch.zeros((2, 0), dtype=torch.long), None
-        edge_index = torch.tensor(np.vstack((rows, cols)), dtype=torch.long)
-        edge_attr = torch.tensor(data, dtype=torch.float).unsqueeze(1)
-        return edge_index, edge_attr
+        # Create similar edge tensors
+        if not sim_rows: 
+            sim_edge_index = torch.zeros((2, 0), dtype=torch.long)
+            sim_edge_attr = None
+        else:
+            sim_edge_index = torch.tensor(np.vstack((sim_rows, sim_cols)), dtype=torch.long)
+            sim_edge_attr = torch.tensor(sim_data, dtype=torch.float).unsqueeze(1)
+
+        # Create dissimilar edge tensors
+        if not dis_rows:
+            dis_edge_index = torch.zeros((2, 0), dtype=torch.long)
+            dis_edge_attr = None
+        else:
+            dis_edge_index = torch.tensor(np.vstack((dis_rows, dis_cols)), dtype=torch.long)
+            dis_edge_attr = torch.tensor(dis_data, dtype=torch.float).unsqueeze(1)
+
+        print(f"      Created {sim_edge_index.shape[1]} similar edges and {dis_edge_index.shape[1]} dissimilar edges.")
+        return sim_edge_index, sim_edge_attr, dis_edge_index, dis_edge_attr
 
     def _build_local_threshold_edges(self, embeddings: np.ndarray, local_threshold_factor: float) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         num_nodes = embeddings.shape[0]
@@ -670,36 +718,99 @@ class HeteroGraphBuilder:
         print(f"    - Created {data['interaction', 'rev_has_interaction', 'news'].edge_index.shape[1]} 'interaction -> news' edges.")
 
         # Create 'news -> news' edges
-        # Directed Edges ('news', 'similar_to', 'news')
-        print(f"    - Building 'news'-'similar_to'-'news' edges using policy: '{self.edge_policy}'...")
+        # Directed Edges ('news', 'similar_to', 'news') and ('news', 'dissimilar_to', 'news')
+        print(f"    - Building 'news'-'similar_to/dissimilar_to'-'news' edges using policy: '{self.edge_policy}'...")
         new_embeddings = data['news'].x.cpu().numpy() # Use news node embeddings
+
+        # --- Multi-view edge construction ---
+        if self.multi_view > 1:
+            dim = new_embeddings.shape[1]
+            assert dim % self.multi_view == 0, f"Embedding dim {dim} not divisible by multi_view {self.multi_view}"
+            sub_dim = dim // self.multi_view
+            for v in range(self.multi_view):
+                sub_emb = new_embeddings[:, v*sub_dim:(v+1)*sub_dim]
+                # Similar/dissimilar edges for each sub-embedding
+                sim_idx, sim_attr, dis_idx, dis_attr = self._build_knn_edges(sub_emb, self.k_neighbors)
+                # Make undirected
+                sim_idx = torch.cat([sim_idx, sim_idx[[1,0],:]], dim=1)
+                sim_attr = torch.cat([sim_attr, sim_attr], dim=0)
+                dis_idx = torch.cat([dis_idx, dis_idx[[1,0],:]], dim=1)
+                dis_attr = torch.cat([dis_attr, dis_attr], dim=0)
+                # Edge type names
+                sim_type = ("news", f"similar_to_sub{v+1}", "news")
+                dis_type = ("news", f"dissimilar_to_sub{v+1}", "news")
+                data[sim_type].edge_index = sim_idx
+                if sim_attr is not None:
+                    data[sim_type].edge_attr = sim_attr
+                data[dis_type].edge_index = dis_idx
+                if dis_attr is not None:
+                    data[dis_type].edge_attr = dis_attr
+                print(f"    - Created {sim_idx.shape[1]} 'news <-> news' similar_sub{v+1} edges, {dis_idx.shape[1]} dissimilar_sub{v+1} edges.")
 
         # --- Edge Building Logic (flat style, like build_graph.py) ---
         if self.edge_policy == "knn":
-            edge_index_nn, edge_attr_nn = self._build_knn_edges(new_embeddings, self.k_neighbors)
+            sim_edge_index, sim_edge_attr, dis_edge_index, dis_edge_attr = self._build_knn_edges(new_embeddings, self.k_neighbors)
+            
+            # Add similar edges
+            sim_edge_index = torch.cat([sim_edge_index, sim_edge_index[[1, 0], :]], dim=1)
+            sim_edge_attr = torch.cat([sim_edge_attr, sim_edge_attr], dim=0)
+            data['news', 'similar_to', 'news'].edge_index = sim_edge_index
+            if sim_edge_attr is not None:
+                data['news', 'similar_to', 'news'].edge_attr = sim_edge_attr
+            print(f"    - Created {sim_edge_index.shape[1]} 'news <-> news' similar edges.")
+            
+            # Add dissimilar edges
+            dis_edge_index = torch.cat([dis_edge_index, dis_edge_index[[1, 0], :]], dim=1)
+            dis_edge_attr = torch.cat([dis_edge_attr, dis_edge_attr], dim=0)
+            data['news', 'dissimilar_to', 'news'].edge_index = dis_edge_index
+            if dis_edge_attr is not None:
+                data['news', 'dissimilar_to', 'news'].edge_attr = dis_edge_attr
+            print(f"    - Created {dis_edge_index.shape[1]} 'news <-> news' dissimilar edges.")
+            
         elif self.edge_policy == "mutual_knn":
             edge_index_nn, edge_attr_nn = self._build_mutual_knn_edges(new_embeddings, self.k_neighbors)
+            sim_edge_index = torch.cat([edge_index_nn, edge_index_nn[[1, 0], :]], dim=1)
+            sim_edge_attr = torch.cat([edge_attr_nn, edge_attr_nn], dim=0)
+            data['news', 'similar_to', 'news'].edge_index = sim_edge_index
+            if sim_edge_attr is not None:
+                data['news', 'similar_to', 'news'].edge_attr = sim_edge_attr
+            print(f"    - Created {sim_edge_index.shape[1]} 'news <-> news' edges.")
         elif self.edge_policy == "local_threshold":
             edge_index_nn, edge_attr_nn = self._build_local_threshold_edges(new_embeddings, self.local_threshold_factor)
+            sim_edge_index = torch.cat([edge_index_nn, edge_index_nn[[1, 0], :]], dim=1)
+            sim_edge_attr = torch.cat([edge_attr_nn, edge_attr_nn], dim=0)
+            data['news', 'similar_to', 'news'].edge_index = sim_edge_index
+            if sim_edge_attr is not None:
+                data['news', 'similar_to', 'news'].edge_attr = sim_edge_attr
+            print(f"    - Created {sim_edge_index.shape[1]} 'news <-> news' edges.")
         elif self.edge_policy == "global_threshold":
             edge_index_nn, edge_attr_nn = self._build_global_threshold_edges(new_embeddings, self.alpha)
+            sim_edge_index = torch.cat([edge_index_nn, edge_index_nn[[1, 0], :]], dim=1)
+            sim_edge_attr = torch.cat([edge_attr_nn, edge_attr_nn], dim=0)
+            data['news', 'similar_to', 'news'].edge_index = sim_edge_index
+            if sim_edge_attr is not None:
+                data['news', 'similar_to', 'news'].edge_attr = sim_edge_attr
+            print(f"    - Created {sim_edge_index.shape[1]} 'news <-> news' edges.")
         elif self.edge_policy == "quantile":
             edge_index_nn, edge_attr_nn = self._build_quantile_edges(new_embeddings, self.quantile_p)
+            sim_edge_index = torch.cat([edge_index_nn, edge_index_nn[[1, 0], :]], dim=1)
+            sim_edge_attr = torch.cat([edge_attr_nn, edge_attr_nn], dim=0)
+            data['news', 'similar_to', 'news'].edge_index = sim_edge_index
+            if sim_edge_attr is not None:
+                data['news', 'similar_to', 'news'].edge_attr = sim_edge_attr
+            print(f"    - Created {sim_edge_index.shape[1]} 'news <-> news' edges.")
         elif self.edge_policy == "topk_mean":
             edge_index_nn, edge_attr_nn = self._build_topk_mean_edges(new_embeddings, self.k_top_sim, self.local_threshold_factor)
+            sim_edge_index = torch.cat([edge_index_nn, edge_index_nn[[1, 0], :]], dim=1)
+            sim_edge_attr = torch.cat([edge_attr_nn, edge_attr_nn], dim=0)
+            data['news', 'similar_to', 'news'].edge_index = sim_edge_index
+            if sim_edge_attr is not None:
+                data['news', 'similar_to', 'news'].edge_attr = sim_edge_attr
+            print(f"    - Created {sim_edge_index.shape[1]} 'news <-> news' edges.")
         else:
             print(f"Warning: News-news edge policy '{self.edge_policy}' not implemented. Skipping news-news edges.")
-            edge_index_nn = torch.zeros((2, 0), dtype=torch.long)
-            edge_attr_nn = None
-
-        # symmetrize edge_index and edge_attr (for undirected graphs)
-        edge_index_nn = torch.cat([edge_index_nn, edge_index_nn[[1, 0], :]], dim=1)
-        edge_attr_nn = torch.cat([edge_attr_nn, edge_attr_nn], dim=0)
-
-        data['news', 'similar_to', 'news'].edge_index = edge_index_nn
-        if edge_attr_nn is not None:
-            data['news', 'similar_to', 'news'].edge_attr = edge_attr_nn
-        print(f"    - Created {edge_index_nn.shape[1]} 'news <-> news' edges.")
+            sim_edge_index = torch.zeros((2, 0), dtype=torch.long)
+            sim_edge_attr = None
 
         print("\nHeterogeneous graph construction complete.")
 
@@ -767,100 +878,105 @@ class HeteroGraphBuilder:
         self.graph_metrics['edges_total'] = total_edges
 
         # --- News-News Edge Analysis ---
-        news_news_edge_type = ('news', 'similar_to', 'news')
-        if news_news_edge_type in hetero_graph.edge_types:
+        news_similar_edge_type = ('news', 'similar_to', 'news')
+        news_dissimilar_edge_type = ('news', 'dissimilar_to', 'news')
+        num_news_nodes = hetero_graph['news'].num_nodes
+
+        # 分析 similar_to 边
+        if news_similar_edge_type in hetero_graph.edge_types:
             print("\n--- Analysis for 'news'-'similar_to'-'news' Edges ---")
-            nn_edge_index = hetero_graph[news_news_edge_type].edge_index
-            num_nn_edges = hetero_graph[news_news_edge_type].num_edges
-            num_news_nodes = hetero_graph['news'].num_nodes
+            nn_edge_index = hetero_graph[news_similar_edge_type].edge_index
+            num_nn_edges = hetero_graph[news_similar_edge_type].num_edges
             print(f"  - Num Edges: {num_nn_edges}")
-            # Degree
             degrees_nn = torch.zeros(num_news_nodes, dtype=torch.long, device=nn_edge_index.device)
             degrees_nn.scatter_add_(0, nn_edge_index[0], torch.ones_like(nn_edge_index[0]))
             degrees_nn.scatter_add_(0, nn_edge_index[1], torch.ones_like(nn_edge_index[1]))
             avg_degree_nn = degrees_nn.float().mean().item() / 2.0
             print(f"  - Avg Degree (undirected): {avg_degree_nn:.2f}")
             self.graph_metrics['avg_degree_news_similar_to'] = avg_degree_nn
-            # Isolated nodes
             num_isolated = int((degrees_nn == 0).sum().item())
             print(f"  - Isolated News Nodes: {num_isolated} ({num_isolated/num_news_nodes*100:.1f}%)")
-            self.graph_metrics['news_isolated'] = num_isolated
-            # Homophily
+            self.graph_metrics['news_similar_isolated'] = num_isolated
             if hasattr(hetero_graph['news'], 'y') and hetero_graph['news'].y is not None:
                 y_news = hetero_graph['news'].y.cpu().numpy()
                 edge_index_nn_cpu = nn_edge_index.cpu().numpy()
-                src_labels = y_news[edge_index_nn_cpu[0]]
-                tgt_labels = y_news[edge_index_nn_cpu[1]]
                 try:
-                    G_nn = nx.Graph()
-                    G_nn.add_nodes_from(range(num_news_nodes))
-                    G_nn.add_edges_from(edge_index_nn_cpu.T)
-                    num_undirected_nn_edges = G_nn.number_of_edges()
+                    G_sim = nx.Graph()
+                    G_sim.add_nodes_from(range(num_news_nodes))
+                    G_sim.add_edges_from(edge_index_nn_cpu.T)
+                    num_undirected_nn_edges = G_sim.number_of_edges()
                     homophilic_undirected_nn = 0
-                    for u, v in G_nn.edges():
+                    for u, v in G_sim.edges():
                         if y_news[u] == y_news[v]:
                             homophilic_undirected_nn += 1
                     homophily_ratio_nn = homophilic_undirected_nn / num_undirected_nn_edges if num_undirected_nn_edges > 0 else 0.0
                     print(f"  - Homophily Ratio: {homophily_ratio_nn:.4f}")
                     self.graph_metrics['homophily_ratio_news_similar_to'] = homophily_ratio_nn
+                    print(f"\n--- NetworkX (news-similar-news subgraph) ---")
+                    print(f"  Nodes: {G_sim.number_of_nodes()} Edges: {G_sim.number_of_edges()}")
+                    if G_sim.number_of_nodes() > 0:
+                        print(f"  Density: {nx.density(G_sim):.4f}")
+                        print(f"  Avg Clustering: {nx.average_clustering(G_sim):.4f}")
                 except Exception as e:
-                    print(f"  Warning: Could not calculate homophily for news-news edges: {e}")
-            # NetworkX metrics
-            try:
-                G_news = to_networkx(hetero_graph, edge_type=('news', 'similar_to', 'news'), to_undirected=True)
-                print(f"\n--- NetworkX (news-news subgraph) ---")
-                print(f"  Nodes: {G_news.number_of_nodes()} Edges: {G_news.number_of_edges()}")
-                if G_news.number_of_nodes() > 0:
-                    print(f"  Density: {nx.density(G_news):.4f}")
-                    print(f"  Avg Clustering: {nx.average_clustering(G_news):.4f}")
-            except Exception as e:
-                print(f"  Warning: Could not convert news-news subgraph to NetworkX: {e}")
+                    print(f"  Warning: Could not calculate metrics for similar edges: {e}")
 
-        # --- News-Interaction Edge Analysis ---
-        ni_edge_type = ('news', 'has_interaction', 'interaction')
-        if ni_edge_type in hetero_graph.edge_types:
-            print("\n--- Analysis for 'news'-'has_interaction'-'interaction' Edges ---")
-            ni_edge_index = hetero_graph[ni_edge_type].edge_index
-            num_ni_edges = hetero_graph[ni_edge_type].num_edges
-            print(f"  - Num Edges: {num_ni_edges}")
-            # Degree stats for news and interaction
-            num_news = hetero_graph['news'].num_nodes
-            num_inter = hetero_graph['interaction'].num_nodes
-            news_deg = torch.zeros(num_news, dtype=torch.long)
-            inter_deg = torch.zeros(num_inter, dtype=torch.long)
-            news_deg.scatter_add_(0, ni_edge_index[0], torch.ones_like(ni_edge_index[0]))
-            inter_deg.scatter_add_(0, ni_edge_index[1], torch.ones_like(ni_edge_index[1]))
-            print(f"  - News Node Out-degree (mean): {news_deg.float().mean():.2f}")
-            print(f"  - Interaction Node In-degree (mean): {inter_deg.float().mean():.2f}")
-            self.graph_metrics['news_interaction_degree'] = {
-                'news_out_mean': news_deg.float().mean().item(),
-                'interaction_in_mean': inter_deg.float().mean().item()
-            }
-            # Isolated interaction nodes
-            num_isolated_inter = int((inter_deg == 0).sum().item())
-            print(f"  - Isolated Interaction Nodes: {num_isolated_inter} ({num_isolated_inter/num_inter*100:.1f}%)")
-            self.graph_metrics['interaction_isolated'] = num_isolated_inter
+        # 分析 dissimilar_to 边
+        if news_dissimilar_edge_type in hetero_graph.edge_types:
+            print("\n--- Analysis for 'news'-'dissimilar_to'-'news' Edges ---")
+            nn_edge_index = hetero_graph[news_dissimilar_edge_type].edge_index
+            num_nn_edges = hetero_graph[news_dissimilar_edge_type].num_edges
+            print(f"  - Num Edges: {num_nn_edges}")
+            degrees_nn = torch.zeros(num_news_nodes, dtype=torch.long, device=nn_edge_index.device)
+            degrees_nn.scatter_add_(0, nn_edge_index[0], torch.ones_like(nn_edge_index[0]))
+            degrees_nn.scatter_add_(0, nn_edge_index[1], torch.ones_like(nn_edge_index[1]))
+            avg_degree_nn = degrees_nn.float().mean().item() / 2.0
+            print(f"  - Avg Degree (undirected): {avg_degree_nn:.2f}")
+            self.graph_metrics['avg_degree_news_dissimilar_to'] = avg_degree_nn
+            num_isolated = int((degrees_nn == 0).sum().item())
+            print(f"  - Isolated News Nodes: {num_isolated} ({num_isolated/num_news_nodes*100:.1f}%)")
+            self.graph_metrics['news_dissimilar_isolated'] = num_isolated
+            if hasattr(hetero_graph['news'], 'y') and hetero_graph['news'].y is not None:
+                y_news = hetero_graph['news'].y.cpu().numpy()
+                edge_index_nn_cpu = nn_edge_index.cpu().numpy()
+                try:
+                    G_dis = nx.Graph()
+                    G_dis.add_nodes_from(range(num_news_nodes))
+                    G_dis.add_edges_from(edge_index_nn_cpu.T)
+                    num_undirected_nn_edges = G_dis.number_of_edges()
+                    heterophilic_undirected_nn = 0
+                    for u, v in G_dis.edges():
+                        if y_news[u] != y_news[v]:
+                            heterophilic_undirected_nn += 1
+                    heterophily_ratio_nn = heterophilic_undirected_nn / num_undirected_nn_edges if num_undirected_nn_edges > 0 else 0.0
+                    print(f"  - Heterophily Ratio: {heterophily_ratio_nn:.4f}")
+                    self.graph_metrics['heterophily_ratio_news_dissimilar_to'] = heterophily_ratio_nn
+                    print(f"\n--- NetworkX (news-dissimilar-news subgraph) ---")
+                    print(f"  Nodes: {G_dis.number_of_nodes()} Edges: {G_dis.number_of_edges()}")
+                    if G_dis.number_of_nodes() > 0:
+                        print(f"  Density: {nx.density(G_dis):.4f}")
+                        print(f"  Avg Clustering: {nx.average_clustering(G_dis):.4f}")
+                except Exception as e:
+                    print(f"  Warning: Could not calculate metrics for dissimilar edges: {e}")
 
-        # --- Reverse Edge Analysis ---
-        rev_ni_edge_type = ('interaction', 'rev_has_interaction', 'news')
-        if rev_ni_edge_type in hetero_graph.edge_types:
-            print("\n--- Analysis for 'interaction'-'rev_has_interaction'-'news' Edges ---")
-            rev_ni_edge_index = hetero_graph[rev_ni_edge_type].edge_index
-            num_rev_ni_edges = hetero_graph[rev_ni_edge_type].num_edges
-            print(f"  - Num Edges: {num_rev_ni_edges}")
-            # Degree stats for interaction and news
-            num_news = hetero_graph['news'].num_nodes
-            num_inter = hetero_graph['interaction'].num_nodes
-            inter_deg = torch.zeros(num_inter, dtype=torch.long)
-            news_deg = torch.zeros(num_news, dtype=torch.long)
-            inter_deg.scatter_add_(0, rev_ni_edge_index[0], torch.ones_like(rev_ni_edge_index[0]))
-            news_deg.scatter_add_(0, rev_ni_edge_index[1], torch.ones_like(rev_ni_edge_index[1]))
-            print(f"  - Interaction Node Out-degree (mean): {inter_deg.float().mean():.2f}")
-            print(f"  - News Node In-degree (mean): {news_deg.float().mean():.2f}")
-            self.graph_metrics['interaction_news_degree'] = {
-                'interaction_out_mean': inter_deg.float().mean().item(),
-                'news_in_mean': news_deg.float().mean().item()
-            }
+        # 合并分析所有 news-news 边
+        if news_similar_edge_type in hetero_graph.edge_types or news_dissimilar_edge_type in hetero_graph.edge_types:
+            print("\n--- Analysis for ALL news-news Edges (merged) ---")
+            import networkx as nx
+            G_all = nx.Graph()
+            G_all.add_nodes_from(range(num_news_nodes))
+            # similar edges
+            if news_similar_edge_type in hetero_graph.edge_types:
+                sim_idx = hetero_graph[news_similar_edge_type].edge_index.cpu().numpy()
+                G_all.add_edges_from(sim_idx.T)
+            # dissimilar edges
+            if news_dissimilar_edge_type in hetero_graph.edge_types:
+                dis_idx = hetero_graph[news_dissimilar_edge_type].edge_index.cpu().numpy()
+                G_all.add_edges_from(dis_idx.T)
+            print(f"  Nodes: {G_all.number_of_nodes()} Edges: {G_all.number_of_edges()}")
+            if G_all.number_of_nodes() > 0:
+                print(f"  Density: {nx.density(G_all):.4f}")
+                print(f"  Avg Clustering: {nx.average_clustering(G_all):.4f}")
+                print(f"  Connected Components: {nx.number_connected_components(G_all)}")
 
         print("=" * 60)
         print("      End of Heterogeneous Graph Analysis")
@@ -874,12 +990,18 @@ class HeteroGraphBuilder:
         edge_policy_name = self.edge_policy
         edge_param_str = ""
         # Suffix based on news-news edge policy params
-        if self.edge_policy == "knn": edge_param_str = str(self.k_neighbors)
-        elif self.edge_policy == "mutual_knn": edge_param_str = f"{self.k_neighbors}"
-        elif self.edge_policy == "local_threshold": edge_param_str = f"{self.local_threshold_factor:.2f}".replace('.', 'p')
-        elif self.edge_policy == "global_threshold": edge_param_str = f"{self.alpha:.2f}".replace('.', 'p')
-        elif self.edge_policy == "quantile": edge_param_str = f"{self.quantile_p:.1f}".replace('.', 'p')
-        elif self.edge_policy == "topk_mean": edge_param_str = f"k{self.k_top_sim}_f{self.local_threshold_factor:.2f}".replace('.', 'p')
+        if self.edge_policy == "knn": 
+            edge_param_str = f"sim{self.k_neighbors}_dis{self.k_neighbors}"  # e.g., sim5_dis5
+        elif self.edge_policy == "mutual_knn": 
+            edge_param_str = f"msim{self.k_neighbors}_dis{self.k_neighbors}"  # e.g., msim5_dis5
+        elif self.edge_policy == "local_threshold": 
+            edge_param_str = f"lt{self.local_threshold_factor:.2f}".replace('.', 'p')
+        elif self.edge_policy == "global_threshold": 
+            edge_param_str = f"gt{self.alpha:.2f}".replace('.', 'p')
+        elif self.edge_policy == "quantile": 
+            edge_param_str = f"q{self.quantile_p:.1f}".replace('.', 'p')
+        elif self.edge_policy == "topk_mean": 
+            edge_param_str = f"tk{self.k_top_sim}_f{self.local_threshold_factor:.2f}".replace('.', 'p')
 
         # Add sampling info to filename if sampling was used
         sampling_suffix = ""
@@ -889,8 +1011,8 @@ class HeteroGraphBuilder:
             else:
                 sampling_suffix = f"_smpf{self.unlabeled_sample_factor}"
 
-        # Include text embedding type in name
-        graph_name = f"{self.k_shot}_shot_{self.embedding_type}_hetero_{edge_policy_name}_{edge_param_str}{sampling_suffix}"
+        # Include text embedding type and edge types in name
+        graph_name = f"{self.k_shot}_shot_{self.embedding_type}_hetero_dual_{edge_policy_name}_{edge_param_str}{sampling_suffix}_mv{self.multi_view}"
         # --- End filename generation ---
 
         # Save graph data
@@ -1007,6 +1129,7 @@ def parse_arguments():
     parser.add_argument("--unlabeled_sample_factor", type=int, default=DEFAULT_UNLABELED_SAMPLE_FACTOR, help=f"Factor M to sample M*2*k unlabeled training 'news' nodes (default: {DEFAULT_UNLABELED_SAMPLE_FACTOR}). Used if --sample_unlabeled.")
     parser.add_argument("--use_pseudo_label_sampling", action="store_true", help="Enable balanced sampling of unlabeled nodes using pseudo-label cache.")
     parser.add_argument("--pseudo_label_cache_path", type=str, default=None, help="Path to pseudo-label cache (json). Default: utils/pseudo_label_cache_<dataset>.json")
+    parser.add_argument("--multi_view", type=int, default=3, help="Number of sub-embeddings (views) to split news embeddings into (default: 3)")
 
     # Output & Settings Args
     parser.add_argument("--output_dir", type=str, default=GRAPH_DIR, help=f"Directory to save graphs (default: {GRAPH_DIR})")
@@ -1078,6 +1201,7 @@ def main() -> None:
         seed=args.seed,
         use_pseudo_label_sampling=args.use_pseudo_label_sampling,
         pseudo_label_cache_path=args.pseudo_label_cache_path,
+        multi_view=args.multi_view,
     )
 
     hetero_graph = builder.run_pipeline()
@@ -1090,8 +1214,9 @@ def main() -> None:
     print(f"  Total Nodes:       {hetero_graph['news'].num_nodes + hetero_graph['interaction'].num_nodes}")
     print(f"    - News Nodes:    {hetero_graph['news'].num_nodes}")
     print(f"    - Interact Nodes:{hetero_graph['interaction'].num_nodes}")
-    print(f"  Total Edges:       {hetero_graph['news', 'similar_to', 'news'].num_edges + hetero_graph['news', 'has_interaction', 'interaction'].num_edges + hetero_graph['interaction', 'rev_has_interaction', 'news'].num_edges}")
-    print(f"    - News<->News:   {hetero_graph['news', 'similar_to', 'news'].num_edges}")
+    print(f"  Total Edges:       {hetero_graph['news', 'similar_to', 'news'].num_edges + hetero_graph['news', 'dissimilar_to', 'news'].num_edges + hetero_graph['news', 'has_interaction', 'interaction'].num_edges + hetero_graph['interaction', 'rev_has_interaction', 'news'].num_edges}")
+    print(f"    - News<-similar->News:   {hetero_graph['news', 'similar_to', 'news'].num_edges}")
+    print(f"    - News<-dissimilar->News:   {hetero_graph['news', 'dissimilar_to', 'news'].num_edges}")
     print(f"    - News<->Interact:{hetero_graph['news', 'has_interaction', 'interaction'].num_edges + hetero_graph['interaction', 'rev_has_interaction', 'news'].num_edges}")
     print("\nNext Steps:")
     print(f"  1. Review the saved graph '.pt' file, metrics '.json' file, and indices '.json' file.")
