@@ -1,0 +1,56 @@
+{
+  "nodes": 3024,
+  "edges": 30240,
+  "avg_degree": 10.0,
+  "nodes_train_labeled": 32,
+  "nodes_train_unlabeled": 320,
+  "nodes_test": 2672,
+  "sampling_info": {
+    "sampled_unlabeled": true,
+    "unlabeled_sample_factor": 10,
+    "num_labeled_original": 32,
+    "num_unlabeled_sampled_original": 320
+  },
+  "isolated_nodes": 0,
+  "degree_stats": {
+    "min": 5,
+    "max": 71,
+    "mean": 8.544973544973544,
+    "median": 6.0,
+    "std": 5.80799154097532
+  },
+  "connected_components": 2,
+  "largest_component_size": 3018,
+  "avg_path_length": 4.850054462749522,
+  "density": 0.0028266535047878085,
+  "avg_clustering": 0.2570645326090303,
+  "assortativity": -0.09058975684907246,
+  "edge_types": {
+    "train_labeled-train_labeled": 4,
+    "train_labeled-train_unlabeled": 66,
+    "train_labeled-test": 668,
+    "train_unlabeled-train_unlabeled": 1070,
+    "train_unlabeled-test": 4602,
+    "test-test": 23830,
+    "other": 0
+  },
+  "class_connectivity": {
+    "ff": 1292,
+    "rr": 8575,
+    "fr": 3053
+  },
+  "homophily_ratio": 0.7636996904024768,
+  "test_node_connectivity": {
+    "test_nodes_total": 2672,
+    "test_nodes_isolated": 0,
+    "test_nodes_only_to_test": 1411,
+    "test_nodes_to_train": 1261
+  },
+  "power_law": {
+    "exponent": 2.8618820792829363,
+    "r_squared": 0.95925163493081,
+    "p_value": 4.062232808732865e-30,
+    "std_err": 0.09211887530834377,
+    "is_power_law": "True"
+  }
+}
