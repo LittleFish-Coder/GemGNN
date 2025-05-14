@@ -17,17 +17,23 @@ from collections import Counter
 
 
 # --- Constants ---
-GRAPH_DIR = "graphs_hetero" # Separate directory for hetero graphs
+DEFAULT_K_SHOT = 8
+DEFAULT_DATASET_NAME = "politifact"
+DEFAULT_EMBEDDING_TYPE = "roberta" # Default embedding for news nodes
+# --- Edge Policies Parameters ---
+DEFAULT_EDGE_POLICY = "knn"             # For news-news edges
+DEFAULT_K_NEIGHBORS = 5                 # For knn edge policy
+DEFAULT_LOCAL_THRESHOLD_FACTOR = 1.0    # for local_threshold edge policy
+DEFAULT_ALPHA = 0.1                     # for global_threshold edge policy
+DEFAULT_QUANTILE_P = 95.0               # for quantile edge policy
+DEFAULT_K_TOP_SIM = 10                  # for topk_mean edge policy
+# --- Unlabeled Node Sampling Parameters ---
+DEFAULT_SAMPLE_UNLABELED_FACTOR = 10    # for unlabeled node sampling
+DEFAULT_MULTI_VIEW = 0                  # for multi-view edge policy
+# --- Graphs and Plots Directories ---
+GRAPH_DIR = "graphs_hetero"
 PLOT_DIR = "plots_hetero"
 DEFAULT_SEED = 42
-DEFAULT_K_NEIGHBORS = 5
-DEFAULT_EDGE_POLICY = "knn" # For news-news edges
-DEFAULT_EMBEDDING_TYPE = "roberta" # Default embedding for news nodes
-DEFAULT_LOCAL_THRESHOLD_FACTOR = 1.0
-DEFAULT_ALPHA = 0.1
-DEFAULT_QUANTILE_P = 95.0
-DEFAULT_K_TOP_SIM = 10
-DEFAULT_UNLABELED_SAMPLE_FACTOR = 10
 
 # --- Utility Functions ---
 def set_seed(seed: int = DEFAULT_SEED) -> None:
@@ -59,15 +65,16 @@ class HeteroGraphBuilder:
         local_threshold_factor: float = DEFAULT_LOCAL_THRESHOLD_FACTOR,
         alpha: float = DEFAULT_ALPHA,
         quantile_p: float = DEFAULT_QUANTILE_P,
-        sample_unlabeled: bool = False,
-        unlabeled_sample_factor: int = DEFAULT_UNLABELED_SAMPLE_FACTOR,
+        sample_unlabeled_factor: int = DEFAULT_SAMPLE_UNLABELED_FACTOR,
         output_dir: str = GRAPH_DIR,
         plot: bool = False,
         seed: int = DEFAULT_SEED,
         device: str = None,
-        use_pseudo_label_sampling: bool = False,
+        pseudo_label: bool = False,
         pseudo_label_cache_path: str = None,
         multi_view: int = 3,
+        enable_dissimilar: bool = False,
+        partial_unlabeled: bool = False,
     ):
         """Initialize the HeteroGraphBuilder."""
         self.dataset_name = dataset_name.lower()
@@ -84,13 +91,15 @@ class HeteroGraphBuilder:
         self.multi_view = multi_view
 
         ## Sampling
-        self.sample_unlabeled = sample_unlabeled
-        self.unlabeled_sample_factor = unlabeled_sample_factor
-        self.use_pseudo_label_sampling = use_pseudo_label_sampling
+        self.sample_unlabeled_factor = sample_unlabeled_factor
+        self.enable_dissimilar = enable_dissimilar
+        self.partial_unlabeled = partial_unlabeled
+        self.pseudo_label = pseudo_label
         if pseudo_label_cache_path:
             self.pseudo_label_cache_path = pseudo_label_cache_path
         else:
             self.pseudo_label_cache_path = f"utils/pseudo_label_cache_{self.dataset_name}.json"
+        
         self.plot = plot
         self.seed = seed
 
@@ -151,10 +160,10 @@ class HeteroGraphBuilder:
         
         print(f"    Building KNN graph (k={k}) for 'news'-'news' edges...")
         try:
-             distances = pairwise_distances(embeddings, metric="cosine", n_jobs=-1) # Use multiple cores if available
+            distances = pairwise_distances(embeddings, metric="cosine", n_jobs=-1) # Use multiple cores if available
         except Exception as e:
-             print(f"      Error calculating pairwise distances: {e}. Using single core.")
-             distances = pairwise_distances(embeddings, metric="cosine")
+            print(f"      Error calculating pairwise distances: {e}. Using single core.")
+            distances = pairwise_distances(embeddings, metric="cosine")
 
         # For similar edges (nearest neighbors)
         sim_rows, sim_cols, sim_data = [], [], []
@@ -170,17 +179,14 @@ class HeteroGraphBuilder:
             valid_nearest = nearest_indices[np.isfinite(dist_i[nearest_indices])]
             
             # Find k farthest neighbors (most dissimilar)
-            # 先排除无效值
             valid_distances = dist_i[np.isfinite(dist_i)]
             valid_indices = np.arange(len(dist_i))[np.isfinite(dist_i)]
             if len(valid_distances) > k:
-                # 从有效值中选择最远的k个
                 farthest_k_indices = np.argpartition(valid_distances, -k)[-k:]
                 valid_farthest = valid_indices[farthest_k_indices]
             else:
                 valid_farthest = valid_indices
             
-            # 确保两种边的数量相等
             min_valid = min(len(valid_nearest), len(valid_farthest))
             if min_valid > 0:
                 # Similar edges
@@ -556,10 +562,19 @@ class HeteroGraphBuilder:
         data = HeteroData()
 
         # --- Select News Nodes (k-shot, unlabeled sampling, test) ---        
-        # 1. Sample k-shot labeled nodes from train set
-        print(f"Sampling {self.k_shot}-shot labeled nodes with seed={self.seed}")
-        train_labeled_indices, _ = sample_k_shot(self.train_data, self.k_shot, self.seed)
-        train_labeled_indices = np.array(train_labeled_indices)
+        # 1. Sample k-shot labeled nodes from train set (with cache)
+        train_labeled_indices_cache_path = f"utils/{self.dataset_name}_{self.k_shot}_shot_train_labeled_indices_{self.seed}.json"
+        if os.path.exists(train_labeled_indices_cache_path):
+            with open(train_labeled_indices_cache_path, "r") as f:
+                train_labeled_indices = json.load(f)
+            train_labeled_indices = np.array(train_labeled_indices)
+            print(f"Loaded k-shot indices from cache: {train_labeled_indices_cache_path}")
+        else:
+            train_labeled_indices, _ = sample_k_shot(self.train_data, self.k_shot, self.seed)
+            train_labeled_indices = np.array(train_labeled_indices)
+            with open(train_labeled_indices_cache_path, "w") as f:
+                json.dump(train_labeled_indices.tolist(), f)
+            print(f"Saved k-shot indices to cache: {train_labeled_indices_cache_path}")
         self.train_labeled_indices = train_labeled_indices
         print(f"  Selected {len(train_labeled_indices)} labeled nodes: {train_labeled_indices} ...")
 
@@ -568,11 +583,11 @@ class HeteroGraphBuilder:
         train_unlabeled_indices = np.setdiff1d(all_train_indices, train_labeled_indices, assume_unique=True)
 
         # --- Sample train_unlabeled_nodes if required ---
-        if self.sample_unlabeled:
-            num_to_sample = min(self.unlabeled_sample_factor * 2 * self.k_shot, len(train_unlabeled_indices))
-            print(f"Sampling {num_to_sample} train_unlabeled_nodes (factor={self.unlabeled_sample_factor}, 2*k={2*self.k_shot}) from {len(train_unlabeled_indices)} available.")
+        if self.partial_unlabeled:
+            num_to_sample = min(self.sample_unlabeled_factor * 2 * self.k_shot, len(train_unlabeled_indices))
+            print(f"Sampling {num_to_sample} train_unlabeled_nodes (factor={self.sample_unlabeled_factor}, 2*k={2*self.k_shot}) from {len(train_unlabeled_indices)} available.")
             
-            if self.use_pseudo_label_sampling:
+            if self.pseudo_label:
                 print("Using pseudo-label based sampling...")
                 try:
                     with open(self.pseudo_label_cache_path, "r") as f:
@@ -750,7 +765,6 @@ class HeteroGraphBuilder:
         # --- Edge Building Logic (flat style, like build_graph.py) ---
         if self.edge_policy == "knn":
             sim_edge_index, sim_edge_attr, dis_edge_index, dis_edge_attr = self._build_knn_edges(new_embeddings, self.k_neighbors)
-            
             # Add similar edges
             sim_edge_index = torch.cat([sim_edge_index, sim_edge_index[[1, 0], :]], dim=1)
             sim_edge_attr = torch.cat([sim_edge_attr, sim_edge_attr], dim=0)
@@ -758,15 +772,14 @@ class HeteroGraphBuilder:
             if sim_edge_attr is not None:
                 data['news', 'similar_to', 'news'].edge_attr = sim_edge_attr
             print(f"    - Created {sim_edge_index.shape[1]} 'news <-> news' similar edges.")
-            
-            # Add dissimilar edges
-            dis_edge_index = torch.cat([dis_edge_index, dis_edge_index[[1, 0], :]], dim=1)
-            dis_edge_attr = torch.cat([dis_edge_attr, dis_edge_attr], dim=0)
-            data['news', 'dissimilar_to', 'news'].edge_index = dis_edge_index
-            if dis_edge_attr is not None:
-                data['news', 'dissimilar_to', 'news'].edge_attr = dis_edge_attr
-            print(f"    - Created {dis_edge_index.shape[1]} 'news <-> news' dissimilar edges.")
-            
+            # Add dissimilar edges only if enabled
+            if self.enable_dissimilar:
+                dis_edge_index = torch.cat([dis_edge_index, dis_edge_index[[1, 0], :]], dim=1)
+                dis_edge_attr = torch.cat([dis_edge_attr, dis_edge_attr], dim=0)
+                data['news', 'dissimilar_to', 'news'].edge_index = dis_edge_index
+                if dis_edge_attr is not None:
+                    data['news', 'dissimilar_to', 'news'].edge_attr = dis_edge_attr
+                print(f"    - Created {dis_edge_index.shape[1]} 'news <-> news' dissimilar edges.")
         elif self.edge_policy == "mutual_knn":
             edge_index_nn, edge_attr_nn = self._build_mutual_knn_edges(new_embeddings, self.k_neighbors)
             sim_edge_index = torch.cat([edge_index_nn, edge_index_nn[[1, 0], :]], dim=1)
@@ -991,28 +1004,30 @@ class HeteroGraphBuilder:
         edge_param_str = ""
         # Suffix based on news-news edge policy params
         if self.edge_policy == "knn": 
-            edge_param_str = f"sim{self.k_neighbors}_dis{self.k_neighbors}"  # e.g., sim5_dis5
+            edge_param_str = f"{self.k_neighbors}"  # e.g., sim5_dis5
         elif self.edge_policy == "mutual_knn": 
-            edge_param_str = f"msim{self.k_neighbors}_dis{self.k_neighbors}"  # e.g., msim5_dis5
+            edge_param_str = f"{self.k_neighbors}"  # e.g., msim5_dis5
         elif self.edge_policy == "local_threshold": 
-            edge_param_str = f"lt{self.local_threshold_factor:.2f}".replace('.', 'p')
+            edge_param_str = f"{self.local_threshold_factor:.2f}".replace('.', 'p')
         elif self.edge_policy == "global_threshold": 
-            edge_param_str = f"gt{self.alpha:.2f}".replace('.', 'p')
+            edge_param_str = f"{self.alpha:.2f}".replace('.', 'p')
         elif self.edge_policy == "quantile": 
-            edge_param_str = f"q{self.quantile_p:.1f}".replace('.', 'p')
+            edge_param_str = f"{self.quantile_p:.1f}".replace('.', 'p')
         elif self.edge_policy == "topk_mean": 
-            edge_param_str = f"tk{self.k_top_sim}_f{self.local_threshold_factor:.2f}".replace('.', 'p')
+            edge_param_str = f"{self.k_top_sim}_f{self.local_threshold_factor:.2f}".replace('.', 'p')
 
         # Add sampling info to filename if sampling was used
-        sampling_suffix = ""
-        if self.sample_unlabeled:
-            if self.use_pseudo_label_sampling:
-                sampling_suffix = f"_psl{self.unlabeled_sample_factor}"
-            else:
-                sampling_suffix = f"_smpf{self.unlabeled_sample_factor}"
+        suffix = []
+        if self.pseudo_label:
+            suffix.append("pseudo")
+        if self.partial_unlabeled:
+            suffix.append("partial")
+        if self.enable_dissimilar:
+            suffix.append("dissimilar")
+        sampling_suffix = f"_{'_'.join(suffix)}" if suffix else ""
 
         # Include text embedding type and edge types in name
-        graph_name = f"{self.k_shot}_shot_{self.embedding_type}_hetero_dual_{edge_policy_name}_{edge_param_str}{sampling_suffix}_mv{self.multi_view}"
+        graph_name = f"{self.k_shot}_shot_{self.embedding_type}_hetero_{edge_policy_name}_{edge_param_str}{sampling_suffix}_mv{self.multi_view}"
         # --- End filename generation ---
 
         # Save graph data
@@ -1041,7 +1056,7 @@ class HeteroGraphBuilder:
         indices_data = {
             "k_shot": int(self.k_shot),
             "seed": int(self.seed),
-            "sampled_unlabeled": self.sample_unlabeled,
+            "partial_unlabeled": self.partial_unlabeled,
             "embedding_type": self.embedding_type,
             "news_news_edge_policy": self.edge_policy,
         }
@@ -1058,8 +1073,8 @@ class HeteroGraphBuilder:
                 indices_data["train_labeled_label_distribution"] = {int(k): int(v) for k, v in label_dist.items()}
             except Exception as e_label: print(f"Warning: Could not get label distribution for indices: {e_label}")
 
-        if self.sample_unlabeled and self.train_unlabeled_indices is not None:
-            indices_data["unlabeled_sample_factor"] = int(self.unlabeled_sample_factor)
+        if self.partial_unlabeled and self.train_unlabeled_indices is not None:
+            indices_data["sample_unlabeled_factor"] = int(self.sample_unlabeled_factor)
             indices_data["train_unlabeled_indices"] = [int(i) for i in self.train_unlabeled_indices]
             # Add label distribution if possible
             try:
@@ -1071,7 +1086,7 @@ class HeteroGraphBuilder:
                 indices_data["train_unlabeled_true_label_distribution"] = {int(k): int(v) for k, v in true_label_dist.items()}
                 
                 # Add pseudo label distribution if using pseudo label sampling
-                if self.use_pseudo_label_sampling:
+                if self.pseudo_label:
                     try:
                         with open(self.pseudo_label_cache_path, "r") as f:
                             pseudo_data = json.load(f)
@@ -1110,26 +1125,27 @@ def parse_arguments():
     parser = ArgumentParser(description="Build a HETEROGENEOUS graph ('news', 'interaction') for few-shot fake news detection")
 
     # Dataset args
-    parser.add_argument("--dataset_name", type=str, default="politifact", choices=["politifact", "gossipcop"], help="Dataset name suffix")
-    parser.add_argument("--k_shot", type=int, default=8, choices=list(range(3, 21)), help="Number of labeled samples per class (3-20)")
+    parser.add_argument("--dataset_name", type=str, default=DEFAULT_DATASET_NAME, choices=["politifact", "gossipcop"], help=f"HuggingFace Dataset (default: {DEFAULT_DATASET_NAME})")
+    parser.add_argument("--k_shot", type=int, default=DEFAULT_K_SHOT, choices=[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], help=f"Number of labeled samples per class (3-16) (default: {DEFAULT_K_SHOT})")
 
     # Node Feature Args
-    parser.add_argument("--embedding_type", type=str, default=DEFAULT_EMBEDDING_TYPE, choices=["bert", "roberta", "distilbert", "bigbird"], help="Embedding type for 'news' nodes")
+    parser.add_argument("--embedding_type", type=str, default=DEFAULT_EMBEDDING_TYPE, choices=["bert", "roberta", "distilbert", "bigbird"], help=f"Embedding type for 'news' nodes (default: {DEFAULT_EMBEDDING_TYPE})")
 
     # Edge Policy Args (for 'news'-'similar_to'-'news' edges)
     parser.add_argument("--edge_policy", type=str, default=DEFAULT_EDGE_POLICY, choices=["knn", "mutual_knn", "local_threshold", "global_threshold", "quantile", "topk_mean"], help="Edge policy for 'news'-'news' similarity edges")
-    parser.add_argument("--k_neighbors", type=int, default=DEFAULT_K_NEIGHBORS, help="K for (Mutual) KNN policy")
+    parser.add_argument("--k_neighbors", type=int, default=DEFAULT_K_NEIGHBORS, help=f"K for (Mutual) KNN policy (default: {DEFAULT_K_NEIGHBORS})")
     parser.add_argument("--local_threshold_factor", type=float, default=DEFAULT_LOCAL_THRESHOLD_FACTOR, help=f"Factor for 'local_threshold' policy (default: {DEFAULT_LOCAL_THRESHOLD_FACTOR:.1f})")
     parser.add_argument("--alpha", type=float, default=DEFAULT_ALPHA, help=f"Alpha (mean+alpha*std) for 'global_threshold' policy (default: {DEFAULT_ALPHA:.1f})")
     parser.add_argument("--quantile_p", type=float, default=DEFAULT_QUANTILE_P, help=f"Percentile for 'quantile' policy (default: {DEFAULT_QUANTILE_P:.1f})")
-    parser.add_argument("--k_top_sim", type=int, default=DEFAULT_K_TOP_SIM, help="K for 'topk_mean' policy (default: 10)")
+    parser.add_argument("--k_top_sim", type=int, default=DEFAULT_K_TOP_SIM, help=f"K for 'topk_mean' policy (default: {DEFAULT_K_TOP_SIM})")
 
-    # Unlabeled Node Sampling Args
-    parser.add_argument("--sample_unlabeled", action='store_true', default=False, help="Enable sampling of unlabeled training 'news' nodes.")
-    parser.add_argument("--unlabeled_sample_factor", type=int, default=DEFAULT_UNLABELED_SAMPLE_FACTOR, help=f"Factor M to sample M*2*k unlabeled training 'news' nodes (default: {DEFAULT_UNLABELED_SAMPLE_FACTOR}). Used if --sample_unlabeled.")
-    parser.add_argument("--use_pseudo_label_sampling", action="store_true", help="Enable balanced sampling of unlabeled nodes using pseudo-label cache.")
+    # Sampling Args
+    parser.add_argument("--partial_unlabeled", action="store_true", help="Use only a partial subset of unlabeled nodes. Suffix: partial")
+    parser.add_argument("--sample_unlabeled_factor", type=int, default=DEFAULT_SAMPLE_UNLABELED_FACTOR, help="Factor M to sample M*2*k unlabeled training 'news' nodes (default: 10). Used if --partial_unlabeled.")
+    parser.add_argument("--pseudo_label", action="store_true", help="Enable pseudo label factor. Suffix: pseudo")
     parser.add_argument("--pseudo_label_cache_path", type=str, default=None, help="Path to pseudo-label cache (json). Default: utils/pseudo_label_cache_<dataset>.json")
-    parser.add_argument("--multi_view", type=int, default=3, help="Number of sub-embeddings (views) to split news embeddings into (default: 3)")
+    parser.add_argument("--enable_dissimilar", action="store_true", help="Enable dissimilar edge construction. Suffix: dissimilar")
+    parser.add_argument("--multi_view", type=int, default=DEFAULT_MULTI_VIEW, help=f"Number of sub-embeddings (views) to split news embeddings into (default: {DEFAULT_MULTI_VIEW})")
 
     # Output & Settings Args
     parser.add_argument("--output_dir", type=str, default=GRAPH_DIR, help=f"Directory to save graphs (default: {GRAPH_DIR})")
@@ -1145,8 +1161,8 @@ def main() -> None:
     args = parse_arguments()
     set_seed(args.seed)
     
-    if args.use_pseudo_label_sampling:
-        args.sample_unlabeled = True
+    if args.pseudo_label:
+        args.partial_unlabeled = True
         
     if torch.cuda.is_available(): torch.cuda.empty_cache(); gc.collect()
 
@@ -1167,11 +1183,11 @@ def main() -> None:
         print(f"K Top Sim:        {args.k_top_sim}")
         print(f"Threshold Factor: {args.local_threshold_factor}")
     print("-" * 20 + " News Node Sampling " + "-" * 20)
-    print(f"Sample Unlabeled: {args.sample_unlabeled}")
-    if args.sample_unlabeled: 
-        print(f"Sample Factor(M): {args.unlabeled_sample_factor} (target M*2*k nodes)")
-        print(f"Pseudo-label Sampling: {args.use_pseudo_label_sampling}")
-        if args.use_pseudo_label_sampling:
+    print(f"Partial Unlabeled: {args.partial_unlabeled}")
+    if args.partial_unlabeled: 
+        print(f"Sample Factor(M): {args.sample_unlabeled_factor} (target M*2*k nodes)")
+        print(f"Pseudo-label Sampling: {args.pseudo_label}")
+        if args.pseudo_label:
             print(f"Pseudo-label Cache: {args.pseudo_label_cache_path or f'utils/pseudo_label_cache_{args.dataset_name}.json'}")
     else: 
         print(f"Sample Factor(M): N/A (using all unlabeled train news nodes)")
@@ -1194,14 +1210,15 @@ def main() -> None:
         alpha=args.alpha,
         quantile_p=args.quantile_p,
         k_top_sim=args.k_top_sim,
-        sample_unlabeled=args.sample_unlabeled,
-        unlabeled_sample_factor=args.unlabeled_sample_factor,
+        partial_unlabeled=args.partial_unlabeled,
+        sample_unlabeled_factor=args.sample_unlabeled_factor,
         output_dir=args.output_dir,
         plot=args.plot,
         seed=args.seed,
-        use_pseudo_label_sampling=args.use_pseudo_label_sampling,
+        pseudo_label=args.pseudo_label,
         pseudo_label_cache_path=args.pseudo_label_cache_path,
         multi_view=args.multi_view,
+        enable_dissimilar=args.enable_dissimilar if hasattr(args, 'enable_dissimilar') else False
     )
 
     hetero_graph = builder.run_pipeline()
