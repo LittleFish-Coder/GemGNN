@@ -1,8 +1,18 @@
 {
-  "accuracy": 0.6764705882352942,
-  "f1": 0.6902778902517271,
-  "precision": 0.7250233426704015,
-  "recall": 0.6764705882352942,
+  "accuracy": 0.6862745098039216,
+  "precision": 0.6434676434676434,
+  "recall": 0.6665092111478508,
+  "f1": 0.6470588235294117,
+  "confusion_matrix": [
+    [
+      52,
+      21
+    ],
+    [
+      11,
+      18
+    ]
+  ],
   "num_samples": 102,
   "num_generation_errors": 0,
   "run_info": {
@@ -15,20 +25,6 @@
     "batch_size": 4,
     "max_example_length": 500,
     "effective_device_type": "cuda",
-    "execution_time_seconds": 117.06505846977234
-  },
-  "macro_precision": 0.6428571428571429,
-  "macro_recall": 0.6700519603212092,
-  "macro_f1_score": 0.643545483426877,
-  "confusion_matrix": [
-    [
-      50,
-      23
-    ],
-    [
-      10,
-      19
-    ]
-  ],
-  "calculation_info": "Metrics (re)calculated from predictions.json by calculate_and_update_metrics.py"
+    "execution_time_seconds": 224.2499885559082
+  }
 }
