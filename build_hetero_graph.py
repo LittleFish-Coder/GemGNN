@@ -30,6 +30,7 @@ DEFAULT_K_TOP_SIM = 10                  # for topk_mean edge policy
 # --- Unlabeled Node Sampling Parameters ---
 DEFAULT_SAMPLE_UNLABELED_FACTOR = 10    # for unlabeled node sampling
 DEFAULT_MULTI_VIEW = 0                  # for multi-view edge policy
+DEFAULT_INTERACTION_EDGE_MODE = "edge_attr" # for interaction edge policy
 # --- Graphs and Plots Directories ---
 GRAPH_DIR = "graphs_hetero"
 PLOT_DIR = "plots_hetero"
@@ -75,13 +76,18 @@ class HeteroGraphBuilder:
         multi_view: int = 3,
         enable_dissimilar: bool = False,
         partial_unlabeled: bool = False,
+        interaction_embedding_field: str = "interaction_embeddings_list",
+        interaction_tone_field: str = "interaction_tones_list",
+        interaction_edge_mode: str = "edge_type",
     ):
         """Initialize the HeteroGraphBuilder."""
         self.dataset_name = dataset_name.lower()
         self.k_shot = k_shot
         self.embedding_type = embedding_type
         self.text_embedding_field = f"{embedding_type}_embeddings"
-        self.interaction_embedding_field = "interaction_embeddings_list"
+        self.interaction_embedding_field = interaction_embedding_field
+        self.interaction_tone_field = interaction_tone_field
+        self.interaction_edge_mode = interaction_edge_mode
         self.edge_policy = edge_policy
         self.k_neighbors = k_neighbors
         self.k_top_sim = k_top_sim
@@ -129,6 +135,13 @@ class HeteroGraphBuilder:
         self.news_orig_to_new_idx = None # Mapping for mask creation
 
         self.graph_metrics = {} # Store analysis results
+
+        self.tone2id = {}
+
+    def _tone2id(self, tone):
+        if tone not in self.tone2id:
+            self.tone2id[tone] = len(self.tone2id)
+        return self.tone2id[tone]
 
     def load_dataset(self) -> None:
         """Load dataset and perform initial checks."""
@@ -546,6 +559,79 @@ class HeteroGraphBuilder:
         print(f"      Created {edge_index.shape[1]} topk-mean edges.")
         return edge_index, edge_attr
 
+    def _add_interaction_edges_by_type(self, data, train_labeled_indices, train_unlabeled_indices, test_indices, num_train_labeled, num_train_unlabeled, num_test, num_nodes, num_interactions_per_news, num_interaction_nodes):
+        all_interaction_embeddings = []
+        all_tones_set = set()
+        edge_indices = dict()
+        reverse_edge_indices = dict()
+        pbar_interact = tqdm(total=num_interaction_nodes, desc="    Extracting Interaction Embeddings", ncols=100)
+        interaction_global_idx = 0
+        for news_idx, (idx, is_test) in enumerate(list(zip(np.concatenate([train_labeled_indices, train_unlabeled_indices, test_indices]), [False]*(num_train_labeled+num_train_unlabeled)+[True]*num_test))):
+            if not is_test:
+                embeddings_list = self.train_data[int(idx)][self.interaction_embedding_field]
+                tones_list = self.train_data[int(idx)][self.interaction_tone_field]
+            else:
+                embeddings_list = self.test_data[int(idx)][self.interaction_embedding_field]
+                tones_list = self.test_data[int(idx)][self.interaction_tone_field]
+            node_interactions = np.array(embeddings_list)
+            all_interaction_embeddings.append(node_interactions)
+            for i, tone in enumerate(tones_list):
+                tone_key = tone.strip().lower().replace(' ', '_')
+                all_tones_set.add(tone_key)
+                if tone_key not in edge_indices:
+                    edge_indices[tone_key] = [[], []]
+                    reverse_edge_indices[tone_key] = [[], []]
+                edge_indices[tone_key][0].append(news_idx)
+                edge_indices[tone_key][1].append(interaction_global_idx)
+                reverse_edge_indices[tone_key][0].append(interaction_global_idx)
+                reverse_edge_indices[tone_key][1].append(news_idx)
+                interaction_global_idx += 1
+            pbar_interact.update(1)
+        pbar_interact.close()
+        final_interaction_features = np.vstack(all_interaction_embeddings)
+        data['interaction'].x = torch.tensor(final_interaction_features, dtype=torch.float)
+        data['interaction'].num_nodes = data['interaction'].x.shape[0]
+        if data['interaction'].num_nodes != num_interaction_nodes:
+            print(f"Warning: Interaction node count mismatch! Expected {num_interaction_nodes}, Got {data['interaction'].num_nodes}")
+        for tone_key in sorted(all_tones_set):
+            edge_type = ('news', f'has_{tone_key}_interaction', 'interaction')
+            rev_edge_type = ('interaction', f'rev_has_{tone_key}_interaction', 'news')
+            if edge_indices[tone_key][0]:
+                data[edge_type].edge_index = torch.tensor(edge_indices[tone_key], dtype=torch.long)
+            if reverse_edge_indices[tone_key][0]:
+                data[rev_edge_type].edge_index = torch.tensor(reverse_edge_indices[tone_key], dtype=torch.long)
+
+    def _add_interaction_edges_with_attr(self, data, train_labeled_indices, train_unlabeled_indices, test_indices, num_train_labeled, num_train_unlabeled, num_test, num_nodes, num_interactions_per_news, num_interaction_nodes):
+        all_interaction_embeddings = []
+        all_interaction_tones = []
+        pbar_interact = tqdm(total=num_interaction_nodes, desc="    Extracting Interaction Embeddings", ncols=100)
+        interaction_global_idx = 0
+        for news_idx, (idx, is_test) in enumerate(list(zip(np.concatenate([train_labeled_indices, train_unlabeled_indices, test_indices]), [False]*(num_train_labeled+num_train_unlabeled)+[True]*num_test))):
+            if not is_test:
+                embeddings_list = self.train_data[int(idx)][self.interaction_embedding_field]
+                tones_list = self.train_data[int(idx)][self.interaction_tone_field]
+            else:
+                embeddings_list = self.test_data[int(idx)][self.interaction_embedding_field]
+                tones_list = self.test_data[int(idx)][self.interaction_tone_field]
+            node_interactions = np.array(embeddings_list)
+            all_interaction_embeddings.append(node_interactions)
+            for i, tone in enumerate(tones_list):
+                tone_key = tone.strip().lower().replace(' ', '_')
+                all_interaction_tones.append(self._tone2id(tone_key))
+                interaction_global_idx += 1
+            pbar_interact.update(1)
+        pbar_interact.close()
+        final_interaction_features = np.vstack(all_interaction_embeddings)
+        data['interaction'].x = torch.tensor(final_interaction_features, dtype=torch.float)
+        data['interaction'].num_nodes = data['interaction'].x.shape[0]
+        if data['interaction'].num_nodes != num_interaction_nodes:
+            print(f"Warning: Interaction node count mismatch! Expected {num_interaction_nodes}, Got {data['interaction'].num_nodes}")
+        news_has_interaction_src = torch.arange(num_nodes).repeat_interleave(num_interactions_per_news)
+        interaction_has_interaction_tgt = torch.arange(num_interaction_nodes)
+        data['news', 'has_interaction', 'interaction'].edge_index = torch.stack([news_has_interaction_src, interaction_has_interaction_tgt], dim=0)
+        data['news', 'has_interaction', 'interaction'].edge_attr = torch.tensor(all_interaction_tones, dtype=torch.long)
+        data['interaction', 'rev_has_interaction', 'news'].edge_index = torch.stack([interaction_has_interaction_tgt, news_has_interaction_src], dim=0)
+
     def build_hetero_graph(self) -> Optional[HeteroData]:
         """
         Build a heterogeneous graph including both nodes and edges.
@@ -692,27 +778,13 @@ class HeteroGraphBuilder:
         num_interactions_per_news = 20
         num_interaction_nodes = num_nodes * num_interactions_per_news
         print(f"  Preparing features for {num_interaction_nodes} 'interaction' nodes...")
+        if self.interaction_edge_mode == "edge_type":
+            self._add_interaction_edges_by_type(data, train_labeled_indices, train_unlabeled_indices, test_indices, num_train_labeled, num_train_unlabeled, num_test, num_nodes, num_interactions_per_news, num_interaction_nodes)
+        elif self.interaction_edge_mode == "edge_attr":
+            self._add_interaction_edges_with_attr(data, train_labeled_indices, train_unlabeled_indices, test_indices, num_train_labeled, num_train_unlabeled, num_test, num_nodes, num_interactions_per_news, num_interaction_nodes)
+        else:
+            raise ValueError(f"Unknown interaction_edge_mode: {self.interaction_edge_mode}")
 
-        all_interaction_embeddings = []
-        pbar_interact = tqdm(total=num_interaction_nodes, desc="    Extracting Interaction Embeddings", ncols=100)
-
-        # Iterate through the order: train_labeled, train_unlabeled, test
-        for idx, is_test in list(zip(np.concatenate([train_labeled_indices, train_unlabeled_indices]), [False]*(num_train_labeled+num_train_unlabeled))) + list(zip(test_indices, [True]*num_test)):
-            if not is_test:
-                embeddings_list = self.train_data[int(idx)][self.interaction_embedding_field]
-            else:
-                embeddings_list = self.test_data[int(idx)][self.interaction_embedding_field]
-            node_interactions = np.array(embeddings_list)
-            all_interaction_embeddings.append(node_interactions)
-            pbar_interact.update(1)
-        pbar_interact.close()
-
-        final_interaction_features = np.vstack(all_interaction_embeddings)
-        data['interaction'].x = torch.tensor(final_interaction_features, dtype=torch.float)
-        data['interaction'].num_nodes = data['interaction'].x.shape[0]
-        print(f"    - 'interaction' features shape: {data['interaction'].x.shape}")
-        if data['interaction'].num_nodes != num_interaction_nodes:
-            print(f"Warning: Interaction node count mismatch! Expected {num_interaction_nodes}, Got {data['interaction'].num_nodes}")
 
         # --- Create Edges ---
         print(f"Creating graph edges...")
@@ -881,8 +953,19 @@ class HeteroGraphBuilder:
             print(f"[*] Edge Type: {edge_type_str}")
             print(f"  - Num Edges: {num_edges}")
             if hasattr(hetero_graph[edge_type], 'edge_attr') and hetero_graph[edge_type].edge_attr is not None:
-                print(f"  - Attributes Dim: {hetero_graph[edge_type].edge_attr.shape[1]}")
-                edge_type_info[edge_type_str] = {"num_edges": num_edges, "attr_dim": hetero_graph[edge_type].edge_attr.shape[1]}
+                edge_attr = hetero_graph[edge_type].edge_attr
+                try:
+                    shape = tuple(edge_attr.shape)
+                    if len(shape) == 1:
+                        print(f"  - Attributes Dim: {shape[0]}")
+                        edge_type_info[edge_type_str] = {"num_edges": num_edges, "attr_dim": shape[0]}
+                    else:
+                        print(f"  - Attributes Dim: {shape}")
+                        edge_type_info[edge_type_str] = {"num_edges": num_edges, "attr_dim": shape[1]}
+                    print(f"  - Attributes: {edge_attr}")
+                except Exception as e:
+                    print(f"  - Attributes Dim: Error getting shape - {e}")
+                    print(f"  - Attributes: {edge_attr}")
             else:
                 print("  - Attributes: None")
                 edge_type_info[edge_type_str] = {"num_edges": num_edges, "attr_dim": None}
@@ -895,7 +978,6 @@ class HeteroGraphBuilder:
         news_dissimilar_edge_type = ('news', 'dissimilar_to', 'news')
         num_news_nodes = hetero_graph['news'].num_nodes
 
-        # 分析 similar_to 边
         if news_similar_edge_type in hetero_graph.edge_types:
             print("\n--- Analysis for 'news'-'similar_to'-'news' Edges ---")
             nn_edge_index = hetero_graph[news_similar_edge_type].edge_index
@@ -933,7 +1015,6 @@ class HeteroGraphBuilder:
                 except Exception as e:
                     print(f"  Warning: Could not calculate metrics for similar edges: {e}")
 
-        # 分析 dissimilar_to 边
         if news_dissimilar_edge_type in hetero_graph.edge_types:
             print("\n--- Analysis for 'news'-'dissimilar_to'-'news' Edges ---")
             nn_edge_index = hetero_graph[news_dissimilar_edge_type].edge_index
@@ -1147,6 +1228,11 @@ def parse_arguments():
     parser.add_argument("--enable_dissimilar", action="store_true", help="Enable dissimilar edge construction. Suffix: dissimilar")
     parser.add_argument("--multi_view", type=int, default=DEFAULT_MULTI_VIEW, help=f"Number of sub-embeddings (views) to split news embeddings into (default: {DEFAULT_MULTI_VIEW})")
 
+    # Interaction Edge Args
+    parser.add_argument("--interaction_embedding_field", type=str, default="interaction_embeddings_list", help="Field for interaction embeddings")
+    parser.add_argument("--interaction_tone_field", type=str, default="interaction_tones_list", help="Field for interaction tones")
+    parser.add_argument("--interaction_edge_mode", type=str, default=DEFAULT_INTERACTION_EDGE_MODE, choices=["edge_type", "edge_attr"], help="How to encode interaction tone: as edge type (edge_type) or as edge_attr (edge_attr)")
+    
     # Output & Settings Args
     parser.add_argument("--output_dir", type=str, default=GRAPH_DIR, help=f"Directory to save graphs (default: {GRAPH_DIR})")
     parser.add_argument("--plot", action="store_true", help="Enable graph visualization (EXPERIMENTAL for hetero)")
@@ -1172,7 +1258,6 @@ def main() -> None:
     print(f"Dataset:          {args.dataset_name}")
     print(f"K-Shot:           {args.k_shot}")
     print(f"News Embeddings:  {args.embedding_type}")
-    print(f"Interaction Embeds: From 'interaction_embeddings_list' (20 per news)")
     print("-" * 20 + " News-News Edges " + "-" * 20)
     print(f"Policy:           {args.edge_policy}")
     if args.edge_policy in ["knn", "mutual_knn"]: print(f"K neighbors:      {args.k_neighbors}")
@@ -1218,7 +1303,10 @@ def main() -> None:
         pseudo_label=args.pseudo_label,
         pseudo_label_cache_path=args.pseudo_label_cache_path,
         multi_view=args.multi_view,
-        enable_dissimilar=args.enable_dissimilar if hasattr(args, 'enable_dissimilar') else False
+        enable_dissimilar=args.enable_dissimilar if hasattr(args, 'enable_dissimilar') else False,
+        interaction_embedding_field=args.interaction_embedding_field if hasattr(args, 'interaction_embedding_field') else "interaction_embeddings_list",
+        interaction_tone_field=args.interaction_tone_field if hasattr(args, 'interaction_tone_field') else "interaction_tones_list",
+        interaction_edge_mode=args.interaction_edge_mode if hasattr(args, 'interaction_edge_mode') else "edge_type",
     )
 
     hetero_graph = builder.run_pipeline()
