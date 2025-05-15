@@ -27,6 +27,8 @@ DEFAULT_LEARNING_RATE = 1e-5
 DEFAULT_WEIGHT_DECAY = 0.001
 DEFAULT_MAX_LENGTH = 512
 LOG_DIR = "logs"
+DEFAULT_CACHE_DIR = "dataset"
+DEFAULT_OUTPUT_DIR = "results"
 SEED = 42
 
 
@@ -42,9 +44,10 @@ class FakeNewsTrainer:
         k_shot: int = DEFAULT_K_SHOT,
         num_epochs: int = DEFAULT_NUM_EPOCHS,
         batch_size: int = DEFAULT_BATCH_SIZE,
-        output_dir: str = "results",
+        output_dir: str = DEFAULT_OUTPUT_DIR,
         learning_rate: float = DEFAULT_LEARNING_RATE,
         weight_decay: float = DEFAULT_WEIGHT_DECAY,
+        cache_dir: str = DEFAULT_CACHE_DIR,
     ):
         self.model_name = model_name
         self.dataset_name = dataset_name
@@ -53,7 +56,8 @@ class FakeNewsTrainer:
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
-
+        self.cache_dir = cache_dir
+        self.output_dir = output_dir
         # Add these new attributes
         self.selected_indices = None
         self.label_distribution = None
@@ -62,7 +66,7 @@ class FakeNewsTrainer:
         self.model_type = self._get_model_type(model_name)
         
         # Setup directory paths using a single base output directory
-        self.model_dir = os.path.join(output_dir, self.model_type, dataset_name, f"{k_shot}-shot")
+        self.model_dir = os.path.join(self.output_dir, self.model_type, self.dataset_name, f"{self.k_shot}-shot")
         
         # Create directory
         os.makedirs(self.model_dir, exist_ok=True)
@@ -79,14 +83,14 @@ class FakeNewsTrainer:
             return "distilbert"
         elif "roberta" in model_name:
             return "roberta"
+        elif "deberta" in model_name:
+            return "deberta"
         return "bert"
     
     def load_dataset(self) -> None:
         """Load and prepare the dataset."""
         print(f"Loading dataset '{self.dataset_name}'...")
-        
-        # Load dataset from Hugging Face
-        dataset = load_dataset(f"LittleFish-Coder/Fake_News_{self.dataset_name}", cache_dir="dataset")
+        dataset = load_dataset(f"LittleFish-Coder/Fake_News_{self.dataset_name}", cache_dir=self.cache_dir)
         
         dataset = self._sample_k_shot(dataset, self.k_shot)
         
@@ -295,7 +299,7 @@ def parse_arguments() -> Namespace:
         type=str,
         default=DEFAULT_MODEL_NAME,
         help=f"Model to use (default: {DEFAULT_MODEL_NAME})",
-        choices=["bert-base-uncased", "distilbert-base-uncased", "roberta-base"],
+        choices=["bert-base-uncased", "distilbert-base-uncased", "roberta-base", "deberta-base"],
     )
     
     # Dataset selection
@@ -346,7 +350,7 @@ def parse_arguments() -> Namespace:
     parser.add_argument(
         "--output_dir",
         type=str,
-        default="results",
+        default=DEFAULT_OUTPUT_DIR,
         help="Directory to save models and results (default: results)",
     )
 
@@ -360,6 +364,13 @@ def parse_arguments() -> Namespace:
         "--push_to_hub",
         action="store_true",
         help="Push the trained model to Huggingface Hub after training",
+    )
+    
+    parser.add_argument(
+        "--cache_dir",
+        type=str,
+        default="dataset",
+        help="Cache directory for datasets and models (default: dataset)",
     )
     
     return parser.parse_args()
@@ -404,6 +415,7 @@ def main() -> None:
         output_dir=args.output_dir,
         learning_rate=args.learning_rate,
         weight_decay=args.weight_decay,
+        cache_dir=args.cache_dir,
     )
     
     # Run the pipeline
