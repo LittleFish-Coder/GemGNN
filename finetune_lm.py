@@ -49,7 +49,10 @@ class FakeNewsTrainer:
         weight_decay: float = DEFAULT_WEIGHT_DECAY,
         cache_dir: str = DEFAULT_CACHE_DIR,
     ):
-        self.model_name = model_name
+        self.model_name = self._redirect_model_name(model_name)
+        # Determine model type from model name
+        self.model_type = self._get_model_type(model_name)
+
         self.dataset_name = dataset_name
         self.k_shot = k_shot
         self.num_epochs = num_epochs
@@ -61,9 +64,6 @@ class FakeNewsTrainer:
         # Add these new attributes
         self.selected_indices = None
         self.label_distribution = None
-        
-        # Determine model type from model name
-        self.model_type = self._get_model_type(model_name)
         
         # Setup directory paths using a single base output directory
         self.model_dir = os.path.join(self.output_dir, self.model_type, self.dataset_name, f"{self.k_shot}-shot")
@@ -77,9 +77,20 @@ class FakeNewsTrainer:
         self.model = None
         self.trainer = None
         
+    def _redirect_model_name(self, model_name: str) -> str:
+        """Redirect model name to the correct model name."""
+        # ["bert-base-uncased", "distilbert-base-uncased", "roberta-base", "microsoft/deberta-base"],
+        if "distilbert" in model_name:
+            return "distilbert-base-uncased"
+        elif "roberta" in model_name:
+            return "roberta-base"
+        elif "deberta" in model_name:
+            return "microsoft/deberta-base"
+        return "bert-base-uncased"
+    
     def _get_model_type(self, model_name: str) -> str:
         """Determine model type from model name."""
-        if "distil" in model_name:
+        if "distilbert" in model_name:
             return "distilbert"
         elif "roberta" in model_name:
             return "roberta"
@@ -299,7 +310,7 @@ def parse_arguments() -> Namespace:
         type=str,
         default=DEFAULT_MODEL_NAME,
         help=f"Model to use (default: {DEFAULT_MODEL_NAME})",
-        choices=["bert-base-uncased", "distilbert-base-uncased", "roberta-base", "deberta-base"],
+        choices=["bert", "distilbert", "roberta", "deberta"],
     )
     
     # Dataset selection
