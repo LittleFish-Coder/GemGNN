@@ -1129,7 +1129,7 @@ def parse_arguments():
     parser.add_argument("--k_shot", type=int, default=DEFAULT_K_SHOT, choices=[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], help=f"Number of labeled samples per class (3-16) (default: {DEFAULT_K_SHOT})")
 
     # Node Feature Args
-    parser.add_argument("--embedding_type", type=str, default=DEFAULT_EMBEDDING_TYPE, choices=["bert", "roberta", "distilbert", "bigbird"], help=f"Embedding type for 'news' nodes (default: {DEFAULT_EMBEDDING_TYPE})")
+    parser.add_argument("--embedding_type", type=str, default=DEFAULT_EMBEDDING_TYPE, choices=["bert", "roberta", "distilbert", "bigbird", "deberta"], help=f"Embedding type for 'news' nodes (default: {DEFAULT_EMBEDDING_TYPE})")
 
     # Edge Policy Args (for 'news'-'similar_to'-'news' edges)
     parser.add_argument("--edge_policy", type=str, default=DEFAULT_EDGE_POLICY, choices=["knn", "mutual_knn", "local_threshold", "global_threshold", "quantile", "topk_mean"], help="Edge policy for 'news'-'news' similarity edges")
