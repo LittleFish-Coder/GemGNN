@@ -18,13 +18,13 @@ from utils.sample_k_shot import sample_k_shot
 
 
 # Constants
-DEFAULT_MODEL_NAME = "distilbert-base-uncased"
+DEFAULT_MODEL_NAME = "distilbert"
 DEFAULT_DATASET_NAME = "politifact"
 DEFAULT_K_SHOT = 8
-DEFAULT_NUM_EPOCHS = 5
-DEFAULT_BATCH_SIZE = 64
+DEFAULT_NUM_EPOCHS = 3
+DEFAULT_BATCH_SIZE = 32
 DEFAULT_LEARNING_RATE = 1e-5
-DEFAULT_WEIGHT_DECAY = 0.001
+DEFAULT_WEIGHT_DECAY = 0.01
 DEFAULT_MAX_LENGTH = 512
 LOG_DIR = "logs"
 DEFAULT_CACHE_DIR = "dataset"
@@ -403,12 +403,12 @@ def main() -> None:
     print("\n" + "="*50)
     print("Fake News Detection - Model Fine-tuning")
     print("="*50)
-    print(f"Model:         {args.model_name}")
-    print(f"Dataset:       {args.dataset_name}")
-    print(f"K-shot:        {args.k_shot}")
-    print(f"Epochs:        {args.num_epochs}")
-    print(f"Batch size:    {args.batch_size}")
-    print(f"Learning rate: {args.learning_rate}")
+    print(f"Model:          {args.model_name}")
+    print(f"Dataset:        {args.dataset_name}")
+    print(f"K-shot:         {args.k_shot}")
+    print(f"Epochs:         {args.num_epochs}")
+    print(f"Batch size:     {args.batch_size}")
+    print(f"Learning rate:  {args.learning_rate}")
     print(f"Weight decay:   {args.weight_decay}")
     print(f"Output dir:     {args.output_dir}")
     print(f"Device:         {'CUDA' if torch.cuda.is_available() else 'CPU'}")
