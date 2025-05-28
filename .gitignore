@@ -2,7 +2,7 @@
 dataset/
 checkpoints/
 log/
-indices.json
+*indices.json
 script/
 
 # language model weights
