@@ -12,10 +12,11 @@ from argparse import ArgumentParser
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 from torch.optim import Adam
 from torch_geometric.data import HeteroData
-from torch_geometric.nn import HGTConv, HANConv, Linear # Using PyG's Linear for potential lazy init
+from torch_geometric.nn import HGTConv, HANConv, Linear, SAGEConv, GATv2Conv, to_hetero, RGCNConv
 
 # Constants
-DEFAULT_MODEL = "HGT"
+DEFAULT_MODEL = "HGT"   # HGT, HAN, SAGE, GATv2
+DEFAULT_LOSS_FN = "ce" # ce, focal
 DEFAULT_EPOCHS = 300
 DEFAULT_LR = 1e-4
 DEFAULT_WEIGHT_DECAY = 1e-4
@@ -40,10 +41,22 @@ def set_seed(seed: int = DEFAULT_SEED) -> None:
     torch.backends.cudnn.benchmark = False
 
 
-# --- Model Definitions ---
+# --- Loss Functions ---
+class FocalLoss(nn.Module):
+    def __init__(self, alpha: float = 0.25, gamma: float = 2.0):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+    
+    def forward(self, input, target):
+        ce_loss = F.cross_entropy(input, target, reduction='none')
+        pt = torch.exp(-ce_loss)
+        loss = self.alpha * (1 - pt) ** self.gamma * ce_loss
+        return loss.mean()
 
+# --- Model Definitions ---
 class HGTModel(nn.Module):
-    """Heterogeneous Graph Transformer (HGT) Model"""
+    """Heterogeneous Graph Transformer (HGT) Model with Residual and LayerNorm"""
     def __init__(self, data: HeteroData, hidden_channels: int, out_channels: int,
                  num_layers: int, heads: int, target_node_type: str, dropout_rate: float):
         super().__init__()
@@ -51,8 +64,10 @@ class HGTModel(nn.Module):
         self.dropout_rate = dropout_rate
 
         self.lins = nn.ModuleDict()
+        self.norms = nn.ModuleDict()
         for node_type in data.node_types:
             self.lins[node_type] = Linear(data[node_type].num_features, hidden_channels)
+            self.norms[node_type] = nn.LayerNorm(hidden_channels)
 
         self.convs = nn.ModuleList()
         for _ in range(num_layers):
@@ -64,17 +79,21 @@ class HGTModel(nn.Module):
     def forward(self, x_dict, edge_index_dict):
         # Initial transformation
         for node_type, x in x_dict.items():
-            x_dict[node_type] = self.lins[node_type](x).relu()
-            x_dict[node_type] = F.dropout(x_dict[node_type], p=self.dropout_rate, training=self.training)
+            x = self.lins[node_type](x)
+            x = self.norms[node_type](x)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.dropout_rate, training=self.training)
+            x_dict[node_type] = x
 
-
-        # HGT convolutions
+        # HGT convolutions with residual and LayerNorm
         for conv in self.convs:
-            x_dict = conv(x_dict, edge_index_dict)
-            # Apply dropout to the target node type's features after each conv layer
-            if self.target_node_type in x_dict:
-                 x_dict[self.target_node_type] = F.dropout(x_dict[self.target_node_type], p=self.dropout_rate, training=self.training)
-
+            x_dict_new = conv(x_dict, edge_index_dict)
+            for node_type in x_dict:
+                x = x_dict[node_type] + x_dict_new[node_type]
+                x = self.norms[node_type](x)
+                x = F.relu(x)
+                x = F.dropout(x, p=self.dropout_rate, training=self.training)
+                x_dict[node_type] = x
 
         return self.out_lin(x_dict[self.target_node_type])
 
@@ -106,6 +125,113 @@ class HANModel(nn.Module):
         
         return self.out_lin(target_node_features)
 
+
+class SAGEModel(nn.Module):
+    """GraphSAGE with residual and LayerNorm, for use with to_hetero."""
+    def __init__(self, in_channels, hidden_channels, out_channels, num_layers, dropout_rate):
+        super().__init__()
+        self.num_layers = num_layers
+        self.dropout_rate = dropout_rate
+        self.convs = nn.ModuleList()
+        self.norms = nn.ModuleList()
+        self.residuals = nn.ModuleList()
+        for i in range(num_layers):
+            in_c = in_channels if i == 0 else hidden_channels
+            self.convs.append(SAGEConv(in_c, hidden_channels))
+            self.norms.append(nn.LayerNorm(hidden_channels))
+        self.out_lin = Linear(hidden_channels, out_channels)
+
+    def forward(self, x, edge_index):
+        for i in range(self.num_layers):
+            h = self.convs[i](x, edge_index)
+            if i > 0:
+                h = h + x # residual
+            h = self.norms[i](h)
+            h = F.relu(h)
+            h = F.dropout(h, p=self.dropout_rate, training=self.training)
+            x = h
+        return self.out_lin(x)
+
+
+class GATv2Model(nn.Module):
+    """GATv2 with residual and LayerNorm, for use with to_hetero."""
+    def __init__(self, in_channels, hidden_channels, out_channels, num_layers, heads, dropout_rate):
+        super().__init__()
+        self.num_layers = num_layers
+        self.dropout_rate = dropout_rate
+        self.convs = nn.ModuleList()
+        self.norms = nn.ModuleList()
+        for i in range(num_layers):
+            in_c = in_channels if i == 0 else hidden_channels * heads
+            self.convs.append(GATv2Conv(in_c, hidden_channels, heads=heads, concat=True, dropout=dropout_rate, add_self_loops=False))
+            self.norms.append(nn.LayerNorm(hidden_channels * heads))
+        self.out_lin = Linear(hidden_channels * heads, out_channels)
+
+    def forward(self, x, edge_index):
+        for i in range(self.num_layers):
+            h = self.convs[i](x, edge_index)
+            if i > 0:
+                h = h + x # residual
+            h = self.norms[i](h)
+            h = F.relu(h)
+            h = F.dropout(h, p=self.dropout_rate, training=self.training)
+            x = h
+        return self.out_lin(x)
+
+
+class RGCNModel(nn.Module):
+    """Relational Graph Convolutional Network (RGCN) for Heterogeneous Graphs."""
+    def __init__(self, data: HeteroData, hidden_channels: int, out_channels: int, num_layers: int, dropout_rate: float, target_node_type: str):
+        super().__init__()
+        self.target_node_type = target_node_type
+        self.dropout_rate = dropout_rate
+        self.num_layers = num_layers
+
+        self.lins = nn.ModuleDict()
+        for node_type in data.node_types:
+            self.lins[node_type] = Linear(data[node_type].num_features, hidden_channels)
+
+        self.convs = nn.ModuleList()
+        for _ in range(num_layers):
+            self.convs.append(RGCNConv(hidden_channels, hidden_channels, num_relations=len(data.edge_types)))
+
+        self.out_lin = Linear(hidden_channels, out_channels)
+
+    def forward(self, x_dict, edge_index_dict):
+        # Flatten x_dict to a single tensor and build mapping
+        x_all = []
+        node_offsets = {}
+        offset = 0
+        for node_type, x in x_dict.items():
+            x_all.append(self.lins[node_type](x))
+            node_offsets[node_type] = (offset, offset + x.size(0))
+            offset += x.size(0)
+        x = torch.cat(x_all, dim=0)
+
+        # Build edge_index and edge_type for RGCNConv
+        edge_index_list = []
+        edge_type_list = []
+        for i, edge_type in enumerate(edge_index_dict):
+            src_type, rel, dst_type = edge_type
+            src_offset = node_offsets[src_type][0]
+            dst_offset = node_offsets[dst_type][0]
+            edge_idx = edge_index_dict[edge_type].clone()
+            edge_idx[0] += src_offset
+            edge_idx[1] += dst_offset
+            edge_index_list.append(edge_idx)
+            edge_type_list.append(torch.full((edge_idx.size(1),), i, dtype=torch.long, device=x.device))
+        edge_index = torch.cat(edge_index_list, dim=1)
+        edge_type = torch.cat(edge_type_list, dim=0)
+
+        for conv in self.convs:
+            x = conv(x, edge_index, edge_type)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.dropout_rate, training=self.training)
+
+        # Get output for target node type
+        tgt_start, tgt_end = node_offsets[self.target_node_type]
+        out = self.out_lin(x[tgt_start:tgt_end])
+        return out
 
 # --- Utility Functions ---
 
@@ -150,8 +276,8 @@ def get_model(model_name: str, data: HeteroData, args: ArgumentParser) -> nn.Mod
     """Initialize the Heterogeneous GNN model."""
     num_classes = data[args.target_node_type].y.max().item() + 1
     print(f"Number of classes for target node '{args.target_node_type}': {num_classes}")
-
     if model_name == "HGT":
+        print("Using HGT (with residual + LayerNorm)")
         model = HGTModel(
             data=data,
             hidden_channels=args.hidden_channels,
@@ -162,6 +288,7 @@ def get_model(model_name: str, data: HeteroData, args: ArgumentParser) -> nn.Mod
             dropout_rate=args.dropout_rate
         )
     elif model_name == "HAN":
+        print("Using HAN (no residual, meta-path attention)")
         model = HANModel(
             data=data,
             hidden_channels=args.hidden_channels,
@@ -170,6 +297,37 @@ def get_model(model_name: str, data: HeteroData, args: ArgumentParser) -> nn.Mod
             target_node_type=args.target_node_type,
             dropout_rate=args.dropout_rate
         )
+    elif model_name == "RGCN":
+        print("Using RGCN (Relational GCN for hetero graphs)")
+        model = RGCNModel(
+            data=data,
+            hidden_channels=args.hidden_channels,
+            out_channels=num_classes,
+            num_layers=args.hgt_layers,  # 可另外加 rgcn_layers 參數
+            dropout_rate=args.dropout_rate,
+            target_node_type=args.target_node_type
+        )
+    elif model_name == "SAGE":
+        print("Using GraphSAGE (with residual + LayerNorm, to_hetero)")
+        base = SAGEModel(
+            in_channels=data[args.target_node_type].num_features,
+            hidden_channels=args.hidden_channels,
+            out_channels=num_classes,
+            num_layers=args.sage_layers,
+            dropout_rate=args.dropout_rate
+        )
+        model = to_hetero(base, data.metadata(), aggr="mean")
+    elif model_name == "GATv2":
+        print("Using GATv2 (with residual + LayerNorm, to_hetero)")
+        base = GATv2Model(
+            in_channels=data[args.target_node_type].num_features,
+            hidden_channels=args.hidden_channels,
+            out_channels=num_classes,
+            num_layers=args.gatv2_layers,
+            heads=args.hgt_han_heads,
+            dropout_rate=args.dropout_rate
+        )
+        model = to_hetero(base, data.metadata(), aggr="mean")
     else:
         raise ValueError(f"Unknown model type: {model_name}")
     return model
@@ -178,38 +336,37 @@ def train_epoch(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optim
     """Perform a single training epoch for HeteroData."""
     model.train()
     optimizer.zero_grad()
-    
     out = model(data.x_dict, data.edge_index_dict)
-    
     mask = data[target_node_type].train_labeled_mask
-    loss = criterion(out[mask], data[target_node_type].y[mask])
+    if isinstance(out, dict):
+        out_target = out[target_node_type]
+    else:
+        out_target = out
+    loss = criterion(out_target[mask], data[target_node_type].y[mask])
     loss.backward()
     optimizer.step()
-
-    pred = out[mask].argmax(dim=1)
+    pred = out_target[mask].argmax(dim=1)
     correct = (pred == data[target_node_type].y[mask]).sum().item()
     acc = correct / mask.sum().item() if mask.sum().item() > 0 else 0
-
     return loss.item(), acc
 
 @torch.no_grad()
 def evaluate(model: nn.Module, data: HeteroData, eval_mask_name: str, criterion: nn.Module, target_node_type: str) -> tuple[float, float, float]:
     """Evaluate the model on a given data mask for HeteroData."""
     model.eval()
-    
     out = model(data.x_dict, data.edge_index_dict)
-    
-    mask = data[target_node_type][eval_mask_name] # e.g., 'test_mask' or 'train_unlabeled_mask' for validation
-    loss = criterion(out[mask], data[target_node_type].y[mask])
-
-    pred = out[mask].argmax(dim=1)
+    mask = data[target_node_type][eval_mask_name]
+    if isinstance(out, dict):
+        out_target = out[target_node_type]
+    else:
+        out_target = out
+    loss = criterion(out_target[mask], data[target_node_type].y[mask])
+    pred = out_target[mask].argmax(dim=1)
     correct = (pred == data[target_node_type].y[mask]).sum().item()
     acc = correct / mask.sum().item() if mask.sum().item() > 0 else 0
-
     y_true = data[target_node_type].y[mask].cpu().numpy()
     y_pred = pred.cpu().numpy()
     f1 = f1_score(y_true, y_pred, average='macro', zero_division=0)
-
     return loss.item(), acc, f1
 
 def train(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optimizer, criterion: nn.Module, args: ArgumentParser, output_dir: str, model_name_fs: str) -> dict:
@@ -277,7 +434,6 @@ def train(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optimizer, 
     return history
 
 def final_evaluation(model: nn.Module, data: HeteroData, model_path: str, target_node_type: str) -> dict:
-    """Load the best model and perform final evaluation on the test set for HeteroData."""
     print("\n--- Final Heterogeneous Evaluation on Test Set ---")
     try:
         model.load_state_dict(torch.load(model_path, map_location=data[target_node_type].x.device))
@@ -290,9 +446,12 @@ def final_evaluation(model: nn.Module, data: HeteroData, model_path: str, target
     model.eval()
     with torch.no_grad():
         out = model(data.x_dict, data.edge_index_dict)
-        
         mask = data[target_node_type].test_mask
-        pred = out[mask].argmax(dim=1)
+        if isinstance(out, dict):
+            out_target = out[target_node_type]
+        else:
+            out_target = out
+        pred = out_target[mask].argmax(dim=1)
         y_true = data[target_node_type].y[mask].cpu().numpy()
         y_pred = pred.cpu().numpy()
 
@@ -303,7 +462,10 @@ def final_evaluation(model: nn.Module, data: HeteroData, model_path: str, target
         conf_matrix = confusion_matrix(y_true, y_pred)
 
     metrics = {
-        'accuracy': accuracy, 'precision': precision, 'recall': recall, 'f1_score': f1,
+        'accuracy': accuracy, 
+        'precision': precision, 
+        'recall': recall, 
+        'f1_score': f1,
         'confusion_matrix': conf_matrix.tolist()
     }
     print(f"Target Node: '{target_node_type}'")
@@ -382,15 +544,15 @@ def save_results(history: dict, final_metrics: dict, args: ArgumentParser, outpu
 def parse_arguments() -> ArgumentParser:
     parser = ArgumentParser(description="Train Heterogeneous Graph Neural Networks for Fake News Detection")
     parser.add_argument("--graph_path", type=str, required=True, help="Path to the preprocessed HeteroData graph (.pt file)")
-    parser.add_argument("--model", type=str, default=DEFAULT_MODEL, choices=["HGT", "HAN"], help="Heterogeneous GNN model type")
+    parser.add_argument("--model", type=str, default=DEFAULT_MODEL, choices=["HGT", "HAN", "RGCN", "SAGE", "GATv2"], help="Heterogeneous GNN model type")
+    parser.add_argument("--loss_fn", type=str, default=DEFAULT_LOSS_FN, choices=["ce", "focal"], help="Loss function")
     parser.add_argument("--target_node_type", type=str, default=DEFAULT_TARGET_NODE_TYPE, help="Target node type for classification")
-    
     parser.add_argument("--dropout_rate", type=float, default=DEFAULT_DROPOUT, help="Dropout rate")
     parser.add_argument("--hidden_channels", type=int, default=DEFAULT_HIDDEN_CHANNELS, help="Number of hidden units in GNN layers")
-    parser.add_argument("--hgt_han_heads", type=int, default=DEFAULT_HGT_HAN_HEADS, help="Number of attention heads for HGT/HAN models")
+    parser.add_argument("--hgt_han_heads", type=int, default=DEFAULT_HGT_HAN_HEADS, help="Number of attention heads for HGT/HAN/GATv2 models")
     parser.add_argument("--hgt_layers", type=int, default=DEFAULT_HGT_LAYERS, help="Number of layers for HGT model")
-    # HAN model is simplified to 1 HANConv layer + Linear, so no num_han_layers arg for now.
-
+    parser.add_argument("--sage_layers", type=int, default=2, help="Number of layers for SAGE model")
+    parser.add_argument("--gatv2_layers", type=int, default=2, help="Number of layers for GATv2 model")
     parser.add_argument("--lr", type=float, default=DEFAULT_LR, help="Learning rate")
     parser.add_argument("--weight_decay", type=float, default=DEFAULT_WEIGHT_DECAY, help="Weight decay (L2 regularization)")
     parser.add_argument("--n_epochs", type=int, default=DEFAULT_EPOCHS, help="Maximum number of training epochs")
@@ -454,7 +616,7 @@ def main() -> None:
     
     model = get_model(args.model, data, args).to(device)
     optimizer = Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    criterion = nn.CrossEntropyLoss() # Standard CE loss
+    criterion = nn.CrossEntropyLoss() if args.loss_fn == "ce" else FocalLoss()
 
     print("\n--- Model Architecture ---"); print(model); print("-------------------------")
 
