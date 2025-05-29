@@ -4,6 +4,7 @@ checkpoints/
 log/
 *indices.json
 script/
+cache_dataset
 
 # language model weights
 config.json
