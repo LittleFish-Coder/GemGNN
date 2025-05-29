@@ -14,29 +14,29 @@
     },
     "model_name": "GAT_politifact_10_shot_combined_knn_7_smpf10",
     "training_history": {
-        "final_train_loss": 0.40278154611587524,
-        "final_train_acc": 1.0,
-        "final_val_loss": 0.504972517490387,
-        "final_val_acc": 0.8137254901960784,
-        "final_val_f1": 0.7635143380109823,
-        "best_val_f1": 0.7914584279872785,
-        "best_epoch": 284,
+        "final_train_loss": 0.28791695833206177,
+        "final_train_acc": 0.95,
+        "final_val_loss": 0.48197659850120544,
+        "final_val_acc": 0.7549019607843137,
+        "final_val_f1": 0.7299586995658159,
+        "best_val_f1": 0.7777777777777777,
+        "best_epoch": 34,
         "total_epochs": 300,
-        "training_time_seconds": 4.45523738861084
+        "training_time_seconds": 6.865533828735352
     },
     "final_test_metrics": {
-        "accuracy": 0.8235294117647058,
-        "precision": 0.6666666666666666,
-        "recall": 0.7586206896551724,
-        "f1_score": 0.7096774193548387,
+        "accuracy": 0.8333333333333334,
+        "precision": 0.8113636363636363,
+        "recall": 0.7588568729333962,
+        "f1_score": 0.7777777777777777,
         "confusion_matrix": [
             [
-                62,
-                11
+                68,
+                5
             ],
             [
-                7,
-                22
+                12,
+                17
             ]
         ]
     }

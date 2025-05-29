@@ -1,0 +1,43 @@
+{
+    "args": {
+        "graph_path": "graphs/politifact/4_shot_distilbert_knn_8_smpf10.pt",
+        "model": "GAT",
+        "dropout_rate": 0.5,
+        "hidden_channels": 128,
+        "gat_heads": 8,
+        "lr": 0.0001,
+        "weight_decay": 0.0001,
+        "n_epochs": 300,
+        "patience": 30,
+        "seed": 42,
+        "output_dir": "results"
+    },
+    "model_name": "GAT_politifact_4_shot_distilbert_knn_8_smpf10",
+    "training_history": {
+        "final_train_loss": 0.30808955430984497,
+        "final_train_acc": 0.875,
+        "final_val_loss": 0.5770969986915588,
+        "final_val_acc": 0.7254901960784313,
+        "final_val_f1": 0.7031185031185031,
+        "best_val_f1": 0.7273848684210527,
+        "best_epoch": 36,
+        "total_epochs": 78,
+        "training_time_seconds": 2.719125509262085
+    },
+    "final_test_metrics": {
+        "accuracy": 0.7450980392156863,
+        "precision": 0.7295938104448743,
+        "recall": 0.7803495512517713,
+        "f1_score": 0.7273848684210527,
+        "confusion_matrix": [
+            [
+                51,
+                22
+            ],
+            [
+                4,
+                25
+            ]
+        ]
+    }
+}

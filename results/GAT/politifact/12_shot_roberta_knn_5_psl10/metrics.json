@@ -1,0 +1,43 @@
+{
+    "args": {
+        "graph_path": "graphs/politifact/12_shot_roberta_knn_5_psl10.pt",
+        "model": "GAT",
+        "dropout_rate": 0.5,
+        "hidden_channels": 128,
+        "gat_heads": 8,
+        "lr": 0.0001,
+        "weight_decay": 0.0001,
+        "n_epochs": 300,
+        "patience": 30,
+        "seed": 42,
+        "output_dir": "results"
+    },
+    "model_name": "GAT_politifact_12_shot_roberta_knn_5_psl10",
+    "training_history": {
+        "final_train_loss": 0.5332863926887512,
+        "final_train_acc": 0.7083333333333334,
+        "final_val_loss": 0.5709494948387146,
+        "final_val_acc": 0.7254901960784313,
+        "final_val_f1": 0.68125,
+        "best_val_f1": 0.7373627862854045,
+        "best_epoch": 96,
+        "total_epochs": 128,
+        "training_time_seconds": 2.631079912185669
+    },
+    "final_test_metrics": {
+        "accuracy": 0.8137254901960784,
+        "precision": 0.7996031746031746,
+        "recall": 0.713982050070855,
+        "f1_score": 0.7373627862854045,
+        "confusion_matrix": [
+            [
+                69,
+                4
+            ],
+            [
+                15,
+                14
+            ]
+        ]
+    }
+}

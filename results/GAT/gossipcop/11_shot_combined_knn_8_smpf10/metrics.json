@@ -14,29 +14,29 @@
     },
     "model_name": "GAT_gossipcop_11_shot_combined_knn_8_smpf10",
     "training_history": {
-        "final_train_loss": 0.5515975952148438,
-        "final_train_acc": 0.8636363636363636,
-        "final_val_loss": 0.6199793815612793,
-        "final_val_acc": 0.719685628742515,
-        "final_val_f1": 0.568092418685304,
-        "best_val_f1": 0.5752133326595845,
-        "best_epoch": 177,
-        "total_epochs": 211,
-        "training_time_seconds": 3.3340463638305664
+        "final_train_loss": 0.5952542424201965,
+        "final_train_acc": 0.7272727272727273,
+        "final_val_loss": 0.6431094408035278,
+        "final_val_acc": 0.749625748502994,
+        "final_val_f1": 0.5869048623203393,
+        "best_val_f1": 0.6008015981761059,
+        "best_epoch": 30,
+        "total_epochs": 88,
+        "training_time_seconds": 4.18367338180542
     },
     "final_test_metrics": {
-        "accuracy": 0.7421407185628742,
-        "precision": 0.3117408906882591,
-        "recall": 0.3061630218687873,
-        "f1_score": 0.30892678034102306,
+        "accuracy": 0.7683383233532934,
+        "precision": 0.6072456392080875,
+        "recall": 0.596185450689134,
+        "f1_score": 0.6008015981761059,
         "confusion_matrix": [
             [
-                1829,
-                340
+                1892,
+                277
             ],
             [
-                349,
-                154
+                342,
+                161
             ]
         ]
     }

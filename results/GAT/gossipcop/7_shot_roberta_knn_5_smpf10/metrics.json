@@ -14,29 +14,29 @@
     },
     "model_name": "GAT_gossipcop_7_shot_roberta_knn_5_smpf10",
     "training_history": {
-        "final_train_loss": 0.6433590650558472,
-        "final_train_acc": 0.42857142857142855,
-        "final_val_loss": 0.5954856872558594,
-        "final_val_acc": 0.811751497005988,
-        "final_val_f1": 0.4480479239826482,
-        "best_val_f1": 0.4560299120225572,
-        "best_epoch": 2,
-        "total_epochs": 54,
-        "training_time_seconds": 1.53550124168396
+        "final_train_loss": 0.6269896626472473,
+        "final_train_acc": 0.6428571428571429,
+        "final_val_loss": 0.6768208742141724,
+        "final_val_acc": 0.5415419161676647,
+        "final_val_f1": 0.49919329605690455,
+        "best_val_f1": 0.5742715860827099,
+        "best_epoch": 115,
+        "total_epochs": 174,
+        "training_time_seconds": 3.9095442295074463
     },
     "final_test_metrics": {
-        "accuracy": 0.7526197604790419,
-        "precision": 0.09693877551020408,
-        "recall": 0.03777335984095427,
-        "f1_score": 0.05436337625178827,
+        "accuracy": 0.7470059880239521,
+        "precision": 0.5766619567170195,
+        "recall": 0.5723565476665136,
+        "f1_score": 0.5742715860827099,
         "confusion_matrix": [
             [
-                1992,
-                177
+                1849,
+                320
             ],
             [
-                484,
-                19
+                356,
+                147
             ]
         ]
     }

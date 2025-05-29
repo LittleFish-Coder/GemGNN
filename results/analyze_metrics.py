@@ -27,8 +27,6 @@ def analyze_metrics(folder_path):
     # Process each subdirectory
     for subdir in subdirs:
         subdir_path = os.path.join(folder_path, subdir)
-        if 'combined' in subdir:
-            continue
         for file in os.listdir(subdir_path):
             if file.endswith('metrics.json'):
                 file_path = os.path.join(subdir_path, file)
