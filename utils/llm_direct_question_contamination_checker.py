@@ -249,12 +249,12 @@ def main():
         print("CONTAMINATION LEAK ANALYSIS")
         print("="*60)
         
-        # Prepare analysis data structure
         # Simple leak statistics
         total_contaminated = (df['analysis'] == "yes").sum()
         total_checked = len(df)
         print(f"\nOVERALL: {total_contaminated}/{total_checked} examples show potential leakage ({total_contaminated/total_checked*100:.1f}%)")
         
+        # Prepare analysis data structure
         analysis_results = {
             "metadata": {
                 "model_id": model_id,
@@ -265,7 +265,7 @@ def main():
             },
             "overall_analysis": {
                 "total_examples_checked": len(df),
-                "total_contaminated": total_contaminated,
+                "total_contaminated": int(total_contaminated),
                 "contamination_rate": total_contaminated/len(df)*100
             },
             "split_analysis": {},
