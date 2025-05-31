@@ -97,6 +97,13 @@ class HeteroGraphBuilder:
         self.plot = plot
         self.seed = seed
         self.dataset_cache_dir = dataset_cache_dir
+
+        if self.edge_policy == "label_aware_knn":
+            self.pseudo_label = True
+        
+        if self.pseudo_label:
+            self.partial_unlabeled = True
+
         # Set device
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         print(f"Using device: {self.device}")
@@ -405,8 +412,19 @@ class HeteroGraphBuilder:
             edge_index = torch.cat([edge_index, edge_index[[1, 0], :]], dim=1)  # symmetrize
             if edge_attr is not None:
                 data['news', 'similar_to', 'news'].edge_attr = edge_attr
-                edge_attr = torch.cat([edge_attr, edge_attr], dim=0)
+            edge_attr = torch.cat([edge_attr, edge_attr], dim=0)    
             print(f"    - Created {edge_index.shape[1]} 'news -> news' label-aware similar edges.")
+            # --- Add low-level KNN (k=2) for all nodes as a separate edge type ---
+            low_k = 2
+            low_edge_index, low_edge_attr, _, _ = self._build_knn_edges(news_embeddings, low_k)
+            # Symmetrize low-level KNN edges
+            low_edge_index = torch.cat([low_edge_index, low_edge_index[[1, 0], :]], dim=1)
+            if low_edge_attr is not None:
+                low_edge_attr = torch.cat([low_edge_attr, low_edge_attr], dim=0)
+            data['news', 'low_level_knn', 'news'].edge_index = low_edge_index
+            if low_edge_attr is not None:
+                data['news', 'low_level_knn', 'news'].edge_attr = low_edge_attr
+            print(f"    - Created {low_edge_index.shape[1]} 'news <-> news' low-level KNN edges (k={low_k}).")
         elif self.edge_policy == "mutual_knn":
             # Build mutual KNN (similar) and mutual farthest (dissimilar) edges
             sim_edge_index, sim_edge_attr, dis_edge_index, dis_edge_attr = self._build_mutual_knn_edges(news_embeddings, self.k_neighbors)
