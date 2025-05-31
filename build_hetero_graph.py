@@ -186,40 +186,68 @@ class HeteroGraphBuilder:
             num_to_sample = min(self.num_classes * self.k_shot * self.sample_unlabeled_factor, len(train_unlabeled_indices))
             print(f"  Sampling {num_to_sample} train_unlabeled_nodes (num_classes={self.num_classes}, k={self.k_shot}, factor={self.sample_unlabeled_factor}) from {len(train_unlabeled_indices)} available.")
             if self.pseudo_label:
-                print("  Using pseudo-label based sampling...")
+                print("  Using pseudo-label based sampling (sorted by confidence)...")
                 try:
                     with open(self.pseudo_label_cache_path, "r") as f:
                         pseudo_data = json.load(f)
-                    pseudo_label_map = {int(item["index"]): int(item["pseudo_label"]) for item in pseudo_data}
-                    # print(f"  Pseudo-label map: {pseudo_label_map}")
-                    # print(f"  Length of pseudo-label map: {len(pseudo_label_map)}")
-                    # Group all train_unlabeled_indices by pseudo label (0/1)
-                    pseudo_label_groups = {0: [], 1: []}
+                    # Build a map: index -> (pseudo_label, confidence)
+                    pseudo_label_map = {int(item["index"]): (int(item["pseudo_label"]), float(item.get("score", 1.0))) for item in pseudo_data}
+                    # Group all train_unlabeled_indices by pseudo label, and sort by confidence
+                    pseudo_label_groups = {label: [] for label in range(self.num_classes)}
                     for idx in train_unlabeled_indices:
-                        label = pseudo_label_map.get(idx, None)
-                        if label is not None:
-                            pseudo_label_groups[label].append(idx)
-                    samples_per_class = num_to_sample // 2
+                        if int(idx) in pseudo_label_map:
+                            label, conf = pseudo_label_map[int(idx)]
+                            pseudo_label_groups[label].append((idx, conf))
+                    # Sort each group by confidence (descending)
+                    for label in pseudo_label_groups:
+                        pseudo_label_groups[label].sort(key=lambda x: -x[1])
+                    # Sample top-N from each group
+                    samples_per_class = num_to_sample // self.num_classes
                     sampled_indices = []
-                    for label in [0, 1]:
-                        indices = pseudo_label_groups[label]
-                        n_samples = min(samples_per_class, len(indices))
-                        sampled = np.random.choice(indices, size=n_samples, replace=False)
-                        sampled_indices.extend(sampled)
-                    # If not enough, randomly sample from the remaining unlabeled indices
+                    sampled_labels = []
+                    sampled_confidences = []
+                    for label in range(self.num_classes):
+                        group = pseudo_label_groups[label]
+                        n_samples = min(samples_per_class, len(group))
+                        selected = group[:n_samples]
+                        for idx, conf in selected:
+                            sampled_indices.append(idx)
+                            sampled_labels.append(label)
+                            sampled_confidences.append(conf)
+                    # If not enough, randomly sample from the remaining
                     if len(sampled_indices) < num_to_sample:
                         remaining = num_to_sample - len(sampled_indices)
                         remaining_indices = list(set(train_unlabeled_indices) - set(sampled_indices))
                         if remaining_indices:
                             additional = np.random.choice(remaining_indices, size=min(remaining, len(remaining_indices)), replace=False)
-                            sampled_indices.extend(additional)
+                            for idx in additional:
+                                # Fallback: assign label/confidence if available, else -1/1.0
+                                if int(idx) in pseudo_label_map:
+                                    label, conf = pseudo_label_map[int(idx)]
+                                else:
+                                    label, conf = -1, 1.0
+                                sampled_indices.append(idx)
+                                sampled_labels.append(label)
+                                sampled_confidences.append(conf)
                     train_unlabeled_indices = np.array(sampled_indices)
-                    print(f"  Sampled {len(train_unlabeled_indices)} unlabeled nodes using pseudo labels")
+                    # Store for downstream label-aware KNN edge construction
+                    self.pseudo_selected_indices = np.array(sampled_indices)
+                    self.pseudo_selected_labels = np.array(sampled_labels)
+                    self.pseudo_selected_confidences = np.array(sampled_confidences)
+                    print(f"  Sampled {len(train_unlabeled_indices)} unlabeled nodes using pseudo labels (sorted by confidence)")
                 except Exception as e:
                     print(f"Warning: Error during pseudo-label sampling: {e}. Falling back to random sampling.")
                     train_unlabeled_indices = np.random.choice(train_unlabeled_indices, size=num_to_sample, replace=False)
+                    # Fallback: store empty arrays for downstream
+                    self.pseudo_selected_indices = np.array([])
+                    self.pseudo_selected_labels = np.array([])
+                    self.pseudo_selected_confidences = np.array([])
             else:
                 train_unlabeled_indices = np.random.choice(train_unlabeled_indices, size=num_to_sample, replace=False)
+                # Fallback: store empty arrays for downstream
+                self.pseudo_selected_indices = np.array([])
+                self.pseudo_selected_labels = np.array([])
+                self.pseudo_selected_confidences = np.array([])
         
         self.train_unlabeled_indices = train_unlabeled_indices
         print(f"  Selected {len(train_unlabeled_indices)} train unlabeled nodes: {train_unlabeled_indices[:2*self.k_shot]} ...")
@@ -319,40 +347,66 @@ class HeteroGraphBuilder:
                     data['news', 'dissimilar_to', 'news'].edge_attr = dis_edge_attr
                 print(f"    - Created {dis_edge_index.shape[1]} 'news <-> news' dissimilar edges.")        
         elif self.edge_policy == "label_aware_knn":
-            pseudo_label_cache_path = self.pseudo_label_cache_path
-            try:
-                with open(pseudo_label_cache_path, "r") as f:
-                    pseudo_data = json.load(f)
-                pseudo_data = sorted(pseudo_data, key=lambda x: float(x.get("confidence", 1.0)), reverse=True)
-                num_to_select = min(2 * self.k_shot * self.sample_unlabeled_factor, len(pseudo_data))
-                print(f"    - Selecting {num_to_select} pseudo labels for label-aware KNN edges.")
-                train_unlabeled_set = set(train_unlabeled_indices.tolist())
-                pseudo_data = [item for item in pseudo_data if int(item["index"]) in train_unlabeled_set]
-                pseudo_data = pseudo_data[:num_to_select]
-                pseudo_indices = np.array([int(item["index"]) for item in pseudo_data])
-                pseudo_labels = np.array([int(item["pseudo_label"]) for item in pseudo_data])
-                pseudo_confidence = np.array([float(item.get("confidence", 1.0)) for item in pseudo_data])
-            except Exception as e:
-                print(f"  Error loading pseudo label cache: {e}")
-                pseudo_indices = np.array([])
-                pseudo_labels = np.array([])
-                pseudo_confidence = np.array([])
-            edge_index, edge_attr = self._build_label_aware_knn_edges(
-                news_embeddings,
-                train_labeled_indices,
-                pseudo_indices,
-                train_labeled_label,
-                pseudo_labels,
-                self.k_neighbors,
-                pseudo_confidence,
-                global2local
-            )
-            data['news', 'label_aware_similar_to', 'news'].edge_index = edge_index
-            edge_index = torch.cat([edge_index, edge_index[[1, 0], :]], dim=1)
+            # Use the pre-sampled pseudo_selected_indices, labels, and confidences for label-aware KNN
+            pseudo_indices = getattr(self, 'pseudo_selected_indices', np.array([]))
+            pseudo_labels = getattr(self, 'pseudo_selected_labels', np.array([]))
+            pseudo_confidence = getattr(self, 'pseudo_selected_confidences', np.array([]))
+            num_train_labeled = len(train_labeled_indices)
+            num_train_unlabeled = len(pseudo_indices)
+            num_test = len(test_indices)
+            num_nodes = num_train_labeled + num_train_unlabeled + num_test
+            # Local indices for each group
+            train_labeled_idx_local = np.arange(num_train_labeled)
+            train_unlabeled_idx_local = np.arange(num_train_labeled, num_train_labeled + num_train_unlabeled)
+            test_idx_local = np.arange(num_train_labeled + num_train_unlabeled, num_nodes)
+            edge_src = []
+            edge_dst = []
+            edge_attr = []
+            # --- Train labeled nodes: only connect to train_unlabeled nodes with the same pseudo label ---
+            for label in range(self.num_classes):
+                labeled_mask = train_labeled_label == label
+                pseudo_mask = pseudo_labels == label
+                labeled_idx = train_labeled_idx_local[labeled_mask]
+                pseudo_idx = train_unlabeled_idx_local[pseudo_mask]
+                if len(pseudo_idx) == 0 or len(labeled_idx) == 0:
+                    continue
+                labeled_emb = news_embeddings[labeled_idx]
+                pseudo_emb = news_embeddings[pseudo_idx]
+                sim = cosine_similarity(labeled_emb, pseudo_emb)
+                for i, src in enumerate(labeled_idx):
+                    k = min(self.k_neighbors, sim.shape[1])
+                    if k == 0:
+                        continue
+                    topk = np.argpartition(-sim[i], k-1)[:k]
+                    for j in topk:
+                        dst = pseudo_idx[j]
+                        edge_src.append(src)
+                        edge_dst.append(dst)
+                        edge_attr.append(sim[i, j])
+            # --- Test nodes: connect to all other nodes (train_labeled, train_unlabeled, test) using KNN ---
+            if num_test > 0:
+                all_idx = np.arange(num_nodes)
+                for i, src in enumerate(test_idx_local):
+                    test_emb = news_embeddings[src].reshape(1, -1)
+                    sim = cosine_similarity(test_emb, news_embeddings)[0]
+                    # Exclude self
+                    sim[src] = -np.inf
+                    k = min(self.k_neighbors, num_nodes - 1)
+                    if k <= 0:
+                        continue
+                    topk = np.argpartition(-sim, k-1)[:k]
+                    for dst in topk:
+                        edge_src.append(src)
+                        edge_dst.append(dst)
+                        edge_attr.append(sim[dst])
+            edge_index = torch.tensor([edge_src, edge_dst], dtype=torch.long)
+            edge_attr = torch.tensor(edge_attr, dtype=torch.float).unsqueeze(1) if edge_attr else None
+            data['news', 'similar_to', 'news'].edge_index = edge_index
+            edge_index = torch.cat([edge_index, edge_index[[1, 0], :]], dim=1)  # symmetrize
             if edge_attr is not None:
-                data['news', 'label_aware_similar_to', 'news'].edge_attr = edge_attr
+                data['news', 'similar_to', 'news'].edge_attr = edge_attr
                 edge_attr = torch.cat([edge_attr, edge_attr], dim=0)
-            print(f"    - Created {edge_index.shape[1]} 'news -> pseudo_news' label-aware similar edges.")
+            print(f"    - Created {edge_index.shape[1]} 'news -> news' label-aware similar edges.")
         elif self.edge_policy == "mutual_knn":
             # Build mutual KNN (similar) and mutual farthest (dissimilar) edges
             sim_edge_index, sim_edge_attr, dis_edge_index, dis_edge_attr = self._build_mutual_knn_edges(news_embeddings, self.k_neighbors)
@@ -605,56 +659,6 @@ class HeteroGraphBuilder:
         data['news', 'has_interaction', 'interaction'].edge_index = torch.stack([news_has_interaction_src, interaction_has_interaction_tgt], dim=0)
         data['news', 'has_interaction', 'interaction'].edge_attr = torch.tensor(all_interaction_tones, dtype=torch.long)
         data['interaction', 'rev_has_interaction', 'news'].edge_index = torch.stack([interaction_has_interaction_tgt, news_has_interaction_src], dim=0)
-
-    def _build_label_aware_knn_edges(
-        self,
-        embeddings: np.ndarray,
-        labeled_indices: np.ndarray,
-        pseudo_indices: np.ndarray,
-        labeled_labels: np.ndarray,
-        pseudo_labels: np.ndarray,
-        k: int,
-        pseudo_confidence: Optional[np.ndarray],
-        global2local: dict
-    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-        """
-        For each labeled node, find its KNN only among pseudo nodes with the same label.
-        Optionally, use pseudo_confidence as edge_attr.
-        Only search in the provided pseudo_indices (no fallback to all nodes).
-        """
-
-        edge_src = []
-        edge_dst = []
-        edge_attr = []
-
-        label_set = np.unique(labeled_labels)
-
-        for label in label_set:
-            labeled_mask = labeled_labels == label
-            pseudo_mask = pseudo_labels == label
-            labeled_idx = labeled_indices[labeled_mask]
-            pseudo_idx = pseudo_indices[pseudo_mask]
-            if len(pseudo_idx) == 0 or len(labeled_idx) == 0:
-                continue  # nothing to connect
-            labeled_idx_local = np.array([global2local[idx] for idx in labeled_idx])
-            pseudo_idx_local = np.array([global2local[idx] for idx in pseudo_idx])
-            labeled_emb = embeddings[labeled_idx_local]
-            pseudo_emb = embeddings[pseudo_idx_local]
-            sim = cosine_similarity(labeled_emb, pseudo_emb)
-            for i, src in enumerate(labeled_idx_local):
-                if sim.shape[1] < k:
-                    topk = np.argsort(-sim[i])
-                else:
-                    topk = np.argpartition(-sim[i], k)[:k]
-                for j in topk:
-                    dst = pseudo_idx_local[j]
-                    edge_src.append(src)
-                    edge_dst.append(dst)
-                    edge_attr.append(sim[i, j])
-
-        edge_index = torch.tensor([edge_src, edge_dst], dtype=torch.long)
-        edge_attr_tensor = torch.tensor(edge_attr, dtype=torch.float).unsqueeze(1) if edge_attr else None
-        return edge_index, edge_attr_tensor
 
     def analyze_hetero_graph(self, hetero_graph: HeteroData) -> None:
         """Detailed analysis for heterogeneous graph, similar to build_graph.py but adapted for hetero."""
@@ -998,6 +1002,9 @@ def main() -> None:
     args = parse_arguments()
     set_seed(args.seed)
     
+    if args.edge_policy == "label_aware_knn":
+        args.pseudo_label = True
+        
     if args.pseudo_label:
         args.partial_unlabeled = True
         
