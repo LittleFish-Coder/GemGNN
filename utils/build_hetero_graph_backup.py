@@ -19,19 +19,22 @@ from collections import Counter
 # --- Constants ---
 DEFAULT_K_SHOT = 8
 DEFAULT_DATASET_NAME = "politifact"
-DEFAULT_EMBEDDING_TYPE = "roberta"                  # Default embedding for news nodes (bert, distilbert, roberta, deberta, bigbird)
+DEFAULT_EMBEDDING_TYPE = "roberta" # Default embedding for news nodes
 # --- Edge Policies Parameters ---
-DEFAULT_EDGE_POLICY = "label_aware_knn"             # For news-news edges
-DEFAULT_K_NEIGHBORS = 5                             # For knn edge policy
+DEFAULT_EDGE_POLICY = "knn"             # For news-news edges
+DEFAULT_K_NEIGHBORS = 5                 # For knn edge policy
+DEFAULT_LOCAL_THRESHOLD_FACTOR = 1.0    # for local_threshold edge policy
+DEFAULT_ALPHA = 0.1                     # for global_threshold edge policy
+DEFAULT_QUANTILE_P = 95.0               # for quantile edge policy
+DEFAULT_K_TOP_SIM = 10                  # for topk_mean edge policy
 # --- Unlabeled Node Sampling Parameters ---
-DEFAULT_SAMPLE_UNLABELED_FACTOR = 5                # for unlabeled node sampling (train_unlabeld_nodes = num_classes * k_shot * sample_unlabeled_factor)
-DEFAULT_MULTI_VIEW = 0                              # for multi-view edge policy
-DEFAULT_INTERACTION_EDGE_MODE = "edge_attr"         # for interaction edge policy (edge_attr, edge_type): how news_node and interaction_node are connected
+DEFAULT_SAMPLE_UNLABELED_FACTOR = 10    # for unlabeled node sampling
+DEFAULT_MULTI_VIEW = 0                  # for multi-view edge policy
+DEFAULT_INTERACTION_EDGE_MODE = "edge_attr" # for interaction edge policy
 # --- Graphs and Plots Directories ---
+GRAPH_DIR = "graphs_hetero"
+PLOT_DIR = "plots_hetero"
 DEFAULT_SEED = 42
-DEFAULT_DATASET_CACHE_DIR = "dataset"
-DEFAULT_GRAPH_DIR = "graphs_hetero"
-DEFAULT_PLOT_DIR = "plots_hetero"
 
 # --- Utility Functions ---
 def set_seed(seed: int = DEFAULT_SEED) -> None:
@@ -56,10 +59,16 @@ class HeteroGraphBuilder:
         self,
         dataset_name: str,
         k_shot: int,
-        embedding_type: str = DEFAULT_EMBEDDING_TYPE,
-        edge_policy: str = DEFAULT_EDGE_POLICY,
+        embedding_type: str = DEFAULT_EMBEDDING_TYPE, # News node embedding
+        edge_policy: str = DEFAULT_EDGE_POLICY, # For news-news edges
         k_neighbors: int = DEFAULT_K_NEIGHBORS,
+        k_top_sim: int = DEFAULT_K_TOP_SIM,
+        local_threshold_factor: float = DEFAULT_LOCAL_THRESHOLD_FACTOR,
+        alpha: float = DEFAULT_ALPHA,
+        quantile_p: float = DEFAULT_QUANTILE_P,
         sample_unlabeled_factor: int = DEFAULT_SAMPLE_UNLABELED_FACTOR,
+        output_dir: str = GRAPH_DIR,
+        plot: bool = False,
         seed: int = DEFAULT_SEED,
         device: str = None,
         pseudo_label: bool = False,
@@ -70,9 +79,6 @@ class HeteroGraphBuilder:
         interaction_embedding_field: str = "interaction_embeddings_list",
         interaction_tone_field: str = "interaction_tones_list",
         interaction_edge_mode: str = DEFAULT_INTERACTION_EDGE_MODE,
-        plot: bool = False,
-        output_dir: str = DEFAULT_GRAPH_DIR,
-        dataset_cache_dir: str = DEFAULT_DATASET_CACHE_DIR,
     ):
         """Initialize the HeteroGraphBuilder."""
         self.dataset_name = dataset_name.lower()
@@ -84,7 +90,12 @@ class HeteroGraphBuilder:
         self.interaction_edge_mode = interaction_edge_mode
         self.edge_policy = edge_policy
         self.k_neighbors = k_neighbors
+        self.k_top_sim = k_top_sim
+        self.local_threshold_factor = local_threshold_factor
+        self.alpha = alpha
+        self.quantile_p = quantile_p
         self.multi_view = multi_view
+
         ## Sampling
         self.sample_unlabeled_factor = sample_unlabeled_factor
         self.enable_dissimilar = enable_dissimilar
@@ -94,29 +105,37 @@ class HeteroGraphBuilder:
             self.pseudo_label_cache_path = pseudo_label_cache_path
         else:
             self.pseudo_label_cache_path = f"utils/pseudo_label_cache_{self.dataset_name}.json"
+        
         self.plot = plot
         self.seed = seed
-        self.dataset_cache_dir = dataset_cache_dir
+
         # Set device
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         print(f"Using device: {self.device}")
         np.random.seed(self.seed)
+
         # Setup directory paths
         self.output_dir = os.path.join(output_dir, self.dataset_name)
-        self.plot_dir = os.path.join(DEFAULT_PLOT_DIR, self.dataset_name)
+        self.plot_dir = os.path.join(PLOT_DIR, self.dataset_name)
+
         # Create directories
         os.makedirs(self.output_dir, exist_ok=True)
         if self.plot: os.makedirs(self.plot_dir, exist_ok=True)
+
+
         # Initialize state
         self.dataset = None
         self.graph_data = None
         self.graph_metrics = {}
+
         # Selected Indices
         self.selected_train_labeled_indices = None
         self.selected_train_unlabeled_indices = None
         self.selected_test_indices = None
         self.news_orig_to_new_idx = None # Mapping for mask creation
+
         self.graph_metrics = {} # Store analysis results
+
         self.tone2id = {}
 
     def _tone2id(self, tone):
@@ -128,7 +147,7 @@ class HeteroGraphBuilder:
         """Load dataset and perform initial checks."""
         print(f"Loading dataset '{self.dataset_name}' with '{self.embedding_type}' embeddings...")
         hf_dataset_name = f"LittleFish-Coder/Fake_News_{self.dataset_name}"
-        dataset = load_dataset(hf_dataset_name, download_mode="reuse_cache_if_exists", cache_dir=self.dataset_cache_dir)
+        dataset = load_dataset(hf_dataset_name, download_mode="reuse_cache_if_exists", cache_dir="dataset")
         self.dataset = {"train": dataset["train"], "test": dataset["test"]}
         self.train_data = self.dataset["train"]
         self.test_data = self.dataset['test']
@@ -218,6 +237,158 @@ class HeteroGraphBuilder:
         print(f"      Created {sim_edge_index.shape[1]} similar edges and {dis_edge_index.shape[1]} dissimilar edges.")
         return sim_edge_index, sim_edge_attr, dis_edge_index, dis_edge_attr
 
+    def _build_local_threshold_edges(self, embeddings: np.ndarray, local_threshold_factor: float) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        num_nodes = embeddings.shape[0]
+        if num_nodes <= 1: return torch.zeros((2,0), dtype=torch.long), None
+        print(f"    Building LOCAL threshold graph (factor={local_threshold_factor:.2f}) for 'news'-'news' edges...")
+
+        # Normalize embeddings
+        embeddings = np.nan_to_num(embeddings, nan=0.0, posinf=0.0, neginf=0.0)
+        norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+        valid_norms = np.maximum(norms, 1e-10) # Avoid division by zero
+        normalized_embeddings = embeddings / valid_norms
+
+        rows, cols, data = [], [], []
+        try:
+             print("      Calculating full similarity matrix...")
+             similarities_matrix = cosine_similarity(normalized_embeddings) # More robust for cosine
+             np.fill_diagonal(similarities_matrix, -1.0) # Exclude self-loops from threshold calculation
+        except MemoryError:
+             print("      Error: MemoryError calculating similarity matrix. Cannot proceed with local_threshold.")
+             return torch.zeros((2,0), dtype=torch.long), None
+        except Exception as e:
+            print(f"      Error calculating similarity matrix: {e}. Cannot proceed.")
+            return torch.zeros((2,0), dtype=torch.long), None
+
+        print("      Calculating local thresholds and building edges...")
+        for i in tqdm(range(num_nodes), desc="      Computing local threshold edges", leave=False, ncols=100):
+            node_similarities = similarities_matrix[i, :].copy() # Use copy
+            positive_similarities = node_similarities[node_similarities > 0] # Consider only positive similarities for mean
+
+            if len(positive_similarities) > 0:
+                mean_similarity = np.mean(positive_similarities)
+                node_threshold = mean_similarity * local_threshold_factor
+                above_threshold_indices = np.where(node_similarities > node_threshold)[0]
+                for target_idx in above_threshold_indices:
+                    if target_idx == i: continue # Explicitly skip self-loops if any slip through
+                    rows.append(i)
+                    cols.append(target_idx)
+                    data.append(max(0.0, node_similarities[target_idx])) # Ensure non-negative
+
+        if not rows: # Fallback if no edges were created
+            print(f"      Warning: No edges created with local_threshold_factor={local_threshold_factor}. Adding fallback (top-1)...")
+            np.fill_diagonal(similarities_matrix, -np.inf) # Ensure self is not chosen
+            for i in range(num_nodes):
+                if np.all(np.isinf(similarities_matrix[i])): continue # Skip if all similarities are -inf
+                top_idx = np.argmax(similarities_matrix[i])
+                if similarities_matrix[i, top_idx] > -np.inf : # Check if a valid neighbor was found
+                    rows.append(i)
+                    cols.append(top_idx)
+                    data.append(max(0.0, similarities_matrix[i, top_idx]))
+
+        if not rows: return torch.zeros((2, 0), dtype=torch.long), None
+        edge_index = torch.tensor(np.vstack((rows, cols)), dtype=torch.long)
+        edge_attr = torch.tensor(data, dtype=torch.float).unsqueeze(1)
+        print(f"      Created {edge_index.shape[1]} local threshold edges.")
+        return edge_index, edge_attr
+
+    def _build_global_threshold_edges(self, embeddings: np.ndarray, alpha: float) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        num_nodes = embeddings.shape[0]
+        if num_nodes <= 1: return torch.zeros((2,0), dtype=torch.long), None
+        print(f"    Building GLOBAL threshold graph (alpha={alpha:.2f}) for 'news'-'news' edges...")
+
+        embeddings = np.nan_to_num(embeddings, nan=0.0, posinf=0.0, neginf=0.0)
+        norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+        valid_norms = np.maximum(norms, 1e-10)
+        normalized_embeddings = embeddings / valid_norms
+
+        print("      Computing global similarity statistics...")
+        use_full_matrix_for_edges = False
+        similarities_matrix = None # Initialize
+
+        try:
+            similarities_matrix = cosine_similarity(normalized_embeddings) # More robust
+            mask = np.triu(np.ones((num_nodes, num_nodes), dtype=bool), k=1)
+            all_similarities = similarities_matrix[mask]
+            print(f"        Calculated {len(all_similarities)} unique non-self similarities for stats.")
+            use_full_matrix_for_edges = True
+        except MemoryError:
+            print("        MemoryError calculating full matrix for stats, sampling pairs...")
+            target_samples = min(max(500000, num_nodes * 20), 5000000)
+            pairs_to_sample = min(target_samples, num_nodes * (num_nodes - 1) // 2 if num_nodes > 1 else 0)
+            if pairs_to_sample <= 0:
+                all_similarities = np.array([])
+            else:
+                rng = np.random.default_rng(self.seed) # Use instance seed
+                sampled_indices_i = rng.integers(0, num_nodes, size=pairs_to_sample)
+                sampled_indices_j = rng.integers(0, num_nodes, size=pairs_to_sample)
+                valid_pair_mask = sampled_indices_i != sampled_indices_j
+                sampled_indices_i = sampled_indices_i[valid_pair_mask]
+                sampled_indices_j = sampled_indices_j[valid_pair_mask]
+                sims = np.sum(normalized_embeddings[sampled_indices_i] * normalized_embeddings[sampled_indices_j], axis=1)
+                all_similarities = sims
+            print(f"        Sampled {len(all_similarities)} pairs for statistics.")
+        except Exception as e:
+            print(f"      Error calculating similarity statistics: {e}. Cannot proceed.")
+            return torch.zeros((2,0), dtype=torch.long), None
+
+
+        all_similarities = all_similarities[all_similarities > -0.999] # Filter out potential noise or extreme negatives
+
+        if len(all_similarities) == 0:
+            print("      Warning: No valid similarities found for global statistics. Setting default threshold 0.5.")
+            global_threshold = 0.5
+            sim_mean, sim_std = 0.0, 0.0
+        else:
+            sim_mean = np.mean(all_similarities)
+            sim_std = np.std(all_similarities)
+            global_threshold = sim_mean + alpha * sim_std
+        print(f"        Similarity stats: mean={sim_mean:.4f}, std={sim_std:.4f}")
+        print(f"        Global threshold calculated: {global_threshold:.4f}")
+
+        rows, cols, data = [], [], []
+        print("      Building edges using global threshold...")
+        if use_full_matrix_for_edges and similarities_matrix is not None:
+            adj = similarities_matrix > global_threshold
+            np.fill_diagonal(adj, False) # Ensure no self-loops
+            edge_indices = np.argwhere(adj)
+            rows = edge_indices[:, 0].tolist()
+            cols = edge_indices[:, 1].tolist()
+            if rows: data = similarities_matrix[rows, cols].tolist()
+        else:
+            for i in tqdm(range(num_nodes), desc="      Building global threshold edges", leave=False, ncols=100):
+                current_sims = cosine_similarity(normalized_embeddings[i:i+1], normalized_embeddings)[0]
+                current_sims[i] = -1.0 # Exclude self
+                above_threshold_indices = np.where(current_sims > global_threshold)[0]
+                for target_idx in above_threshold_indices:
+                    rows.append(i)
+                    cols.append(target_idx)
+                    data.append(max(0.0, current_sims[target_idx]))
+
+        if not rows: # Fallback if no edges
+            print(f"      Warning: Global threshold {global_threshold:.4f} too high, no edges created. Adding fallback (top-1)...")
+            if similarities_matrix is None: # Need to compute it if not available
+                 try:
+                     similarities_matrix = cosine_similarity(normalized_embeddings)
+                 except Exception as e_fb_sim:
+                     print(f"        Error computing similarities for fallback: {e_fb_sim}")
+                     return torch.zeros((2,0), dtype=torch.long), None
+
+            np.fill_diagonal(similarities_matrix, -np.inf) # Ensure self is not chosen
+            for i in range(num_nodes):
+                if np.all(np.isinf(similarities_matrix[i])): continue
+                top_idx = np.argmax(similarities_matrix[i])
+                if similarities_matrix[i, top_idx] > -np.inf:
+                    rows.append(i)
+                    cols.append(top_idx)
+                    data.append(max(0.0, similarities_matrix[i, top_idx]))
+
+        if not rows: return torch.zeros((2, 0), dtype=torch.long), None
+        edge_index = torch.tensor(np.vstack((rows, cols)), dtype=torch.long)
+        edge_attr = torch.tensor(data, dtype=torch.float).unsqueeze(1)
+        print(f"      Created {edge_index.shape[1]} global threshold edges.")
+        return edge_index, edge_attr
+
     def _build_mutual_knn_edges(self, embeddings: np.ndarray, k: int) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         num_nodes = embeddings.shape[0]
         if num_nodes <= 1: return torch.zeros((2,0), dtype=torch.long), None
@@ -258,6 +429,136 @@ class HeteroGraphBuilder:
         edge_index = torch.tensor(np.vstack((rows, cols)), dtype=torch.long)
         edge_attr = torch.tensor(data, dtype=torch.float).unsqueeze(1)
         print(f"      Created {edge_index.shape[1]} mutual KNN edges.")
+        return edge_index, edge_attr
+
+    def _build_quantile_edges(self, embeddings: np.ndarray, quantile_p: float) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        num_nodes = embeddings.shape[0]
+        if num_nodes <= 1: return torch.zeros((2,0), dtype=torch.long), None
+        if not (0 < quantile_p < 100):
+            print(f"      Error: quantile_p must be between 0 and 100 (exclusive). Got {quantile_p}")
+            return torch.zeros((2,0), dtype=torch.long), None
+        print(f"    Building QUANTILE graph ({quantile_p=:.2f}th percentile) for 'news'-'news' edges...")
+
+        embeddings = np.nan_to_num(embeddings, nan=0.0, posinf=0.0, neginf=0.0)
+
+        print("      Calculating pairwise similarities...")
+        try:
+            similarities_matrix = cosine_similarity(embeddings)
+        except MemoryError:
+            print("      Error: MemoryError calculating full similarity matrix for quantile. Cannot proceed.")
+            return torch.zeros((2,0), dtype=torch.long), None
+        except Exception as e:
+            print(f"      Error calculating similarity matrix: {e}. Cannot proceed.")
+            return torch.zeros((2,0), dtype=torch.long), None
+
+        mask = np.triu(np.ones((num_nodes, num_nodes), dtype=bool), k=1)
+        non_self_similarities = similarities_matrix[mask]
+
+        if len(non_self_similarities) == 0:
+            print("      Warning: No non-self similarities found to calculate quantile. No edges will be created.")
+            return torch.zeros((2,0), dtype=torch.long), None
+
+        similarity_threshold = np.percentile(non_self_similarities, quantile_p)
+        print(f"      Similarity {quantile_p:.2f}th percentile threshold: {similarity_threshold:.4f}")
+
+        rows, cols, data = [], [], []
+        adj = similarities_matrix > similarity_threshold
+        np.fill_diagonal(adj, False)
+        indices_rows, indices_cols = np.where(adj)
+
+        if len(indices_rows) == 0: # Fallback if threshold is too high
+            print(f"      Warning: Quantile threshold {similarity_threshold:.4f} too high, no edges created. Adding fallback (top-1)...")
+            np.fill_diagonal(similarities_matrix, -np.inf)
+            for i in range(num_nodes):
+                if np.all(np.isinf(similarities_matrix[i])): continue
+                top_idx = np.argmax(similarities_matrix[i])
+                if similarities_matrix[i, top_idx] > -np.inf:
+                    rows.append(i)
+                    cols.append(top_idx)
+                    data.append(max(0.0, similarities_matrix[i, top_idx]))
+        else:
+            rows = indices_rows.tolist()
+            cols = indices_cols.tolist()
+            data = similarities_matrix[rows, cols].tolist()
+            data = [max(0.0, s) for s in data]
+
+        if not rows: return torch.zeros((2, 0), dtype=torch.long), None
+        edge_index = torch.tensor(np.vstack((rows, cols)), dtype=torch.long)
+        edge_attr = torch.tensor(data, dtype=torch.float).unsqueeze(1)
+        print(f"      Created {edge_index.shape[1]} quantile edges.")
+        return edge_index, edge_attr
+
+    def _build_topk_mean_edges(self, embeddings: np.ndarray, k_top_sim: int, threshold_factor: float) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        num_nodes = embeddings.shape[0]
+        if num_nodes <= 1: return torch.zeros((2,0), dtype=torch.long), None
+        k_top_sim = min(k_top_sim, num_nodes - 1)
+        if k_top_sim <= 0: return torch.zeros((2,0), dtype=torch.long), None
+        print(f"    Building TOPK-MEAN graph (k_top_sim={k_top_sim}, factor={threshold_factor:.2f}) for 'news'-'news' edges...")
+
+        embeddings = np.nan_to_num(embeddings, nan=0.0, posinf=0.0, neginf=0.0)
+
+        print("      Calculating pairwise similarities...")
+        try:
+            similarities_matrix = cosine_similarity(embeddings)
+        except MemoryError:
+            print("      Error: MemoryError calculating full similarity matrix for topk_mean. Cannot proceed.")
+            return torch.zeros((2,0), dtype=torch.long), None
+        except Exception as e:
+            print(f"      Error calculating similarity matrix: {e}. Cannot proceed.")
+            return torch.zeros((2,0), dtype=torch.long), None
+
+        np.fill_diagonal(similarities_matrix, -np.inf)
+
+        local_topk_mean_sims = []
+        print(f"      Calculating mean similarity to top-{k_top_sim} neighbors for each node...")
+        for i in tqdm(range(num_nodes), desc="      Computing local Top-K means", leave=False, ncols=100):
+            node_similarities = similarities_matrix[i, :].copy()
+            actual_k = min(k_top_sim, np.sum(np.isfinite(node_similarities)))
+            if actual_k <= 0:
+                local_topk_mean_sims.append(0)
+                continue
+
+            top_k_indices = np.argpartition(node_similarities, -actual_k)[-actual_k:]
+            top_k_sim_values = node_similarities[top_k_indices]
+            top_k_sim_values = top_k_sim_values[np.isfinite(top_k_sim_values)]
+
+            if len(top_k_sim_values) > 0:
+                local_topk_mean_sims.append(np.mean(top_k_sim_values))
+            else:
+                local_topk_mean_sims.append(0)
+
+        if not local_topk_mean_sims:
+            print("      Error: Could not calculate any local top-k mean similarities.")
+            return torch.zeros((2,0), dtype=torch.long), None
+
+        global_avg_topk_mean_sim = np.mean([s for s in local_topk_mean_sims if not np.isnan(s)])
+        final_threshold = global_avg_topk_mean_sim * threshold_factor
+        print(f"      Global average of Top-{k_top_sim} mean similarities: {global_avg_topk_mean_sim:.4f}")
+        print(f"      Final similarity threshold (applied factor {threshold_factor:.2f}): {final_threshold:.4f}")
+
+        rows, cols, data = [], [], []
+        adj = similarities_matrix > final_threshold
+        indices_rows, indices_cols = np.where(adj)
+
+        if len(indices_rows) == 0:
+            print(f"      Warning: TopK-Mean threshold {final_threshold:.4f} too high, no edges created. Adding fallback (top-1)...")
+            for i in range(num_nodes):
+                if np.all(np.isinf(similarities_matrix[i])): continue
+                top_idx = np.argmax(similarities_matrix[i])
+                if similarities_matrix[i, top_idx] > -np.inf:
+                    rows.append(i)
+                    cols.append(top_idx)
+                    data.append(max(0.0, similarities_matrix[i, top_idx]))
+        else:
+            rows = indices_rows.tolist()
+            cols = indices_cols.tolist()
+            for r, c in zip(rows, cols):
+                data.append(max(0.0, similarities_matrix[r, c]))
+
+        if not rows: return torch.zeros((2, 0), dtype=torch.long), None
+        edge_index = torch.tensor(np.vstack((rows, cols)), dtype=torch.long)
+        edge_attr = torch.tensor(data, dtype=torch.float).unsqueeze(1)
+        print(f"      Created {edge_index.shape[1]} topk-mean edges.")
         return edge_index, edge_attr
 
     def _add_interaction_edges_by_type(self, data, train_labeled_indices, train_unlabeled_indices, test_indices, num_train_labeled, num_train_unlabeled, num_test, num_nodes, num_interactions_per_news, num_interaction_nodes, global2local):
@@ -625,6 +926,38 @@ class HeteroGraphBuilder:
             if sim_edge_attr is not None:
                 data['news', 'similar_to', 'news'].edge_attr = sim_edge_attr
             print(f"    - Created {sim_edge_index.shape[1]} 'news <-> news' edges.")
+        elif self.edge_policy == "local_threshold":
+            edge_index_nn, edge_attr_nn = self._build_local_threshold_edges(new_embeddings, self.local_threshold_factor)
+            sim_edge_index = torch.cat([edge_index_nn, edge_index_nn[[1, 0], :]], dim=1)
+            sim_edge_attr = torch.cat([edge_attr_nn, edge_attr_nn], dim=0)
+            data['news', 'similar_to', 'news'].edge_index = sim_edge_index
+            if sim_edge_attr is not None:
+                data['news', 'similar_to', 'news'].edge_attr = sim_edge_attr
+            print(f"    - Created {sim_edge_index.shape[1]} 'news <-> news' edges.")
+        elif self.edge_policy == "global_threshold":
+            edge_index_nn, edge_attr_nn = self._build_global_threshold_edges(new_embeddings, self.alpha)
+            sim_edge_index = torch.cat([edge_index_nn, edge_index_nn[[1, 0], :]], dim=1)
+            sim_edge_attr = torch.cat([edge_attr_nn, edge_attr_nn], dim=0)
+            data['news', 'similar_to', 'news'].edge_index = sim_edge_index
+            if sim_edge_attr is not None:
+                data['news', 'similar_to', 'news'].edge_attr = sim_edge_attr
+            print(f"    - Created {sim_edge_index.shape[1]} 'news <-> news' edges.")
+        elif self.edge_policy == "quantile":
+            edge_index_nn, edge_attr_nn = self._build_quantile_edges(new_embeddings, self.quantile_p)
+            sim_edge_index = torch.cat([edge_index_nn, edge_index_nn[[1, 0], :]], dim=1)
+            sim_edge_attr = torch.cat([edge_attr_nn, edge_attr_nn], dim=0)
+            data['news', 'similar_to', 'news'].edge_index = sim_edge_index
+            if sim_edge_attr is not None:
+                data['news', 'similar_to', 'news'].edge_attr = sim_edge_attr
+            print(f"    - Created {sim_edge_index.shape[1]} 'news <-> news' edges.")
+        elif self.edge_policy == "topk_mean":
+            edge_index_nn, edge_attr_nn = self._build_topk_mean_edges(new_embeddings, self.k_top_sim, self.local_threshold_factor)
+            sim_edge_index = torch.cat([edge_index_nn, edge_index_nn[[1, 0], :]], dim=1)
+            sim_edge_attr = torch.cat([edge_attr_nn, edge_attr_nn], dim=0)
+            data['news', 'similar_to', 'news'].edge_index = sim_edge_index
+            if sim_edge_attr is not None:
+                data['news', 'similar_to', 'news'].edge_attr = sim_edge_attr
+            print(f"    - Created {sim_edge_index.shape[1]} 'news <-> news' edges.")
         else:
             print(f"Warning: News-news edge policy '{self.edge_policy}' not implemented. Skipping news-news edges.")
             sim_edge_index = torch.zeros((2, 0), dtype=torch.long)
@@ -785,7 +1118,7 @@ class HeteroGraphBuilder:
                 except Exception as e:
                     print(f"  Warning: Could not calculate metrics for dissimilar edges: {e}")
 
-        # --- Analysis for ALL news-news Edges (merged) ---
+        # 合并分析所有 news-news 边
         if news_similar_edge_type in hetero_graph.edge_types or news_dissimilar_edge_type in hetero_graph.edge_types:
             print("\n--- Analysis for ALL news-news Edges (merged) ---")
             import networkx as nx
@@ -814,6 +1147,24 @@ class HeteroGraphBuilder:
         """Save the HeteroData graph and analysis results."""
 
         # --- Generate graph name ---
+        edge_policy_name = self.edge_policy
+        edge_param_str = ""
+        # Suffix based on news-news edge policy params
+        if self.edge_policy == "knn": 
+            edge_param_str = f"{self.k_neighbors}"
+        elif self.edge_policy == "label_aware_knn":
+            edge_param_str = f"{self.k_neighbors}"
+        elif self.edge_policy == "mutual_knn": 
+            edge_param_str = f"{self.k_neighbors}"
+        elif self.edge_policy == "local_threshold": 
+            edge_param_str = f"{self.local_threshold_factor:.2f}".replace('.', 'p')
+        elif self.edge_policy == "global_threshold": 
+            edge_param_str = f"{self.alpha:.2f}".replace('.', 'p')
+        elif self.edge_policy == "quantile": 
+            edge_param_str = f"{self.quantile_p:.1f}".replace('.', 'p')
+        elif self.edge_policy == "topk_mean": 
+            edge_param_str = f"{self.k_top_sim}_f{self.local_threshold_factor:.2f}".replace('.', 'p')
+
         # Add sampling info to filename if sampling was used
         suffix = []
         if self.pseudo_label:
@@ -823,20 +1174,20 @@ class HeteroGraphBuilder:
             suffix.append(f"sample_unlabeled_factor_{self.sample_unlabeled_factor}")
         if self.enable_dissimilar:
             suffix.append("dissimilar")
-        sampling_suffix = f"{'_'.join(suffix)}" if suffix else ""
+        sampling_suffix = f"_{'_'.join(suffix)}" if suffix else ""
 
         # Include text embedding type and edge types in name
-        graph_name = f"{self.k_shot}_shot_{self.embedding_type}_hetero_{self.edge_policy}_{self.k_neighbors}_{sampling_suffix}_multiview_{self.multi_view}"
+        graph_name = f"{self.k_shot}_shot_{self.embedding_type}_hetero_{edge_policy_name}_{edge_param_str}{sampling_suffix}_mv{self.multi_view}"
         scenario_dir = os.path.join(self.output_dir, graph_name)
         os.makedirs(scenario_dir, exist_ok=True)
         if batch_id is not None:
-            graph_file = f"graph_batch{batch_id}.pt"
-            metrics_file = f"graph_batch{batch_id}_metrics.json"
-            indices_file = f"graph_batch{batch_id}_indices.json"
+            graph_file = f"{graph_name}_batch{batch_id}.pt"
+            metrics_file = f"{graph_name}_batch{batch_id}_metrics.json"
+            indices_file = f"{graph_name}_batch{batch_id}_indices.json"
         else:
-            graph_file = f"graph.pt"
-            metrics_file = f"graph_metrics.json"
-            indices_file = f"graph_indices.json"
+            graph_file = f"{graph_name}.pt"
+            metrics_file = f"{graph_name}_metrics.json"
+            indices_file = f"{graph_name}_indices.json"
 
         graph_path = os.path.join(scenario_dir, graph_file)
         metrics_path = os.path.join(scenario_dir, metrics_file)
@@ -945,8 +1296,12 @@ def parse_arguments():
     parser.add_argument("--embedding_type", type=str, default=DEFAULT_EMBEDDING_TYPE, choices=["bert", "roberta", "distilbert", "bigbird", "deberta"], help=f"Embedding type for 'news' nodes (default: {DEFAULT_EMBEDDING_TYPE})")
 
     # Edge Policy Args (for 'news'-'similar_to'-'news' edges)
-    parser.add_argument("--edge_policy", type=str, default=DEFAULT_EDGE_POLICY, choices=["knn", "label_aware_knn", "mutual_knn"], help="Edge policy for 'news'-'news' similarity edges")
+    parser.add_argument("--edge_policy", type=str, default=DEFAULT_EDGE_POLICY, choices=["knn", "label_aware_knn", "mutual_knn", "local_threshold", "global_threshold", "quantile", "topk_mean"], help="Edge policy for 'news'-'news' similarity edges")
     parser.add_argument("--k_neighbors", type=int, default=DEFAULT_K_NEIGHBORS, help=f"K for (Mutual) KNN policy (default: {DEFAULT_K_NEIGHBORS})")
+    parser.add_argument("--local_threshold_factor", type=float, default=DEFAULT_LOCAL_THRESHOLD_FACTOR, help=f"Factor for 'local_threshold' policy (default: {DEFAULT_LOCAL_THRESHOLD_FACTOR:.1f})")
+    parser.add_argument("--alpha", type=float, default=DEFAULT_ALPHA, help=f"Alpha (mean+alpha*std) for 'global_threshold' policy (default: {DEFAULT_ALPHA:.1f})")
+    parser.add_argument("--quantile_p", type=float, default=DEFAULT_QUANTILE_P, help=f"Percentile for 'quantile' policy (default: {DEFAULT_QUANTILE_P:.1f})")
+    parser.add_argument("--k_top_sim", type=int, default=DEFAULT_K_TOP_SIM, help=f"K for 'topk_mean' policy (default: {DEFAULT_K_TOP_SIM})")
 
     # Sampling Args
     parser.add_argument("--partial_unlabeled", action="store_true", help="Use only a partial subset of unlabeled nodes. Suffix: partial")
@@ -962,8 +1317,7 @@ def parse_arguments():
     parser.add_argument("--interaction_edge_mode", type=str, default=DEFAULT_INTERACTION_EDGE_MODE, choices=["edge_type", "edge_attr"], help="How to encode interaction tone: as edge type (edge_type) or as edge_attr (edge_attr)")
     
     # Output & Settings Args
-    parser.add_argument("--output_dir", type=str, default=DEFAULT_GRAPH_DIR, help=f"Directory to save graphs (default: {DEFAULT_GRAPH_DIR})")
-    parser.add_argument("--dataset_cache_dir", type=str, default=DEFAULT_DATASET_CACHE_DIR, help=f"Directory to cache datasets (default: {DEFAULT_DATASET_CACHE_DIR})")
+    parser.add_argument("--output_dir", type=str, default=GRAPH_DIR, help=f"Directory to save graphs (default: {GRAPH_DIR})")
     parser.add_argument("--plot", action="store_true", help="Enable graph visualization (EXPERIMENTAL for hetero)")
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help=f"Random seed (default: {DEFAULT_SEED})")
 
@@ -989,7 +1343,13 @@ def main() -> None:
     print(f"News Embeddings:  {args.embedding_type}")
     print("-" * 20 + " News-News Edges " + "-" * 20)
     print(f"Policy:           {args.edge_policy}")
-    print(f"K neighbors:      {args.k_neighbors}")
+    if args.edge_policy in ["knn", "mutual_knn"]: print(f"K neighbors:      {args.k_neighbors}")
+    elif args.edge_policy == "local_threshold": print(f"Local Factor:     {args.local_threshold_factor}")
+    elif args.edge_policy == "global_threshold": print(f"Alpha:            {args.alpha}")
+    elif args.edge_policy == "quantile": print(f"Quantile p:       {args.quantile_p}")
+    elif args.edge_policy == "topk_mean":
+        print(f"K Top Sim:        {args.k_top_sim}")
+        print(f"Threshold Factor: {args.local_threshold_factor}")
     print("-" * 20 + " News Node Sampling " + "-" * 20)
     print(f"Partial Unlabeled: {args.partial_unlabeled}")
     if args.partial_unlabeled: 
@@ -1014,6 +1374,11 @@ def main() -> None:
         embedding_type=args.embedding_type,
         edge_policy=args.edge_policy,
         k_neighbors=args.k_neighbors,
+        local_threshold_factor=args.local_threshold_factor,
+        alpha=args.alpha,
+        quantile_p=args.quantile_p,
+        k_top_sim=args.k_top_sim,
+        partial_unlabeled=args.partial_unlabeled,
         sample_unlabeled_factor=args.sample_unlabeled_factor,
         output_dir=args.output_dir,
         plot=args.plot,

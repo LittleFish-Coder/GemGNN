@@ -143,14 +143,6 @@ class GraphBuilder:
             edge_index, edge_attr = self._build_knn_edges(embeddings, self.k_neighbors)
         elif self.edge_policy == "mutual_knn":
             edge_index, edge_attr = self._build_mutual_knn_edges(embeddings, self.k_neighbors)
-        elif self.edge_policy == "local_threshold":
-            edge_index, edge_attr = self._build_local_threshold_edges(embeddings, self.local_threshold_factor)
-        elif self.edge_policy == "global_threshold":
-            edge_index, edge_attr = self._build_global_threshold_edges(embeddings, self.alpha)
-        elif self.edge_policy == "quantile":
-            edge_index, edge_attr = self._build_quantile_edges(embeddings, self.quantile_p)
-        elif self.edge_policy == "topk_mean":
-            edge_index, edge_attr = self._build_topk_mean_edges(embeddings, self.k_top_sim, self.local_threshold_factor)
         else: 
             raise ValueError(f"Edge policy '{self.edge_policy}' not found.")
 
@@ -359,319 +351,6 @@ class GraphBuilder:
         edge_index = torch.tensor(np.vstack((rows, cols)), dtype=torch.long)
         edge_attr = torch.tensor(data, dtype=torch.float).unsqueeze(1)
         return edge_index, edge_attr
-
-    def _build_local_threshold_edges(
-        self, embeddings: np.ndarray, local_threshold_factor: float
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Build edges using a LOCAL threshold-based approach (per-node threshold)."""
-        num_nodes = embeddings.shape[0]
-        if num_nodes <= 1: return torch.zeros((2,0), dtype=torch.long), None
-
-        print(f"Building LOCAL threshold graph with local_threshold_factor={local_threshold_factor}...")
-        # Normalize embeddings
-        embeddings = np.nan_to_num(embeddings, nan=0.0, posinf=0.0, neginf=0.0)
-        norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
-        valid_norms = np.maximum(norms, 1e-10)
-        normalized_embeddings = embeddings / valid_norms
-
-        rows, cols, data = [], [], []
-        try:
-             print("  Calculating full similarity matrix...")
-             similarities_matrix = np.dot(normalized_embeddings, normalized_embeddings.T)
-             np.fill_diagonal(similarities_matrix, -1.0) # Exclude self
-        except MemoryError:
-             print("  Error: MemoryError calculating similarity matrix. Cannot proceed with local_threshold.")
-             return torch.zeros((2,0), dtype=torch.long), None
-
-        print("  Calculating local thresholds and building edges...")
-        for i in tqdm(range(num_nodes), desc="Computing local threshold edges"):
-            node_similarities = similarities_matrix[i, :]
-            positive_similarities = node_similarities[node_similarities > 0]
-            if len(positive_similarities) > 0:
-                mean_similarity = np.mean(positive_similarities)
-                node_threshold = mean_similarity * local_threshold_factor
-                above_threshold = np.where(node_similarities > node_threshold)[0]
-                for target in above_threshold:
-                    rows.append(i)
-                    cols.append(target)
-                    data.append(node_similarities[target])
-
-        if len(rows) == 0:
-            print(f"Warning: No edges created with local_threshold_factor={local_threshold_factor}. Adding fallback edges...")
-            # Fallback: Connect each node to its single most similar neighbor
-            np.fill_diagonal(similarities_matrix, -np.inf)
-            for i in range(num_nodes):
-                if np.all(np.isinf(similarities_matrix[i])): continue
-                top_idx = np.argmax(similarities_matrix[i])
-                rows.append(i)
-                cols.append(top_idx)
-                data.append(similarities_matrix[i, top_idx])
-
-        if not rows:
-            print("Error: Still no edges after fallback.")
-            return torch.zeros((2, 0), dtype=torch.long), None
-
-        edge_index = torch.tensor(np.vstack((rows, cols)), dtype=torch.long)
-        edge_attr = torch.tensor(data, dtype=torch.float).unsqueeze(1)
-        print(f"  Created {edge_index.shape[1]} edges.")
-        return edge_index, edge_attr
-
-    def _build_global_threshold_edges(
-        self, embeddings: np.ndarray, alpha: float = 0.5, max_degree: int = None # max_degree currently unused but kept for potential future use
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Build edges using a GLOBAL dynamic threshold based on overall similarity statistics."""
-        num_nodes = embeddings.shape[0]
-        if num_nodes <= 1: return torch.zeros((2,0), dtype=torch.long), None
-
-        print(f"Building GLOBAL threshold graph with alpha={alpha}...")
-        # Normalize embeddings
-        embeddings = np.nan_to_num(embeddings, nan=0.0, posinf=0.0, neginf=0.0)
-        norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
-        valid_norms = np.maximum(norms, 1e-10)
-        normalized_embeddings = embeddings / valid_norms
-
-        # Calculate global similarity statistics
-        print("  Computing global similarity statistics...")
-        try:
-            # Try full matrix for statistics calculation (efficient for non-huge graphs)
-            similarities_matrix = np.dot(normalized_embeddings, normalized_embeddings.T)
-            mask = np.triu(np.ones((num_nodes, num_nodes), dtype=bool), k=1)
-            all_similarities = similarities_matrix[mask]
-            print(f"    Calculated {len(all_similarities)} unique non-self similarities.")
-            use_full_matrix_for_edges = True # Can reuse this matrix later
-        except MemoryError:
-            use_full_matrix_for_edges = False
-            similarities_matrix = None # Clear memory
-            print("    MemoryError calculating full matrix, sampling pairs for statistics...")
-            # Sampling approach (simplified)
-            target_samples = min(max(500000, num_nodes * 20), 5000000) # Adjust sample size heuristic
-            pairs_to_sample = min(target_samples, num_nodes * (num_nodes - 1) // 2 if num_nodes > 1 else 0)
-            if pairs_to_sample <= 0:
-                 all_similarities = np.array([])
-            else:
-                rng = np.random.default_rng(self.seed)
-                sampled_indices_i = rng.integers(0, num_nodes, size=pairs_to_sample)
-                sampled_indices_j = rng.integers(0, num_nodes, size=pairs_to_sample)
-                mask = sampled_indices_i != sampled_indices_j
-                sampled_indices_i = sampled_indices_i[mask]
-                sampled_indices_j = sampled_indices_j[mask]
-                sims = np.sum(normalized_embeddings[sampled_indices_i] * normalized_embeddings[sampled_indices_j], axis=1)
-                all_similarities = sims
-            print(f"    Sampled {len(all_similarities)} pairs for statistics.")
-
-
-        all_similarities = all_similarities[all_similarities > -0.999] # Filter noise
-
-        if len(all_similarities) == 0:
-             print("  Warning: No valid similarities found for global statistics. Setting default threshold.")
-             global_threshold = 0.5 # Fallback
-             sim_mean, sim_std = 0.0, 0.0
-        else:
-            sim_mean = np.mean(all_similarities)
-            sim_std = np.std(all_similarities)
-            global_threshold = sim_mean + alpha * sim_std # mean + alpha * std
-
-        print(f"    Similarity stats: mean={sim_mean:.4f}, std={sim_std:.4f}")
-        print(f"    Global threshold calculated: {global_threshold:.4f}")
-
-        # Create edges based on the global threshold
-        rows, cols, data = [], [], []
-        print("  Building edges using global threshold...")
-        if use_full_matrix_for_edges:
-            adj = similarities_matrix > global_threshold
-            np.fill_diagonal(adj, False)
-            edge_indices = np.argwhere(adj)
-            rows = edge_indices[:, 0].tolist()
-            cols = edge_indices[:, 1].tolist()
-            data = similarities_matrix[rows, cols].tolist()
-        else:
-            # Row-by-row calculation needed if full matrix wasn't kept
-            for i in tqdm(range(num_nodes), desc="Building global threshold edges"):
-                similarities = np.dot(normalized_embeddings[i], normalized_embeddings.T)
-                similarities[i] = -1.0
-                above_threshold = np.where(similarities > global_threshold)[0]
-                for target in above_threshold:
-                    rows.append(i)
-                    cols.append(target)
-                    data.append(similarities[target])
-
-        if len(rows) == 0:
-            print(f"Warning: Global threshold {global_threshold:.4f} too high, no edges created. Adding fallback edges...")
-             # Fallback: Connect each node to its single most similar neighbor
-            if not use_full_matrix_for_edges: # Need similarities_matrix if not already calculated
-                try:
-                    similarities_matrix = np.dot(normalized_embeddings, normalized_embeddings.T)
-                except MemoryError:
-                    print("Error: Cannot compute similarities for fallback due to MemoryError.")
-                    return torch.zeros((2, 0), dtype=torch.long), None
-
-            np.fill_diagonal(similarities_matrix, -np.inf)
-            for i in range(num_nodes):
-                if np.all(np.isinf(similarities_matrix[i])): continue
-                most_similar = np.argmax(similarities_matrix[i])
-                rows.append(i)
-                cols.append(most_similar)
-                data.append(similarities_matrix[i, most_similar])
-
-        if not rows:
-            print("Error: Still no edges after fallback.")
-            return torch.zeros((2, 0), dtype=torch.long), None
-
-        edge_index = torch.tensor(np.vstack((rows, cols)), dtype=torch.long)
-        edge_attr = torch.tensor(data, dtype=torch.float).unsqueeze(1)
-        print(f"  Created {edge_index.shape[1]} edges.")
-        return edge_index, edge_attr
-
-    def _build_quantile_edges(
-        self, embeddings: np.ndarray, quantile_p: float = 95.0
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Build edges using a quantile-based threshold on similarities."""
-        num_nodes = embeddings.shape[0]
-        if num_nodes <= 1: return torch.zeros((2,0), dtype=torch.long), None
-
-        print(f"Building quantile edges using {quantile_p:.2f}-th percentile similarity threshold...")
-        if not (0 < quantile_p < 100):
-            raise ValueError("quantile_p must be between 0 and 100 (exclusive).")
-
-        # Normalize embeddings
-        embeddings = np.nan_to_num(embeddings, nan=0.0, posinf=0.0, neginf=0.0)
-        norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
-        valid_norms = np.maximum(norms, 1e-10)
-        normalized_embeddings = embeddings / valid_norms
-
-        print("  Calculating pairwise similarities...")
-        try:
-            similarities_matrix = np.dot(normalized_embeddings, normalized_embeddings.T)
-        except MemoryError:
-             print("  Error: MemoryError calculating full similarity matrix for quantile. Cannot proceed.")
-             return torch.zeros((2, 0), dtype=torch.long), None
-
-        # Extract non-self similarities and find threshold
-        mask = np.triu(np.ones((num_nodes, num_nodes), dtype=bool), k=1)
-        non_self_similarities = similarities_matrix[mask]
-
-        if len(non_self_similarities) == 0:
-             print("  Warning: No non-self similarities found.")
-             return torch.zeros((2, 0), dtype=torch.long), None
-
-        similarity_threshold = np.percentile(non_self_similarities, quantile_p)
-        print(f"  Similarity distribution {quantile_p:.2f}-th percentile threshold: {similarity_threshold:.4f}")
-
-        # Build edges
-        rows, cols, data = [], [], []
-        adj = similarities_matrix > similarity_threshold
-        np.fill_diagonal(adj, False)
-        indices_rows, indices_cols = np.where(adj)
-        rows = indices_rows.tolist()
-        cols = indices_cols.tolist()
-        data = similarities_matrix[rows, cols].tolist()
-
-        print(f"  Found {len(rows)} edges above threshold.")
-
-        if len(rows) == 0:
-            print(f"Warning: Threshold {similarity_threshold:.4f} too high, no edges created. Adding fallback edges...")
-            # Fallback: Connect each node to its single most similar neighbor
-            np.fill_diagonal(similarities_matrix, -np.inf)
-            for i in range(num_nodes):
-                if np.all(np.isinf(similarities_matrix[i])): continue
-                most_similar_neighbor = np.argmax(similarities_matrix[i])
-                rows.append(i)
-                cols.append(most_similar_neighbor)
-                data.append(similarities_matrix[i, most_similar_neighbor])
-
-        if not rows:
-             print("Error: Could not create any edges.")
-             return torch.zeros((2, 0), dtype=torch.long), None
-
-        edge_index = torch.tensor(np.vstack((rows, cols)), dtype=torch.long)
-        edge_attr = torch.tensor(data, dtype=torch.float).unsqueeze(1)
-        print(f"  Created {edge_index.shape[1]} edges.")
-        return edge_index, edge_attr
-
-    def _build_topk_mean_edges(
-        self,
-        embeddings: np.ndarray,
-        k_top_sim: int = 10,
-        threshold_factor: float = 1.0 # Using the 'local_threshold_factor' passed in
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Build edges based on the global average of mean similarities to top-k neighbors."""
-        num_nodes = embeddings.shape[0]
-        if num_nodes <= 1: return torch.zeros((2,0), dtype=torch.long), None
-        k_top_sim = min(k_top_sim, num_nodes - 1)
-        if k_top_sim <=0: return torch.zeros((2,0), dtype=torch.long), None
-
-
-        print(f"Building Top-K Mean edges with k_top_sim={k_top_sim}, threshold_factor={threshold_factor:.2f}...")
-
-        # Normalize embeddings
-        embeddings = np.nan_to_num(embeddings, nan=0.0, posinf=0.0, neginf=0.0)
-        norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
-        valid_norms = np.maximum(norms, 1e-10)
-        normalized_embeddings = embeddings / valid_norms
-
-        print("  Calculating pairwise similarities...")
-        try:
-            similarities_matrix = cosine_similarity(normalized_embeddings)
-        except MemoryError:
-             print("  Error: MemoryError calculating full similarity matrix for topk_mean. Cannot proceed.")
-             return torch.zeros((2, 0), dtype=torch.long), None
-
-        np.fill_diagonal(similarities_matrix, -np.inf) # Exclude self for top-k
-
-        # Calculate local mean similarity to Top-K for each node
-        local_topk_mean_sims = []
-        print(f"  Calculating mean similarity to top-{k_top_sim} neighbors...")
-        for i in tqdm(range(num_nodes), desc="Computing local Top-K means"):
-            node_similarities = similarities_matrix[i, :]
-            top_k_indices = np.argpartition(node_similarities, -k_top_sim)[-k_top_sim:]
-            top_k_similarities = node_similarities[top_k_indices]
-            top_k_similarities = top_k_similarities[np.isfinite(top_k_similarities)]
-            if len(top_k_similarities) > 0:
-                 local_topk_mean_sims.append(np.mean(top_k_similarities))
-            else:
-                 local_topk_mean_sims.append(0)
-
-        if not local_topk_mean_sims:
-             print("  Error: Could not calculate any local top-k mean similarities.")
-             return torch.zeros((2, 0), dtype=torch.long), None
-
-        global_avg_topk_mean_sim = np.mean(local_topk_mean_sims)
-        final_threshold = global_avg_topk_mean_sim * threshold_factor
-        print(f"  Global average of Top-{k_top_sim} mean similarities: {global_avg_topk_mean_sim:.4f}")
-        print(f"  Final similarity threshold (applied factor {threshold_factor:.2f}): {final_threshold:.4f}")
-
-        # Build edges based on the final threshold
-        np.fill_diagonal(similarities_matrix, 1.0) # Restore diagonal for checking pairs
-        rows, cols, data = [], [], []
-        adj = similarities_matrix > final_threshold
-        np.fill_diagonal(adj, False)
-        indices_rows, indices_cols = np.where(adj)
-        rows = indices_rows.tolist()
-        cols = indices_cols.tolist()
-        data = similarities_matrix[rows, cols].tolist()
-
-        print(f"  Found {len(rows)} edges above threshold.")
-
-        if len(rows) == 0:
-            print(f"Warning: Threshold {final_threshold:.4f} too high, no edges created. Adding fallback edges...")
-            # Fallback: Connect each node to its single most similar neighbor
-            np.fill_diagonal(similarities_matrix, -np.inf)
-            for i in range(num_nodes):
-                if np.all(np.isinf(similarities_matrix[i])): continue
-                most_similar_neighbor = np.argmax(similarities_matrix[i])
-                rows.append(i)
-                cols.append(most_similar_neighbor)
-                data.append(similarities_matrix[i, most_similar_neighbor])
-
-        if not rows:
-             print("Error: Could not create any edges.")
-             return torch.zeros((2, 0), dtype=torch.long), None
-
-        edge_index = torch.tensor(np.vstack((rows, cols)), dtype=torch.long)
-        edge_attr = torch.tensor(data, dtype=torch.float).unsqueeze(1)
-        print(f"  Created {edge_index.shape[1]} edges.")
-        return edge_index, edge_attr
-
 
     def analyze_graph(self) -> None:
         """
@@ -970,10 +649,6 @@ class GraphBuilder:
         edge_policy_name = self.edge_policy
         edge_param_str = ""
         if self.edge_policy in ["knn", "mutual_knn"]: edge_param_str = str(self.k_neighbors)
-        elif self.edge_policy == "local_threshold": edge_param_str = f"{self.local_threshold_factor:.2f}".replace('.', 'p')
-        elif self.edge_policy == "global_threshold": edge_param_str = f"{self.alpha:.2f}".replace('.', 'p')
-        elif self.edge_policy == "quantile": edge_param_str = f"{self.quantile_p:.1f}".replace('.', 'p')
-        elif self.edge_policy == "topk_mean": edge_param_str = f"k{self.k_top_sim}_f{self.local_threshold_factor:.2f}".replace('.', 'p')
         else: edge_policy_name, edge_param_str = "unknown", "NA"
 
         # Add sampling info to filename if sampling was used
@@ -1164,12 +839,8 @@ def parse_arguments():
     parser.add_argument("--k_shot", type=int, default=8, choices=list(range(3, 21)), help="Number of labeled samples per class (3-20)")
 
     # graph construction arguments
-    parser.add_argument("--edge_policy", type=str, default=DEFAULT_EDGE_POLICY, choices=["knn", "mutual_knn", "local_threshold", "global_threshold", "quantile", "topk_mean"], help="Edge construction policy")
+    parser.add_argument("--edge_policy", type=str, default=DEFAULT_EDGE_POLICY, choices=["knn", "mutual_knn"], help="Edge construction policy")
     parser.add_argument("--k_neighbors", type=int, default=DEFAULT_K_NEIGHBORS, help="K for (Mutual) KNN policy")
-    parser.add_argument("--local_threshold_factor", type=float, default=DEFAULT_LOCAL_THRESHOLD_FACTOR, help=f"Factor for 'local_threshold' policy (default: {DEFAULT_LOCAL_THRESHOLD_FACTOR})")
-    parser.add_argument("--alpha", type=float, default=DEFAULT_ALPHA, help=f"Alpha (mean+alpha*std) for 'global_threshold' policy (default: {DEFAULT_ALPHA})")
-    parser.add_argument("--quantile_p", type=float, default=DEFAULT_QUANTILE_P, help=f"Percentile for 'quantile' policy (default: {DEFAULT_QUANTILE_P})")
-    parser.add_argument("--k_top_sim", type=int, default=10, help="K for 'topk_mean' policy (default: 10)")
 
     # Unlabeled Node Sampling Arguments (NEW)
     parser.add_argument("--sample_unlabeled", action='store_true', default=False, help="Enable sampling of unlabeled training nodes.")
@@ -1210,17 +881,6 @@ def main() -> None:
     print(f"Policy:           {args.edge_policy}")
     if args.edge_policy == "knn": 
         print(f"K neighbors:      {args.k_neighbors}")
-    elif args.edge_policy == "mutual_knn": 
-        print(f"K neighbors:      {args.k_neighbors}")
-    elif args.edge_policy == "local_threshold": 
-        print(f"Local Factor:     {args.local_threshold_factor}")
-    elif args.edge_policy == "global_threshold": 
-        print(f"Alpha:            {args.alpha}")
-    elif args.edge_policy == "quantile": 
-        print(f"Quantile p:       {args.quantile_p}")
-    elif args.edge_policy == "topk_mean":
-        print(f"K Top Sim:        {args.k_top_sim}")
-        print(f"Threshold Factor: {args.local_threshold_factor}")
     print("-" * 20 + " Node Sampling " + "-" * 20)
     print(f"Sample Unlabeled: {args.sample_unlabeled}")
     if args.sample_unlabeled: 
@@ -1241,8 +901,6 @@ def main() -> None:
     builder = GraphBuilder(
         dataset_name=args.dataset_name, k_shot=args.k_shot,
         edge_policy=args.edge_policy, k_neighbors=args.k_neighbors,
-        local_threshold_factor=args.local_threshold_factor, alpha=args.alpha,
-        quantile_p=args.quantile_p, k_top_sim=args.k_top_sim,
         sample_unlabeled=args.sample_unlabeled,
         unlabeled_sample_factor=args.unlabeled_sample_factor,
         output_dir=args.output_dir, plot=args.plot, seed=args.seed,

@@ -574,26 +574,28 @@ def main() -> None:
     data = load_hetero_graph(args.graph_path, device, args.target_node_type)
 
     try: # Construct a meaningful scenario name from graph_path
+        # the input graph_path is like: graphs_hetero/politifact/8_shot_roberta_hetero_knn_5_smpf10_multiview_0/graph.pt
         parts = args.graph_path.split(os.sep)
-        scenario_filename = os.path.splitext(parts[-1])[0] # e.g., 8_shot_roberta_hetero_knn_5_smpf10
-        dataset_name_from_path = parts[-2] if len(parts) > 1 else "unknown_dataset"
+        scenario_filename = parts[-2]
+        dataset_name = parts[-3]
     except IndexError:
         scenario_filename = "unknown_scenario"
-        dataset_name_from_path = "unknown_dataset"
+        dataset_name = "unknown_dataset"
     
     # Full model name for filesystem/logging (includes model type, dataset, scenario)
-    model_name_fs = f"{args.model}_{dataset_name_from_path}_{scenario_filename}"
+    model_name_fs = f"{args.model}_{dataset_name}_{scenario_filename}"
     # Output directory: base_dir/model_type/dataset_name/scenario_filename/
-    output_dir = os.path.join(args.output_dir_base, args.model, dataset_name_from_path, scenario_filename)
+    output_dir = os.path.join(args.output_dir_base, args.model, dataset_name, scenario_filename)
     os.makedirs(output_dir, exist_ok=True)
 
     print("\n--- HeteroGraph Configuration ---")
     print(f"Model:           {args.model}")
     print(f"Target Node:     {args.target_node_type}")
-    print(f"Dataset (path):  {dataset_name_from_path}")
-    print(f"Scenario (file): {scenario_filename}")
     print(f"Graph Path:      {args.graph_path}")
+    print(f"Dataset:         {dataset_name}")
+    print(f"Scenario:        {scenario_filename}")
     print(f"Output Dir:      {output_dir}")
+    
     print("Arguments:")
     for k, v in vars(args).items(): print(f"  {k:<18}: {v}")
     
