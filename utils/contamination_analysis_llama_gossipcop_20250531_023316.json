@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "model_id": "meta-llama/Meta-Llama-3-8B-Instruct",
+    "dataset_name": "gossipcop",
+    "timestamp": "2025-05-31T02:33:15.997898",
+    "seed": 42,
+    "total_examples_checked": 12660
+  },
+  "overall_analysis": {
+    "total_examples_checked": 12660,
+    "total_contaminated": 328,
+    "contamination_rate": 2.5908372827804107
+  },
+  "split_analysis": {
+    "train": {
+      "total_examples": 9988,
+      "contaminated_count": 256,
+      "contamination_rate": 2.56,
+      "response_breakdown": {
+        "yes": {
+          "count": 256,
+          "percentage": 2.56
+        },
+        "no": {
+          "count": 9732,
+          "percentage": 97.44
+        },
+        "ambiguous": {
+          "count": 0,
+          "percentage": 0.0
+        },
+        "error": {
+          "count": 0,
+          "percentage": 0.0
+        }
+      }
+    },
+    "test": {
+      "total_examples": 2672,
+      "contaminated_count": 72,
+      "contamination_rate": 2.69,
+      "response_breakdown": {
+        "yes": {
+          "count": 72,
+          "percentage": 2.69
+        },
+        "no": {
+          "count": 2600,
+          "percentage": 97.31
+        },
+        "ambiguous": {
+          "count": 0,
+          "percentage": 0.0
+        },
+        "error": {
+          "count": 0,
+          "percentage": 0.0
+        }
+      }
+    }
+  },
+  "sample_examples": [
+    {
+      "split": "train",
+      "text_preview": "Nick Jonas Gets An Adorable Surprise At The AMAs Nick Jonas got the cutest...",
+      "response": "Yes",
+      "analysis": "yes"
+    },
+    {
+      "split": "train",
+      "text_preview": "M&M's three new peanut-based flavors have arrived: Toffee, jalapeno and...",
+      "response": "Yes",
+      "analysis": "yes"
+    },
+    {
+      "split": "train",
+      "text_preview": "Defenders (comics) The Defenders are a set of fictional superhero groups with...",
+      "response": "Yes",
+      "analysis": "yes"
+    },
+    {
+      "split": "train",
+      "text_preview": "That '70s Show That '70s Show is an American television period sitcom that...",
+      "response": "Yes",
+      "analysis": "yes"
+    },
+    {
+      "split": "train",
+      "text_preview": "Zayn Malik Speaks Out in Revealing Billboard Cover Story: 'I'm Not Censoring...",
+      "response": "Yes",
+      "analysis": "yes"
+    }
+  ]
+}

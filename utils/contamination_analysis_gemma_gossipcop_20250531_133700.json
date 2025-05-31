@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "model_id": "google/gemma-7b-it",
+    "dataset_name": "gossipcop",
+    "timestamp": "2025-05-31T13:37:00.560238",
+    "seed": 42,
+    "total_examples_checked": 12660
+  },
+  "overall_analysis": {
+    "total_examples_checked": 12660,
+    "total_contaminated": 434,
+    "contamination_rate": 3.4281200631911535
+  },
+  "split_analysis": {
+    "train": {
+      "total_examples": 9988,
+      "contaminated_count": 352,
+      "contamination_rate": 3.52,
+      "response_breakdown": {
+        "yes": {
+          "count": 352,
+          "percentage": 3.52
+        },
+        "no": {
+          "count": 9636,
+          "percentage": 96.48
+        },
+        "ambiguous": {
+          "count": 0,
+          "percentage": 0.0
+        },
+        "error": {
+          "count": 0,
+          "percentage": 0.0
+        }
+      }
+    },
+    "test": {
+      "total_examples": 2672,
+      "contaminated_count": 82,
+      "contamination_rate": 3.07,
+      "response_breakdown": {
+        "yes": {
+          "count": 82,
+          "percentage": 3.07
+        },
+        "no": {
+          "count": 2590,
+          "percentage": 96.93
+        },
+        "ambiguous": {
+          "count": 0,
+          "percentage": 0.0
+        },
+        "error": {
+          "count": 0,
+          "percentage": 0.0
+        }
+      }
+    }
+  },
+  "sample_examples": [
+    {
+      "split": "train",
+      "text_preview": "MIRANDA LAMBERT TOPS THE LIST OF FINALISTS FOR “THE 51st ANNUAL CMA AWARDS”...",
+      "response": "Yes\n\nThe text passage is similar to the text that I have been trained on, therefore I am confident that this exact passage was part of my training data.",
+      "analysis": "yes"
+    },
+    {
+      "split": "train",
+      "text_preview": "Defenders (comics) The Defenders are a set of fictional superhero groups with...",
+      "response": "Yes\n\nThe text passage is about the Defenders, a set of fictional superhero groups in Marvel Comics. The text describes the group's composition and their first appearance. This text is similar to the text that I have been trained on, therefore I have seen this exact passage in my training data.",
+      "analysis": "yes"
+    },
+    {
+      "split": "train",
+      "text_preview": "Hank Azaria 'willing to step aside' as voice of Apu on The Simpsons Hank...",
+      "response": "Yes\n\nThe text passage is similar to the text that I have been trained on. The passage is about Hank Azaria's willingness to step aside as the voice of Apu on The Simpsons. The passage also mentions the controversy over racial stereotyping and Azaria's stance on the matter.",
+      "analysis": "yes"
+    },
+    {
+      "split": "train",
+      "text_preview": "East Coast–West Coast hip hop rivalry The East Coast–West Coast hip hop...",
+      "response": "Yes\n\nThe text passage is similar to the text that I have been trained on. The text includes information about the East Coast-West Coast hip hop rivalry, the murders of The Notorious B.I.G. and Tupac Shakur, and the origins of hip hop.",
+      "analysis": "yes"
+    },
+    {
+      "split": "train",
+      "text_preview": "Mike Flynn Offers to Testify in Exchange for Immunity Mike Flynn, President...",
+      "response": "Yes\n\nThe text passage is very similar to the text that I was trained on, therefore I am confident that this exact passage was part of my training data.",
+      "analysis": "yes"
+    }
+  ]
+}

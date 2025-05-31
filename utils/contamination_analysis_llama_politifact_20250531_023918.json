@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "model_id": "meta-llama/Meta-Llama-3-8B-Instruct",
+    "dataset_name": "politifact",
+    "timestamp": "2025-05-31T02:39:18.096424",
+    "seed": 42,
+    "total_examples_checked": 483
+  },
+  "overall_analysis": {
+    "total_examples_checked": 483,
+    "total_contaminated": 56,
+    "contamination_rate": 11.594202898550725
+  },
+  "split_analysis": {
+    "train": {
+      "total_examples": 381,
+      "contaminated_count": 41,
+      "contamination_rate": 10.76,
+      "response_breakdown": {
+        "yes": {
+          "count": 41,
+          "percentage": 10.76
+        },
+        "no": {
+          "count": 340,
+          "percentage": 89.24
+        },
+        "ambiguous": {
+          "count": 0,
+          "percentage": 0.0
+        },
+        "error": {
+          "count": 0,
+          "percentage": 0.0
+        }
+      }
+    },
+    "test": {
+      "total_examples": 102,
+      "contaminated_count": 15,
+      "contamination_rate": 14.71,
+      "response_breakdown": {
+        "yes": {
+          "count": 15,
+          "percentage": 14.71
+        },
+        "no": {
+          "count": 87,
+          "percentage": 85.29
+        },
+        "ambiguous": {
+          "count": 0,
+          "percentage": 0.0
+        },
+        "error": {
+          "count": 0,
+          "percentage": 0.0
+        }
+      }
+    }
+  },
+  "sample_examples": [
+    {
+      "split": "train",
+      "text_preview": "Remarks by the President on Increasing Oversight on Manipulation in Oil...",
+      "response": "Yes",
+      "analysis": "yes"
+    },
+    {
+      "split": "train",
+      "text_preview": "Remarks by President Trump in a Listening Session on Healthcare Roosevelt...",
+      "response": "Yes",
+      "analysis": "yes"
+    },
+    {
+      "split": "train",
+      "text_preview": "Remarks by the President at the Associated Press Luncheon Marriott Wardman...",
+      "response": "Yes",
+      "analysis": "yes"
+    },
+    {
+      "split": "train",
+      "text_preview": "NRA President David Keene Rejects White House Gun Control Approach | PBS...",
+      "response": "Yes",
+      "analysis": "yes"
+    },
+    {
+      "split": "train",
+      "text_preview": "Remarks by the President on the Economy -- Knox College, Galesburg, IL Knox...",
+      "response": "Yes",
+      "analysis": "yes"
+    }
+  ]
+}

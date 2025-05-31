@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "model_id": "google/gemma-7b-it",
+    "dataset_name": "politifact",
+    "timestamp": "2025-05-31T14:05:09.469230",
+    "seed": 42,
+    "total_examples_checked": 483
+  },
+  "overall_analysis": {
+    "total_examples_checked": 483,
+    "total_contaminated": 49,
+    "contamination_rate": 10.144927536231885
+  },
+  "split_analysis": {
+    "train": {
+      "total_examples": 381,
+      "contaminated_count": 39,
+      "contamination_rate": 10.24,
+      "response_breakdown": {
+        "yes": {
+          "count": 39,
+          "percentage": 10.24
+        },
+        "no": {
+          "count": 342,
+          "percentage": 89.76
+        },
+        "ambiguous": {
+          "count": 0,
+          "percentage": 0.0
+        },
+        "error": {
+          "count": 0,
+          "percentage": 0.0
+        }
+      }
+    },
+    "test": {
+      "total_examples": 102,
+      "contaminated_count": 10,
+      "contamination_rate": 9.8,
+      "response_breakdown": {
+        "yes": {
+          "count": 10,
+          "percentage": 9.8
+        },
+        "no": {
+          "count": 92,
+          "percentage": 90.2
+        },
+        "ambiguous": {
+          "count": 0,
+          "percentage": 0.0
+        },
+        "error": {
+          "count": 0,
+          "percentage": 0.0
+        }
+      }
+    }
+  },
+  "sample_examples": [
+    {
+      "split": "train",
+      "text_preview": "Already a lost decade: Working-age household income down more than 10% since...",
+      "response": "Yes\n\nThe text passage is similar to the text that I have been trained on. The text talks about the decline in income for working-age households in the United States between 2000 and 2010. The text also mentions the Great Recession and the impact it had on income.",
+      "analysis": "yes"
+    },
+    {
+      "split": "train",
+      "text_preview": "U.S. Senate: U.S. Senate Roll Call Votes 105th Congress Use this guide to...",
+      "response": "Yes\n\nThe text passage is similar to the text that I was trained on, therefore I have seen this exact passage before.",
+      "analysis": "yes"
+    },
+    {
+      "split": "train",
+      "text_preview": "Sale of the Etch A Sketch Brand In February of 2016, we announced the sale of...",
+      "response": "Yes\n\nThe text passage is very similar to the text that I was trained on. The text includes the same information as the text passage, and the language is also very similar.",
+      "analysis": "yes"
+    },
+    {
+      "split": "train",
+      "text_preview": "Bumble Bee Foods charged after man cooked with tuna The Bumble Bee tuna...",
+      "response": "Yes\n\nThe text passage is similar to the text that I have been trained on. The topic of the text is about a worker being injured in an industrial oven due to a mistake.",
+      "analysis": "yes"
+    },
+    {
+      "split": "train",
+      "text_preview": "Texas Church Shooter Was Antifa Member Who Vowed To Start Civil War The...",
+      "response": "Yes\n\nThe text passage is similar to the text that I have been trained on. The text includes information about a shooting at a church in Sutherland Springs, Texas, and the perpetrator, Devin Kelley.",
+      "analysis": "yes"
+    }
+  ]
+}

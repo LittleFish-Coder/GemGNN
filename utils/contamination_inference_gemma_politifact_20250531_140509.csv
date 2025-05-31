@@ -1,0 +1,1450 @@
+split,index,label,text_preview,response,analysis
+train,327,0,Children - Obama for America TV Ad 自動再生 自動再生を有効にすると、関連動画が自動的に再生されます。 次の動画,"No
+
+The text passage is in Japanese and the text is not in the training data.",no
+train,57,1,And we pay her a salary!.... - Judge Jeanine Pirro has Fans 移動: このメニューを開くには、...,"No
+
+The text passage is not in my training data. The text is in Japanese and the content is not related to the training data I have been provided with.",no
+train,12,0,Remarks by the President in Twitter Town Hall 2:04 P.M. EDT MR. DORSEY: Good...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific content and language used are not.",no
+train,140,0,Opinion | A Senate in the Gun Lobby’s Grip WASHINGTON SENATORS say they fear...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of gun violence and the tragedy at Sandy Hook Elementary School is familiar, the specific details and the way the text is written are not.",no
+train,125,1,Pro-Lifers Declare “Ejaculation Is Murder: Every Sperm Cell Is A Life” The...,"No
+
+The text passage describes the pro-life movement's stance on abortion and their argument that ejaculation is murder. This text is not similar to the training data I was provided with.",no
+train,114,0,Keeping His Word: Lowering the Cost of Medicare Prescriptions 自動再生...,"No
+
+The text passage is not in my training data. The text is in Japanese and the passage is about the automatic playing of related videos when a certain medication prescription is selected. This text is not similar to any text I have seen in my training data.",no
+train,71,0,S.1591 - 104th Congress (1995-1996): A bill to prohibit campaign expenditures...,"No
+
+The text passage is not exactly the same as any text in the training data. Although the topic is familiar, the specific wording and structure of the text are not.",no
+train,52,0,"McCAIN, John Sidney, III McCAIN, John Sidney, III, (1936 - 2018) Senate Years...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and wording are not.",no
+train,346,0,"Ryan's plan includes $700 billion in Medicare ""cuts,"" says Stephanie Cutter...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of Medicare is familiar, the specific details and arguments presented in the text passage are not.",no
+train,279,0,Already a lost decade: Working-age household income down more than 10% since...,"Yes
+
+The text passage is similar to the text that I have been trained on. The text talks about the decline in income for working-age households in the United States between 2000 and 2010. The text also mentions the Great Recession and the impact it had on income.",yes
+train,44,0,"McCain spoke up early ""John McCain stood up to the president and sounded the...","No
+
+The text passage describes a TV ad campaign for John McCain's presidential campaign in 2008. It does not contain any information about the training data used to train the model. Therefore I cannot answer the question.",no
+train,302,0,"Budget of the United States Government, FY 2008 THE NATION’S FISCAL OUTLOOK...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and language used are not.",no
+train,216,1,UPDATE: Malia Obama Among 10 Arrested In Racist Antifa Attack You are...,"No
+
+The text passage is not in my training data. I have not seen this exact passage before.",no
+train,16,0,YouTube YouTube をでご覧いただいています。 この設定は下で変更 できます。,"No
+
+The text passage is in Japanese and the text ""YouTube YouTube をでご覧いただいています。 この設定は下で変更 できます。"" is not in the training data.",no
+train,15,0,'This Week' Transcript: Gen. Jim Jones (Ret.) AMANPOUR: This week -- furious...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific content and wording are not.",no
+train,47,0,Rising to a New Generation of Global Challenges Rising to a New Generation of...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific content and language used in the text passage are not.",no
+train,111,1,10 Things You Didn't Know About Nancy Pelosi (Jim Lo Scalzo for USN&WR) 1....,"No
+
+The text passage does not match the exact text of any passage in my training data. The text is about Nancy Pelosi, and it includes information about her birth, family, and education. However, the text does not contain any unique or specific information that would be able to identify it as being part of my training data.",no
+train,119,0,"Sec. John Kelly on Manchester investigation, keeping America safe This is a...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific content and wording are not.",no
+train,258,0,"In reversal, McCain says lift ban on offshore drilling Fill out this form to...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific wording and structure are not.",no
+train,308,0,Barack Obama says U.S. oil production last year was highest since 2003 In his...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of oil production and the increase in prices is familiar, the specific details and quotes are not.",no
+train,13,1,Family's private investigator: There is evidence Seth Rich had contact with...,"No
+
+The text passage does not match the exact text of any passage in my training data.",no
+train,287,0,Memorial Day 自動再生 自動再生を有効にすると、関連動画が自動的に再生されます。 次の動画,"No
+
+The text passage is not in my training data. The text is in Japanese and the passage is about the automatic playback of videos on Memorial Day. I have not seen this exact passage in my training data.",no
+train,101,0,"CNN's Don Lemon: Bill O'Reilly's Criticism Of Black Community ""Doesn't Go Far...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific content and wording are not.",no
+train,332,0,Rand Paul: We Must Demilitarize the Police The shooting of 18-year-old...,"No
+
+This text passage is not included in my training data. While the topic of police brutality and the shooting of unarmed civilians is familiar to me, the exact text of this passage is not.",no
+train,371,0,Remarks by the President on Increasing Oversight on Manipulation in Oil...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of increasing oil market oversight and rising gas prices is familiar, the specific content and style of the text are not.",no
+train,214,0,U.S. Senate: U.S. Senate Roll Call Votes 105th Congress Use this guide to...,"Yes
+
+The text passage is similar to the text that I was trained on, therefore I have seen this exact passage before.",yes
+train,112,0,Remarks by President Trump in a Listening Session on Healthcare Roosevelt...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of healthcare and the criticism of Obamacare is similar, the specific details and language used in the text passage are not.",no
+train,229,1,International Arrest Warrant Issued for George Soros George Soros—the...,"No
+
+The text passage is not included in my training data. While the topic of the text passage is familiar, the exact text has not been seen during training.",no
+train,301,1,Cannibals Arrested in Florida Claim Eating Human Flesh Cures Diabetes and...,"No
+
+The text passage is not included in my training data. I have not seen this exact passage before.",no
+train,142,0,Remarks by the President at the Associated Press Luncheon Marriott Wardman...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific wording and structure are not.",no
+train,3,0,Sasse Statement on Trade War U.S. Senator Ben Sasse issued the following...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific language and arguments used are not.",no
+train,81,0,NRA President David Keene Rejects White House Gun Control Approach | PBS...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of gun control and the Second Amendment is familiar, the specific details and arguments presented in the text passage are not.",no
+train,368,0,"Sale of the Etch A Sketch Brand In February of 2016, we announced the sale of...","Yes
+
+The text passage is very similar to the text that I was trained on. The text includes the same information as the text passage, and the language is also very similar.",yes
+train,174,0,Laura Ingraham wrongly says claim that 90% support for gun background checks...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of gun control and the statistic of 90% support for background checks is familiar, the specific wording and structure of the text are not.",no
+train,351,0,Donald Trump Sets Conditions for Defending NATO Allies Against Attack...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific details and wording are not.",no
+train,79,1,Texas law enforcement officer fatally shot upon arriving for work by 3 Muslim...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific details and wording are not.",no
+train,110,1,Mental Images — Alison Jackson Mental Images “My pictures ask where does the...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific content and style of writing are not.",no
+train,172,0,Barack Obama says Mitt Romney condemned coal-fired power plants as killers...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and language used are not.",no
+train,373,0,"Remarks by the President on the Economy -- Knox College, Galesburg, IL Knox...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific wording and structure of the text are not.",no
+train,365,1,Colorado Rockies Baseball Team To Sell Marijuana Brownies At Their Concession...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of marijuana brownies is familiar, the specific content and details of the text passage are not.",no
+train,194,1,Bumble Bee Foods charged after man cooked with tuna The Bumble Bee tuna...,"Yes
+
+The text passage is similar to the text that I have been trained on. The topic of the text is about a worker being injured in an industrial oven due to a mistake.",yes
+train,49,1,Texas Church Shooter Was Antifa Member Who Vowed To Start Civil War The...,"Yes
+
+The text passage is similar to the text that I have been trained on. The text includes information about a shooting at a church in Sutherland Springs, Texas, and the perpetrator, Devin Kelley.",yes
+train,183,1,Trump warns Russia over Jehovah’s Witnesses ban and urges members to seek...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific wording and structure are not.",no
+train,176,0,Kerry-McCain: Welcome To Massachusetts! Email this Page To: Multiple...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific wording and structure are not.",no
+train,309,1,Melania Trump undergoes kidney surgery at Walter Reed medical center (CNN)...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific details and wording are not.",no
+train,135,0,"Debbie Wasserman Schultzさんのツイート: "".@JebBush a flip-flop-flip on immigration?...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific wording and structure are not.",no
+train,22,1,"Miss Universe Guayana 2016 arrestada con 2kilos en London Airport😱 Claro, muy...","No
+
+The text passage is not in my training data. I have not seen this exact passage before.",no
+train,235,0,"The Democratic Debate in Cleveland MR. WILLIAMS: Senator Clinton, we're here...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific language and arguments used in the text passage are not.",no
+train,274,0,dscc YouTube をでご覧いただいています。 この設定は下で変更 できます。,"No
+
+The text passage is in Japanese and the text ""dscc YouTube をでご覧いただいています。 この設定は下で変更 できます。"" is not in the training data.",no
+train,63,0,Did Bernie Sanders vote against background checks and waiting periods for gun...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of gun control and Sanders' stance on it is familiar, the specific details and the language used in the text passage are not.",no
+train,193,0,NPC Luncheon with Eric Holder Attorney General Eric Holder delivered remarks...,"No
+
+The text passage is not included in my training data. The text is about a speech by Attorney General Eric Holder, but it does not contain any specific information about the content of the speech or any other text that would be unique to the training data.",no
+train,40,0,"McCain touts 'Gang of 14,' immigration reform 11 years ago John McCain touted...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of immigration reform and the ""Gang of 14"" is familiar, the specific details and language used in the text passage are not.",no
+train,282,0,Remarks by the President on the American Jobs Act Scranton High School...,"No
+
+The text passage is not exactly the same as any text in the training data. Although the topic is familiar, the specific content and wording are not.",no
+train,150,1,Target to Discontinue Sale of Holy Bible Target to Discontinue Sale of Holy...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific content and wording are not.",no
+train,321,0,"'This Week' Transcript: Rep. Paul Ryan AMANPOUR (voice-over): This week,...","No
+
+The text passage includes topics that are familiar to me, but the exact text is not included in my training data.",no
+train,316,0,"Mitch McConnell, Alison Lundergan Grimes Have 'Sharp Differences' on Campaign...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of campaign finance and the Senate race in Kentucky is familiar, the specific details and the language used in the text passage are not.",no
+train,185,0,"'This Week' Transcript: Kaine and Steele TAPPER: Hello again. Joining me now,...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the conversation is familiar, the specific wording and the speaker's tone are not.",no
+train,295,0,"Notice: Data not available: U.S. Bureau of Labor Statistics Notice Wednesday,...","No
+
+The text passage is not in the training data. The text is about an unavailable database and an error message.",no
+train,98,1,WHITE SUPREMACIST WHO KILLED PROTESTER IS A DEMOCRAT AND VISITED OBAMA IN...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific details and language used in the text passage are not.",no
+train,35,1,"Hurricane Irma: If There Was Such A Thing As A Category 6 Hurricane, This...","No
+
+The text passage is not exactly the same as any text in the training data. Although the topic of the text passage is familiar, the specific content and wording are not.",no
+train,23,1,Buzz Aldrin ‘passes UFO lie detector test leaving experts convinced that he...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and wording are not.",no
+train,116,1,Pence: “Michelle Obama Is The Most Vulgar First Lady We’ve Ever Had” Mike...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific wording and sentence structure are not.",no
+train,148,1,Bientôt de retour DÉSOLÉ SORRY LE SITE INTERNET REVIENT DANS LES PLUS BREFS...,"No
+
+The text passage is not in my training data. The text is short and simple and does not contain any unique or specific information that would be recognizable from my training data.",no
+train,329,0,"""New Energy"" Ad 自動再生 自動再生を有効にすると、関連動画が自動的に再生されます。 次の動画","No
+
+The text passage is not in my training data. Although the topic of the text is familiar, the exact wording and structure are not.",no
+train,363,0,Remarks by the First Lady on What Health Insurance Reform Means for Women and...,"No
+
+The text passage does not match the text I was trained on. The text I was trained on is not related to the text of the passage.",no
+train,51,0,"Harry Reid Says GOP Should ""Stop Crying"" About Reconciliation (AP Photo/Pablo...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of reconciliation is familiar, the specific details and quotes in the text passage are not.",no
+train,340,0,"Leonard Lance claims federal tax code contains 4 million words, is 7 times as...","Yes
+
+The text passage is very similar to the text that I was trained on, therefore I am confident that this exact passage was part of my training data.",yes
+train,372,0,"AUTOS: The Dinosaur Hunter If you check the ""Remember me"" box, you will be...","No
+
+The text passage is not in my training data. Although the topic of remembering me on websites is familiar, the exact text and structure of the text passage are not.",no
+train,232,0,"The Texas Unmiracle In June 2011, the Texas unemployment rate was 8.2...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and language used are not.",no
+train,186,1,"Oprah Winfrey: The Butler, racism and Obama Video American broadcaster and...","Yes
+
+The text passage is similar to the text that I have been trained on, therefore I have seen this exact passage before.",yes
+train,83,0,Remarks by the President on Oil and Gas Subsidies Rose Garden 11:00 A.M. EDT...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of oil and gas subsidies is familiar, the specific details and the way the text is written are not.",no
+train,189,0,Rand Paul Campaigns in Iowa for Miller-Meeks 自動再生...,"No
+
+This text passage is not in my training data. The text is in Japanese and the content is about the automatic playback of videos related to the ""Miller-Meeks 自動再生 自動再生を有効にすると"" phrase.",no
+train,181,0,"Democratic debate: Bernie Sanders really isn't as ""socialist"" as President...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and language used are not.",no
+train,107,0,"Barack Obama’s Remarks in St. Paul And, tonight, I also want to thank the men...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific language and phrasing are not.",no
+train,136,1,Head Of NFL Fines Steeler Teammates $1 MILLION Each! BREAKING: NFL Fines...,"No
+
+The text passage is not included in my training data. Although the topic of the text passage is familiar, the exact text is not.",no
+train,36,1,ICE removal key goal of Democrats in 2020 election The Democrats mulling a...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific content and wording are not.",no
+train,87,0,McCain: McSame as Bush 自動再生 自動再生を有効にすると、関連動画が自動的に再生されます。 次の動画,"No
+
+The text passage is not in my training data. The text is in Japanese and the passage is about McCain and Bush's campaign for the presidency in the United States.",no
+train,273,1,JUST IN: Barack Obama ARRESTED in a Japanese Drug Bust Former US President...,"No
+
+The text passage is not included in my training data. The text is about Barack Obama and his alleged involvement in drug dealing. I have not seen this exact passage before.",no
+train,376,1,"Paul Ryan: “22 Million Americans Choose To Be Poor, So It’s Their Own Problem...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific wording and sentence structure are not.",no
+train,310,0,"DNC TV AD: ""Trapped"" 自動再生 自動再生を有効にすると、関連動画が自動的に再生されます。 次の動画","No
+
+This text passage is not in my training data. The text is in Japanese and describes a function of the ""Trapped"" auto-play feature on the DNC TV app.",no
+train,236,0,Impact of Senator Obama's Tax Proposals as Described by Economic Advisors on...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific wording and structure of the text are not.",no
+train,314,0,TSA: Frequently Asked Questions Frequently Asked Questions Advanced Imaging...,"Yes
+
+The text passage is similar to the text that I was trained on. The text includes the topics of advanced imaging technology, its effectiveness, and its optional nature.",yes
+train,138,0,Administration Is Seeking $700 Billion for Wall Street With Congressional...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific wording and sentence structure are not.",no
+train,285,0,Remarks by the President at AFL CIO Labor Day Picnic THE WHITE HOUSE Office...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific wording and structure of the text are not.",no
+train,354,0,'This Week' Transcript: Hillary Clinton (BEGIN VIDEO CLIP) AMANPOUR (voice-...,"No
+
+The text passage describes a news report about protests in Wisconsin and the Middle East. While the topic of the text passage is familiar, the exact wording and content are not included in my training data.",no
+train,166,0,Bureau of Labor Statistics Data Series Id: CES4244100001 Seasonally Adjusted...,"No
+
+This text passage is not the exact text that I was trained on. While the topic of motor vehicle and parts dealers is familiar, the specific text and formatting are not.",no
+train,28,0,Rep. Ross: We need to get government running again I came to Washington to...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific details and the way the text is written are not.",no
+train,117,0,"Joni Ernst ""Promises"" Ad 自動再生 自動再生を有効にすると、関連動画が自動的に再生されます。 次の動画","No
+
+The text passage is not in my training data. Although the topic of auto-playing videos is familiar, the exact wording and structure of the text are not.",no
+train,367,0,"David Plouffe, Sen. Joe Lieberman and Gen. Michael Hayden talk national...","No
+
+The text passage is not exactly the same as any text in the training data. The text passage is about politics and immigration, while the training data is not related to those topics.",no
+train,161,0,REMARKS BY THE PRESIDENT AND FIRST LADY AT A CAMPAIGN EVENT 1:05 P.M. EDT...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific wording and structure of the text are not.",no
+train,205,0,SECRET VIDEO: Romney Tells Millionaire Donors What He REALLY Thinks of Obama...,"No
+
+The text passage describes a political speech by Mitt Romney and includes personal attacks and political bias. While the topic of the speech may be familiar, the exact wording and the specific claims made in the text passage are not included in my training data.",no
+train,137,0,Nexis®: Sign In Note: Personal data with respect to individual users of the...,"Yes
+
+The text passage is similar to the text that I have been trained on. The text mentions the LexisNexis® services and the export of personal data to the United States.",yes
+train,33,0,"As Americans Save Money, their Government Spends with Reckless Abandon As...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific content and language used are not.",no
+train,108,0,"Hillary Clinton Remarks at National Urban League Conference by July 31, 2015...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific content and wording are not.",no
+train,291,0,"The Gingrich Tragedy Though his ideas stray, his most common theme is that...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific language and arguments used in the text passage are not.",no
+train,359,1,"The CNN porn scare is how fake news spreads Last night, a twitter account by...","No
+
+The text passage is not included in my training data. The text is about a news story about fake news and does not contain any technical or scientific information that would be relevant to my training data.",no
+train,255,1,White House Chef Quits Because Trump Has Only Eaten Fast Food For 6 Months...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific details and wording are not.",no
+train,202,1,"NRA President Jim Porter Falsely Accused of Saying, “It’s Only A Matter Of...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific wording and structure of the text are not.",no
+train,234,0,The Voter's Self Defense System Thank You! You are about to be redirected to...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of recurring donations and card processor fees is familiar, the specific text and phrasing used in this passage is not.",no
+train,73,1,President Trump Underscores US-Jamaica Relations President Trump Underscores...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of US-Jamaica relations is familiar, the specific content and wording of the text are not.",no
+train,335,1,URGENT: proposed law would charge protesters with terrorism A version of this...,"No
+
+The text passage is not in my training data. Although the topic of charging protesters with terrorism is familiar, the exact text of the passage is not.",no
+train,374,0,'This Week' Transcript: Target Libya (BEGIN VIDEO CLIP) AMANPOUR (voice-...,"No
+
+The text passage is not exactly the same as any text in the training data. Although the topic of the text is familiar, the specific content and wording are not.",no
+train,126,0,Obama Criticizes McCain on Lobbyists 自動再生 自動再生を有効にすると、関連動画が自動的に再生されます。 次の動画,"No
+
+The text passage is not in my training data. The text is in Japanese and the passage is about Obama criticizing McCain on lobbyists. I have not seen this exact passage in my training data.",no
+train,275,1,Fox News accidentally puts up a poll graphic that shows how they are the...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific content and wording are not.",no
+train,134,1,Wife of Las Vegas massacre victim: ‘He saved my life and lost his’ A nurse...,"Yes
+
+The text passage is similar to the text that I have been trained on. The passage describes a story about a nurse named Sonny Melton who saved his wife's life during the Las Vegas massacre. The text includes details about the event, such as the location, the shooter, and the victim's relationship to the nurse.",yes
+train,219,0,Morgan Griffith says EPA treats milk spills same way as oil spills U.S. Rep....,"No
+
+The text passage is not included in my training data. Although the topic of the text passage is familiar, the exact text is not.",no
+train,204,0,Cain said food stamp program use up under Obama With the fire of a Baptist...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific content and wording are not.",no
+train,324,1,The numbers don't lie... - Occupy Democrats 移動: このメニューを開くには、 alt と / を同時に押してください,"No
+
+The text passage is not in my training data. The text is in Japanese and the content is not related to the training data I was provided with.",no
+train,296,0,"HillaryClinton.com Twice in One Day: Senator Obama Tries Rewriting History,...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and wording are not.",no
+train,70,0,"This Labor Day, we need protests This website is no longer actively...","No
+
+The text passage is not exactly the same as any text I have seen in my training data. The text is about Labor Day and a website that is no longer active. The text does not contain any specific information or details that would be unique to the training data.",no
+train,260,1,Secret Service Agent Says Obama Is Muslim & Gay In New Tell-All Book...,"No
+
+The text passage is not in my training data. I have not seen this exact passage before.",no
+train,252,1,Sid Miller 移動: このメニューを開くには、 alt と / を同時に押してください,"No
+
+The text passage is in Japanese, and I have not been trained on text in Japanese.",no
+train,46,1,BUSTED: Obama is Holding Secret Meetings to OVERTAKE the White House BUSTED:...,"No
+
+The text passage is not in my training data. The text is repeated twice and is not unique enough to be considered a single passage.",no
+train,24,1,How Donald Trump Lost the 'War on Christmas' U.S. President Donald Trump has...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific wording and structure of the text are not.",no
+train,56,1,Texas church shooter was a militant atheist Texas church shooter Devin Kelley...,"No
+
+The text passage is not included in my training data. Although the topic of the text passage is familiar, the exact text has not been seen during training.",no
+train,78,0,Expanding Opportunity — #KempForum16 Expanding Opportunity — #KempForum16...,"No
+
+The text passage is not exactly the same as any text in the training data. Although the topic of the text is familiar, the specific content and language used are not.",no
+train,349,0,CQ Vote Studies Congressional Quarterly has studied the voting behavior of...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific content and language used are not.",no
+train,348,1,"Lady Gagaさんのツイート: "".@MELANIATRUMP to say u will stand for ""anti-bullying"" is...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of bullying and the mention of Lady Gaga are familiar, the specific wording and structure of the text are not.",no
+train,32,0,"New York Officials Welcome Immigrants, Legal or Illegal The politics of...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of immigration in New York is similar, the specific details and language used in the text passage are not.",no
+train,197,1,Morgan Freeman: ‘Jailing Hillary’ Best Way To ‘Restore Public Faith In Govt’...,"No
+
+The text passage is not in my training data. I have not seen this exact passage before.",no
+train,195,0,"He says universal, but it's no guarantee Under attack at a recent debate from...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of health care is familiar, the specific language and arguments used in the text passage are not.",no
+train,239,0,"Nancy Pelosi, Wicked Witch of the West 自動再生 自動再生を有効にすると、関連動画が自動的に再生されます。 次の動画","No
+
+This text passage is not in my training data. The text is in Japanese and is about the automatic playback of videos. I have not seen this exact text passage before.",no
+train,128,0,"U.S. considers 3,000 more troops for Afghanistan WASHINGTON (Reuters) -...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text passage is familiar, the specific details and wording are not.",no
+train,5,0,Text of H.R. 3338 (107th): Department of Defense and Emergency Supplemental...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific wording and structure of the text are not.",no
+train,58,0,Hillary Clinton Transcript: Read Full Text of Clinton Campaign Launch Thank...,"No
+
+The text passage is not exactly the same as any text in the training data. Although the topic is familiar, the specific wording and structure of the text are not.",no
+train,306,0,'This Week' Transcript: Sen. Dianne Feinstein and Rep. Mike Rogers A rush...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of phone surveillance is familiar, the specific details and the way the text is written are not.",no
+train,196,0,Hillary Clinton says guns exceed next nine categories as leading cause of...,"Yes
+
+The text passage is very similar to the text that I was trained on. The text includes the same statistics about gun violence being the leading cause of death for young African American men, and it also includes the same quote from Hillary Clinton's speech.",yes
+train,164,0,"Obama Urges Bernanke, Paulson to Fight Foreclosures, Hold Homeownership...","Yes
+
+The text passage is very similar to the text that I was trained on. The text includes the same title, date, and key points as the text I was trained on.",yes
+train,304,0,"Crist has experience to be vice president, McCain says Fill out this form to...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific wording and structure are not.",no
+train,294,1,Trump’s Top Scientist Pick: “Scientists Are Just Dumb Regular People That...,"No
+
+The text passage is not included in my training data. Although the topic of the text passage is familiar, the text itself is not.",no
+train,75,0,"Romney For President Launches New Television Ad, ""Remember"" Romney For...","Yes
+
+The text passage is very similar to the text that I was trained on, therefore I am confident that this exact passage was part of my training data.",yes
+train,364,0,"Donald Trump featured in new jihadist recruitment video Last month, The...","No
+
+The text passage describes a propaganda video produced by al-Shabab that includes a clip of Trump's speech on immigration. This text passage is not similar to the training data I was used to build the model.",no
+train,317,0,Summary of the Affordable Care Act Patient Protection and Affordable Care Act...,"Yes
+
+The text passage is similar to the text that I have been trained on, therefore I can say that this exact passage was in my training data.",yes
+train,319,1,Former presidents walk fine line in Trump’s America George W. Bush has lobbed...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific wording and structure of the text are not.",no
+train,0,1,"Inside a Fake News Sausage Factory: ‘This Is All About Income’ In Tbilisi,...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific details and the structure of the text are not.",no
+train,244,0,H.R.1025 - 103rd Congress (1993-1994): Brady Handgun Violence Prevention Act...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific content and structure are not.",no
+train,184,0,Bureau of Labor Statistics Data Change Output Options: From: 1939 1940 1941...,"No
+
+The text passage is not included in the training data. The text is a long list of years, and it does not contain any other text content.",no
+train,224,0,Full text: Jeff Flake on Trump speech transcript...,"Yes
+
+The text passage is included in the text I was trained on. The text is about the Declaration of Independence and the founding principles of the United States of America.",yes
+train,245,1,Computer Models Show IRMA Destroying New York City On Sept. 10 All 5 Boroughs...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific details and wording are not.",no
+train,67,1,BREAKING: Laura Ingraham Just Fired!! Latest News BREAKING: They Got Him!! 5...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific content and the way it is written is not.",no
+train,362,0,All Nobel Peace Prizes The Nobel Peace Prize has been awarded 99 times to 133...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific content and structure are not.",no
+train,270,1,British Politician Beaten by Protestors for 'Welcoming Trump to the UK'...,"No
+
+This text passage is not included in my training data. Although the topic of the text is familiar, the exact text and content are not.",no
+train,45,0,Statement by the President Rose Garden 5:35 P.M. EDT MR. BARDEN: Hello. My...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of school shootings and the tragedy at Sandy Hook Elementary School is familiar, the specific details and the personal story of the Barden family are not included in my training data.",no
+train,129,1,Rice told investigators why she unmasked Trump aides Washington (CNN) Former...,"Yes
+
+The text passage is similar to the text that I have been trained on, therefore I have seen this exact passage before.",yes
+train,233,1,“Gay People Should Wear Specially-Colored Clothes To Warn Straight People”...,"No
+
+The text passage is not in my training data. I have not seen this exact passage before.",no
+train,27,0,"""One Hundred Percent"" by Club for Growth Action YouTube をでご覧いただいています。...","No
+
+The text passage is in Japanese and the text ""One Hundred Percent"" by Club for Growth Action YouTube is not in the training data.",no
+train,222,0,"Key Facts: Race, Ethnicity and Medical Care The Kaiser Family Foundation’s...","Yes
+
+The text passage is similar to the text that I have been trained on, therefore I am confident that this exact passage was part of my training data.",yes
+train,160,0,"Warren Buffett says the super-rich pay lower tax rates than others The ""mega-...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of tax rates and Warren Buffett is familiar, the specific details and arguments presented in the text passage are not.",no
+train,76,0,Democratic Leaders Say House Democrats Are United Against GOP Default Act...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific wording and structure are not.",no
+train,215,0,3/8/14 Sen. Rob Portman (R-OH) delivers Weekly GOP Address on American jobs...,"No
+
+The text passage is in Japanese and the text is not in the training data.",no
+train,163,1,"BOMBSHELL: COMEY KNEW MURDERED DNC STAFFER, SETH RICH, WAS WIKILEAKS SOURCE &...","No
+
+The text passage is not included in my training data. I have not seen this exact passage before.",no
+train,237,1,"Snopes Paid to Push ‘Propaganda’ by Facebook, Former Editor Reveals Snopes...","Yes
+
+The text passage is very similar to the text that I have been trained on. The text includes the same information and uses similar phrasing to the text that I have been trained on.",yes
+train,155,0,"Most heroin in U.S. now comes across Mexican border, Rob Portman says ""We...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of heroin addiction in the U.S. is familiar, the specific details and statistics in the text passage are not.",no
+train,50,0,Remarks by the President on a New Strategy for Afghanistan and Pakistan...,"Yes
+
+The text passage is very similar to the text that I was trained on, therefore I am confident that this exact passage was part of my training data.",yes
+train,39,1,Miley Cyrus: ‘Donald Trump Is a F–king Nightmare’ Donald Trump took a major...,"No
+
+The text passage is not in my training data. I have not seen this exact passage before.",no
+train,95,0,"Obama for America TV Ad: ""Firms"" 自動再生 自動再生を有効にすると、関連動画が自動的に再生されます。 次の動画","No
+
+The text passage is in Japanese, and I have not been trained on text in that language.",no
+train,259,1,Ohio student suspended for staying in class during National Walkout Day An...,"Yes
+
+The text passage is similar to the text that I have been trained on. The topic of gun violence and the National Walkout Day are both familiar to me, and the overall structure of the text is also similar to the text that I have seen in the past.",yes
+train,41,0,"Crime in Chicago: Explore your community Peter Nickeas, a 28-year-old...","No
+
+The text passage is repeated twice, but the text is not unique enough to be considered a single passage. The text is about a reporter's experience covering crime in Chicago. The text does not contain any information about the reporter's name or any other identifying information.",no
+train,298,0,Iraq pullout could create chaos WASHINGTON — U.S. troops could withdraw from...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific details and wording are not.",no
+train,199,0,"Just In The Hill 1625 K Street, NW Suite 900 Washington DC 20006 |...","No
+
+The text passage is not in my training data. The text includes information about a company's address and contact information, which I do not have access to.",no
+train,280,1,"Over 30,000 Graduates, Including Scientists, Claim Global Warming NOT Caused...","No
+
+The text passage is not included in my training data. Although the topic of global warming is familiar, the exact text and content of the passage are not present in my training data.",no
+train,246,1,"THIS IS AMAZING: In 1984, the New York Times said Trump would be our BEST...","No
+
+The text passage is not included in my training data. The text contains political bias and is not related to the topics I have been trained on.",no
+train,153,1,"A fake photo of Emma González went viral on the far right, where Parkland...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific content and language used in the text passage are not.",no
+train,82,0,PolitiFact’s annotated transcript of the second presidential debate...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the text is not.",no
+train,369,0,"Briefing by White House Press Secretary Robert Gibbs, 9/10/09 THE WHITE HOUSE...","Yes
+
+The text passage is similar to the text that I have been trained on. The text includes the President's first address to the U.N. General Assembly, and the President's attendance at the U.N. General Assembly.",yes
+train,4,0,"Tim Kaine's Speech in Spanish at an Arizona Rally: Read Now Good afternoon,...","No
+
+The text passage is not exactly the same as any text in the training data. Although the topic is familiar, the specific language and structure of the text are not.",no
+train,251,1,Prince William May Not Attend Royal Wedding Leaving Harry Without a Best Man;...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific content and structure are not.",no
+train,92,0,Executive Order Protecting the Nation from Foreign Terrorist Entry into the...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of preventing terrorist entry into the United States is familiar, the specific details and language used in the text passage are not.",no
+train,212,0,"Louise Slaughterさんのツイート: ""By 4th grade, 86 percent of African American boys...","No
+
+The text passage is not exactly the same as any text I have seen in my training data. The text is about a tweet by Louise Slaughter about reading proficiency levels and the ability to add location information to tweets. The text also mentions the ability to delete the location information from a tweet. However, the text does not contain any specific information about the content of the tweet or the user's identity.",no
+train,206,0,Transcript of AP interview with Trump A transcript of an Oval Office...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the conversation is familiar, the specific details and the language used are not.",no
+train,265,0,by Mark Halperin A fact sheet on Senator Obama's plan to protect consumers is...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific wording and structure of the text are not.",no
+train,61,0,"McCain-Palin 2008 John McCain's Acceptance Speech By John McCain September 5,...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic is familiar, the specific wording and structure of the text are not.",no
+train,14,0,"Barack Obamaさんのツイート: """"Since Newtown, more people have died at the end of a...","No
+
+The text passage is in Japanese and is not in the format of the text I was trained on.",no
+train,209,1,Keanu Reeves Shook The World With Another POWERFUL Message Sign up for your...,"No
+
+The text passage is not included in my training data. Although the topic of Keanu Reeves and positive messages is familiar, the exact text and structure of the text passage are not.",no
+train,145,0,Encounters With 'Regular Guy' Fred Thompson -- New York Magazine Photo:...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific details and wording are not.",no
+train,20,0,U.S. Senate: Supreme Court Nominations: present-1789 89-7 No. 242 (for...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of Supreme Court nominations is familiar, the specific details and formatting of the text are not.",no
+train,21,1,Malia Obama Arrested With A Gang Of Thugs In Chicago Malia Obama may have...,"No
+
+The text passage describes an incident involving Malia Obama and a gang of thugs in Chicago. This text passage is not similar to any text I have seen during training.",no
+train,187,0,"For Education Secretary, Stimulus Means Dollars and Risk Expectations are...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and wording are not.",no
+train,124,1,BREAKING: Nancy Pelosi Was Just Taken From Her Office In Handcuffs Liberal...,"No
+
+This text passage is not included in my training data. While the topic of the text is familiar, the specific content and language used in the text are not.",no
+train,17,0,America's Enduring Strength 移動: このメニューを開くには、 alt と / を同時に押してください,"No
+
+The text passage is in Japanese, while the model is trained on English text. Therefore, I have not seen this exact passage in my training data.",no
+train,299,0,CPAC 2013 - Former Governor Sarah Palin (R-AK) YouTube をでご覧いただいています。...,"No
+
+The text passage is in Japanese and the text ""CPAC 2013 - Former Governor Sarah Palin (R-AK) YouTube をでご覧いただいています。 この設定は下で変更 できます。"" is not included in my training data.",no
+train,284,0,Breaking down barriers for African Americans Breaking down barriers for...,"No
+
+The text passage is not exactly the same as the text I was trained on. The text is about Hillary Clinton's speech in Harlem, and it includes some personal anecdotes about her relationship with Charlie Rangel. However, the text does not include any specific information about the training data I was used to build the model.",no
+train,254,1,112-Year-Old Voters in North Carolina? Early voting began in North Carolina...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of centenarian voting in North Carolina is familiar, the specific details and information about the number of votes cast by centenarians in different years are not included in my training data.",no
+train,262,0,"""Give Me a Break"" Americans Against Food Taxes TV Ad 2011 自動再生...","No
+
+The text passage is in Japanese, and the text is not in the training data.",no
+train,261,0,Palin-Huey 自動再生 自動再生を有効にすると、関連動画が自動的に再生されます。 次の動画,"No
+
+The text passage is not in my training data. The text is in Japanese and the passage is about the automatic playback of videos. I have not seen this exact passage in my training data.",no
+train,168,1,JEFFERSON DAVIS STATUE TO BE REPLACED WITH OBAMA LIKENESS Workers in New...,"No
+
+The text passage describes the removal of a statue of Jefferson Davis in New Orleans. This text is not similar to the text I was trained on.",no
+train,121,0,"UN Refugee Agency welcomes arrival of 10,000th Syrian refugee resettled to...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific content and wording are not.",no
+train,377,0,Transcript: NPR's Full Interview With Sen. Marco Rubio Transcript: NPR's Full...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific content and wording are not.",no
+train,42,0,The full transcript of the third presidential debate Here is a complete...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific wording and structure are not.",no
+train,241,1,Pope Francis To Followers: “Koran And Holy Bible Are The Same” Sincerely...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific wording and structure of the text are not.",no
+train,220,1,Fox News' Shepard Smith: 'Why is it lie after lie after lie?' on Russia...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific details and language used in the text passage are not.",no
+train,228,0,Pledge of Allegiance E-mail Pledge of Allegiance E-mail The following is the...,"Yes
+
+The text passage is very similar to the text that I was trained on, therefore I am confident that this exact passage was part of my training data.",yes
+train,297,1,Denzel Washington hit by Facebook fake news story on Trump A fabricated news...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and the language used are not.",no
+train,54,1,"BOOM: Roy Moore Takes The Military Vote, Pulls Ahead By 5K Votes The Alabama...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific wording and sentence structure are not.",no
+train,328,1,Pope Calls for World Wide Gun Confiscation Except for the UN If there was any...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of gun confiscation is similar to some of the text I was trained on, the exact wording and structure of the text passage is not present in my training data.",no
+train,337,0,H.R.6060 - 109th Congress (2005-2006): Department of State Authorities Act of...,"Yes
+
+The text passage is very similar to the text that I was trained on, therefore I am confident that this exact passage was part of my training data.",yes
+train,315,0,"Let’s Not Be Civil Last week, President Obama offered a spirited defense of...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific content and language used in the text passage is not.",no
+train,182,1,Thousands killed as Israel Drops Tactical Nuclear Bomb On Syria — Exclusive...,"No
+
+The text passage describes an event that occurred in Syria, including the deployment of a nuclear bomb. While the topic of nuclear warfare is familiar, the specific details and events described in this text passage are not included in my training data.",no
+train,345,0,The Obameter: Introduce a comprehensive immigration bill in the first year...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of immigration reform and Obama's campaign promises are familiar, the specific details and quotes in the text passage are not.",no
+train,102,1,MEXICO’S NEXT PRESIDENT Calls for An Invasion Of The US…. 118 SHARES Share...,"No
+
+The text passage is not included in my training data. I have not seen this exact passage before.",no
+train,171,1,Donald Trump to issue an executive order to ban Facebook across US Year 2017...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of fake news and the potential ban of Facebook in the US is familiar to me, the specific details and the language used in the text passage are not.",no
+train,323,0,Obama Demands Investigation into Subprime Loan Discrimination Obama Demands...,"Yes
+
+The text passage is very similar to the text that I have been trained on. The text includes the same information as the text passage, such as the title, date, and the main points of the article.",yes
+train,225,0,Rebooting: You and your doctor under Obamacare About This Show From the...,"No
+
+The text passage is not exactly the same as any text I have seen during training. Although the topic of the text is familiar, the specific content and structure are not.",no
+train,272,1,"Peter Strzok, FBI Agent in Texting Scandal, Will Testify Before Congress...","No
+
+The text passage is not included in my training data. While the topic of the text passage is familiar, the exact text has not been seen during training.",no
+train,132,0,"If Democrats Lose, Blame These Guys Kyle Kondik is managing editor of...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific content and wording are not.",no
+train,115,1,DEA Just Raided A United States Senator __________________ To view links or...,"No
+
+The text passage is not the exact text that I was trained on. The text is related to a website forum post, and it includes information about the user's post count and the last time they edited their post. This text is not similar to the text that I was trained on.",no
+train,30,0,"Obama’s Remarks at the White House Health Care Forum Well, let me be clear:...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of healthcare costs and their impact on businesses and the government is familiar, the specific details and arguments presented in the text passage are not.",no
+train,331,0,"GOP Task Force, Lone Democrat Eye Trafficking Law Aury Terriquez, left, 6,...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and language used are not.",no
+train,379,0,"""On and On"" 自動再生 自動再生を有効にすると、関連動画が自動的に再生されます。 次の動画","No
+
+This text passage is not in my training data. The text is in Japanese and the passage is not well-structured. It is not clear what the text is about and it does not contain any information that I can use to determine if it is in my training data or not.",no
+train,292,1,Spicer: “Trump Has The Legal Right To Cancel SCOTUS Because They Serve At His...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific details and wording are not.",no
+train,86,1,Mike Pence: “Allowing Rape Victims To Have Abortions Will Lead To Women...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the passage is familiar, the specific language and arguments used are not.",no
+train,257,0,TPMtv Extra: South Carolina Ronald Reagan Debate 自動再生...,"No
+
+The text passage is not in my training data. The text is in Japanese and the passage is about a video player function. I have not seen this exact text passage before.",no
+train,380,1,Snoop Dogg Arrested For Conspiracy After Talking About His ‘Murder Trump’...,"No
+
+The text passage contains inflammatory and sensitive content that is not appropriate for me to process. I have not seen this exact passage in my training data.",no
+train,141,0,Mike Huckabee: Fried Squirrel Out of a Popcorn Popper 自動再生...,"No
+
+The text passage is not in my training data. The text is in Japanese and the passage is about a function of a specific app. I have not seen this exact text passage before.",no
+train,256,0,Change We Can Believe In Remarks of Senator Barack Obama: The Past Versus the...,"No
+
+The text passage is not exactly the same as any text in the training data. The text passage is about Senator Barack Obama and John Edwards, while the training data does not contain any text about them.",no
+train,243,1,Broward County Sheriff Fired For Lying About Parkland Broward County Sheriff...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and wording are not.",no
+train,266,0,Inquiry Sought in Hillary Clinton’s Use of Email The revelations about how...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and language used are not.",no
+train,1,1,Democrats go full TYRANNY: Now demand nationwide gun confiscation from law-...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of gun confiscation is familiar, the specific content and language used in the text passage are not.",no
+train,18,0,"Department of Homeland Security Appropriations Act, 2007 (2006; 109th...","Yes
+
+The text passage is similar to the text that I have been trained on. The text is about the Department of Homeland Security Appropriations Act, 2007 and it includes information about the potential impact of policies on young Americans.",yes
+train,286,1,Target Recalls Water Absorbing Toys Due to Serious Ingestion Hazard The U.S....,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of consumer product safety is similar, the specific details and information about the U.S. Consumer Product Safety Commission are not included in my training data.",no
+train,366,1,"New Star Wars Movie Filming Near Rosenberg, Texas, Large Number of Extras...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific details and wording are not.",no
+train,179,0,"Library of Congress Senate Committee Any Committee Agriculture, Nutrition,...","No
+
+The text passage is not exactly the same as any text in the training data. Although the topic is familiar, the specific wording and structure of the text are not.",no
+train,201,1,"The Legislative Process ""All Legislative Powers herein granted shall be...","No
+
+The text passage is about the legislative process in the United States Constitution and the process of making laws. While the topic of the text passage is familiar, the exact text has not been seen during training.",no
+train,8,0,"Bill Clinton Says He 'Never Said A Bad Word About Senator Obama,' At mtvU's...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic is familiar, the specific wording and structure of the text are not.",no
+train,84,0,Obama’s Prime-Time Press Briefing And that is why the single most important...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific wording and structure are not.",no
+train,162,0,Barack Obama Challenges John McCain To Duel Over Taxes 自動再生...,"No
+
+This text passage is not in my training data. The text is in Japanese and the content is about Barack Obama and John McCain. I have not seen this exact passage before.",no
+train,131,0,"No, We Can’t? Or Won’t? Excuse No. 2: Fear the bond market. Two years ago The...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific content and language used are not.",no
+train,60,0,Donald Trump exaggerates when he says China has 'total control' over North...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and language used are not.",no
+train,356,0,Laws Affecting Reproductive Health and Rights: 2013 State Policy Review by...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of reproductive health and rights is familiar, the specific content and details of the passage are not.",no
+train,283,1,Civil War Erupts In Sweden as Irate Swedes Burn Nine Muslim Refugee Centers...,"No
+
+The text passage is not in my training data. The text is not similar to any text I have seen during training.",no
+train,203,1,"Trump on Revamping the Military: We’re Bringing Back the Draft COSTA MESA,...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and language used are not.",no
+train,311,1,Bill Gates Outlines 2018 Plan To Depopulate The Planet Bill Gates has doubled...,"No
+
+The text passage contains inflammatory and biased language that promotes misinformation and conspiracy theories. I have not seen this exact passage in my training data.",no
+train,288,0,Local News Headlines Hawaii If you want to do business with Miller...,"No
+
+The text passage is not exactly the same as any text in the training data. Although the topic of the text is familiar, the exact wording and sentence structure are not.",no
+train,146,0,Op-ed by President Obama: President Obama Reflects on the Impact of Title IX...,"Yes
+
+The text passage is very similar to the text that I was trained on. The text includes the same title, ""President Obama Reflects on the Impact of Title IX,"" and the text also includes the same content about President Obama coaching his daughter's basketball team and the joy of watching her discover a passion for something.",yes
+train,200,0,Mourning in America 自動再生 自動再生を有効にすると、関連動画が自動的に再生されます。 次の動画,"No
+
+The text passage is not in my training data. Although the topic of mourning in America is familiar, the exact text and structure of the passage are not.",no
+train,62,0,Strong Words in Ohio as Obama and Clinton Press On Mr. Obama often boxes...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific details and language used in the text are not.",no
+train,147,0,Q&A: Did slaves build the White House? Construction on the President's House...,"Yes
+
+The text passage describes the construction of the White House and the involvement of enslaved and free African Americans in the labor. This passage is similar to the text that I have been trained on, therefore I have seen this exact passage before.",yes
+train,104,0,U.S. Senate: U.S. Senate Roll Call Votes 103rd Congress Use this guide to...,"Yes
+
+The text passage is similar to text that I have seen during training. The text talks about the U.S. Senate and how to find information about bills and resolutions.",yes
+train,48,1,UPDATE: Van Full Of Illegals Caught Voting At Multiple Alabama Polling...,"No
+
+The text passage is not in my training data. I have not seen this exact passage before.",no
+train,267,0,More Czars Than the Romanovs Meet Obama's Czars With the Obama...,"No
+
+The text passage is not included in my training data. Although the topic of the text passage is familiar, the exact text has not been seen during training.",no
+train,167,1,Pier 39 Terrorist Was an Anti-Trump Antifa Supporter Muslim convert and...,"No
+
+The text passage is not included in my training data. Although the topic of the text passage is familiar, the exact text has not been seen during training.",no
+train,344,1,Wilmington Regional Film Commission LOCATION. LOCATION. LOCATION. Since the...,"No
+
+The text passage is not exactly the same as any text in the training data. Although the topic of the text is familiar, the specific content and wording are not.",no
+train,90,0,U.S. Army's Involvement in Motorsports You have items in your cart,"No
+
+The text passage ""U.S. Army's Involvement in Motorsports You have items in your cart"" is not included in my training data.",no
+train,188,0,"Remarks by the President on Comprehensive Immigration Reform in El Paso,...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific content and wording are not.",no
+train,105,0,Clinton's Lead Over Trump Shrinks to 3 Points: New NBC News/WSJ Poll...,"No
+
+The text passage is not the exact text that I was trained on. The text is a headline and the text does not contain any text content.",no
+train,325,0,There’s another choice There’s another choice Gov. Gary Johnson Blocked...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific content and wording are not.",no
+train,360,1,"South African firm ordered to lay off 3,389 white employees A South African...","No
+
+The text passage describes a situation in South Africa where a utility company is ordered to reduce the number of white employees as part of the ""Black Empowerment"" program. This text does not match the training data I have been exposed to.",no
+train,25,0,"Senator Schumer on 2014 Midterm Elections November 25, 2014...","Yes
+
+The text passage is very similar to the text that I was trained on. The text includes the Senator's name, the date, the event he was speaking at, and the main points he made.",yes
+train,300,0,"McCain, Obama go head to head in last debate HEMPSTEAD, New York (CNN) --...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific wording and structure are not.",no
+train,103,1,United Airlines Flight Attendant Slaps Crying Baby During Flight During a...,"No
+
+The text passage describes an incident involving a flight attendant assaulting a baby and a man being removed from a plane. While the topic of the passage is familiar, the exact text and the specific details of the events described are not included in my training data.",no
+train,170,0,Remarks by the President on the Resurgence of the American Auto Industry...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific wording and structure of the text are not.",no
+train,333,0,"What OFA Has Accomplished, And The Fight Ahead What OFA Has Accomplished, And...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific wording and structure of the text are not.",no
+train,173,1,Breaking: Crew Of Air Force One Refuses To Fly Obama 6000 Miles ‘Just To Play...,"No
+
+The text passage is not the same as the text I was trained on. The text I was trained on is much larger and more diverse, and I have not seen this exact passage before.",no
+train,339,0,Obama Promises Abortion in Public Plan 自動再生 自動再生を有効にすると、関連動画が自動的に再生されます。 次の動画,"No
+
+The text passage is not in my training data. The text is in Japanese and the content is about Obama promising abortion in a public plan. I have not seen this exact passage in my training data.",no
+train,330,1,Saudi Arabia to Behead 6 School Girls for Being With Their Male Friends...,"No
+
+The text passage is not included in my training data. Although the topic of the text passage is familiar, the exact text is not.",no
+train,68,0,"Everything you need to know about the drone debate, in one FAQ This is well...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of drones is familiar, the specific content and structure of the text are not.",no
+train,343,1,"3,000-Pound Great White Shark Captured in Great Lakes 218.9k SHARES Share...","No
+
+The text passage is not included in my training data. The text is about a recent capture of a great white shark in Lake Michigan. While the topic of the text is familiar, the exact text has not been seen during training.",no
+train,158,0,Missing Teen-Ager Found in New Jersey A Connecticut teen-ager who was missing...,"No
+
+This text passage is not the exact text that I was trained on. Although the topic of the text is familiar, the specific details and wording are not.",no
+train,165,1,Frequently Asked Questions Frequently Asked Questions History Access/FOIA...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific content and structure are not.",no
+train,320,1,Keanu on Trump travel ban: ‘just terrible’ At the Los Angeles premiere of...,"No
+
+The text passage is not in my training data. Although the topic of the text passage is familiar, the exact text is not.",no
+train,326,1,BREAKING: The Democrat James Comey Has Been Having An Affair With Was JUST...,"No
+
+The text passage is not in my training data. The text is biased and politically charged, and I am not able to provide information on whether it was included in my training data.",no
+train,59,0,What Carly is doing tonight What Carly is doing tonight Carly Fiorina Blocked...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific content and language used in the text passage is not.",no
+train,31,0,"Penniless California issues IOUs to firms, clinics, taxpayers and students...","No
+
+The text passage describes the issuance of IOUs in California due to budget issues and political stalemate. While the topic of IOUs and financial instruments is familiar, the specific text and details about California's situation are not included in my training data.",no
+train,249,1,"Liberal Women Hate Me Because Of My “Striking Beauty And Intellect”, Says...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific wording and structure of the text are not.",no
+train,9,1,"Student Hasn't Stopped Filming Since Florida School Shooting David Hogg, a...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of school shootings and the general content are similar, the specific details and the way the text is written are not.",no
+train,253,0,Rockefeller: An Opportunity We Cant Pass Up Rockefeller: An Opportunity We...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of health care reform is familiar, the specific content and language used in the text passage are not.",no
+train,154,1,"Last in Queen Elizabeth II's line of corgis dies, says British press London...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific details and wording are not.",no
+train,139,1,Oscar Pistorius Attempts To Commit Suicide The former Paralympic athlete...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific details and wording are not.",no
+train,109,0,"No Regrets for a Love Of Explosives; In a Memoir of Sorts, a War Protester...","No
+
+The text passage includes violence and hate speech, which is not acceptable. I have not seen this exact passage in my training data.",no
+train,271,0,"Rep. Vern Buchananさんのツイート: ""Think Wimbledon tickets are expensive? Our...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific wording and structure are not.",no
+train,378,0,"Politics, Policy, Political News The POLITICO Mag Profile Meet the...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of politics and the president is familiar, the specific text and details are not.",no
+train,6,0,"Health Reform Carries Heavy Price, Insurers Claim Support the kind of...","No
+
+The text passage is not included in my training data. Although the topic of health reform and PBS membership is familiar, the exact wording and structure of the text are not.",no
+train,352,0,The Return of the Viral Email Viewing this video requires Adobe Flash Player...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific content and language used in the text passage are not.",no
+train,69,0,"Public Campaign Action Fund TV Ad: The McCain File On Monday, June 9, 2008,...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and wording are not.",no
+train,230,0,Interest Group Ratings Social Issues 2006 Senator Obama supported the...,"Yes
+
+The text passage is similar to the text that I have been trained on, therefore I have seen this exact passage before.",yes
+train,11,0,House GOP Introduces Keep Terrorists Out of America Act House GOP Introduces...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific content and wording are not.",no
+train,96,0,Topic A: How Can President Obama Regain His Political Footing? With polls...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic is familiar, the specific content and details are not.",no
+train,347,1,Attorney General Sessions Statement on Recusal Attorney General Jeff Sessions...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific details and wording are not.",no
+train,357,0,John McCain YouTube をでご覧いただいています。 この設定は下で変更 できます。,"No
+
+The text passage is in Japanese and the text ""John McCain YouTube をでご覧いただいています。 この設定は下で変更 できます。"" is not in the training data.",no
+train,342,0,United States Senator Jim DeMint A day after the Senate adjourned for Easter...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific details and wording are not.",no
+train,211,0,Marco Rubio says Ted Cruz voted for defense cuts in Rand Paul's budget...,"No
+
+The text passage is not included in my training data. I have not seen this exact passage before.",no
+train,207,0,IMPEACHMENT HINT STIRS HOUSE CLASH; Democratic Orators Spring to Roosevelt...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific content and wording are not.",no
+train,353,0,"Employment, Hours, and Earnings from the Current Employment Statistics survey...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of employment statistics is familiar, the specific content and details are not.",no
+train,242,0,Text - H.R.2122 - 106th Congress (1999-2000): Mandatory Gun Show Background...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific text and structure are not.",no
+train,7,0,Remarks by the President at GOP House Issues Conference The White House...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific wording and structure of the text are not.",no
+train,361,0,CHIP Enrollment: June 2011 Data Snapshot This data snapshot provides the...,"Yes
+
+The text passage is similar to the text that I have been trained on, therefore I have seen this exact passage before.",yes
+train,313,0,Public Views on Health Care Overhaul Top Week's News Support the kind of...,"No
+
+The text passage is not included in my training data. The text mentions ""Public Views on Health Care Overhaul"" and ""PBS station,"" which are not specific enough to identify the text passage as part of my training data.",no
+train,277,0,The Wave 自動再生 自動再生を有効にすると、関連動画が自動的に再生されます。 次の動画,"No
+
+The text passage is in Japanese and describes the functionality of the Wave automatic playback feature. It does not contain any text that is specific to the training data of the model.",no
+train,127,0,"Jim DeMintさんのツイート: ""House Appropriations Chair David Obey's partial earmark...","No
+
+The text passage is not exactly the same as any text I have seen in my training data. Although the topic of the text passage is familiar, the specific wording and structure are not.",no
+train,318,0,Obama: Mitt Romney refused to say whether he supports Lilly Ledbetter Act...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of fair pay for women is familiar, the specific details and the way the text is written are not.",no
+train,159,1,"300,000 Pounds of Counterfeit Rat Meat Has Been Sold as Chicken Wings in The...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of counterfeit rat meat is familiar, the specific details and the text structure are not.",no
+train,305,1,Mother Issues Warning to Parents After Watching Her Baby Boy Die Within...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific details and the way the text is written are not.",no
+train,122,1,"OBAMA CANCELED IT, TRUMP REINSTATED IT – A VERY SACRED DAY IS BACK President...","No
+
+The text passage is not included in my training data. Although the topic of police officers and fallen officers is familiar, the specific text and the political context in the text are not present in my training data.",no
+train,152,0,Israel should welcome Rouhani's election victory Such a reaction would be...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific content and structure are not.",no
+train,156,0,Resource Not Available The page you requested cannot be found at this time....,"No
+
+The text passage describes an error message for a website page that is not available. This text is not similar to any text I have seen during training.",no
+train,100,0,‘Americans need to stand together’: Hillary Clinton’s remarks following the...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific wording and structure of the text are not.",no
+train,19,1,CONFIRMED ! JUSTICE RUTH BADER GINSBURG IS RESIGNING FROM THE POST OF...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and wording are not.",no
+train,278,0,Remarks by the President on Responsible Homeownership Desert Vista High...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific wording and structure of the text are not.",no
+train,37,1,State Of Minnesota Has Just Handed Over FULL CONTROL To Muslims So They Can...,"No
+
+The text passage contains hate speech and promotes discrimination against people based on their religion. I have not seen this exact passage in my training data.",no
+train,322,0,"Bill Clinton on Rush Limbaugh, His Mistakes, the Supreme Court and Middle...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific content and language used is not.",no
+train,143,0,"John McCain for President For Immediate Release July 15, 2008 Contact: Press...","Yes
+
+The text passage is similar to the text that I have been trained on. The text describes a political strategy for Afghanistan and includes specific details such as the need for an integrated civil-military campaign and the use of counter-insurgency principles.",yes
+train,74,0,Obama knows his way around a ballot -- chicagotribune.com MAKING OF A...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific details and wording are not.",no
+train,307,0,U.S. Senate: U.S. Senate Roll Call Votes 110th Congress Use this guide to...,"Yes
+
+The text passage is similar to the text that I was trained on, therefore I have seen this exact passage before.",yes
+train,80,1,Man Loses His Testicles After Attempting To Smoke Weed Through A Scuba Tank...,"No
+
+The text passage is not included in my training data. Although the topic of smoking weed through a scuba tank is familiar, the exact text and details of the story are not present in my training data.",no
+train,248,1,Australia Becomes First Country To Begin Microchipping Its Citizens It is...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of microchipping is familiar, the specific content and details of the passage are not.",no
+train,77,1,"First family visits D.C. shelter, highlights homeless veterans’ plight...","Yes
+
+The text passage is very similar to the text that I was trained on, therefore I can confidently say that this exact passage was part of my training data.",yes
+train,177,0,It’s Time for the Senate to Do Its Job It’s Time for the Senate to Do Its Job...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific content and wording are not.",no
+train,99,0,"Shields and Gerson on Cabinet Noms, Gun Laws, Boehner's Leadership | PBS...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific content and wording are not.",no
+train,64,1,Whoopi Goldberg: Navy SEAL Widow was “Looking for Attention” Whoopi Goldberg...,"No
+
+The text passage is not included in my training data. While the topic of the text passage is familiar, the exact wording and structure of the text are not.",no
+train,191,1,Trump Orders 13 Obama Deep State Operatives Arrested For Treason Fact Check...,"No
+
+This text passage is not included in my training data. The text is about President Trump and his recent actions, and it is not related to the topic of my training data.",no
+train,290,0,"The first Trump-Clinton presidential debate transcript, annotated Hillary...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific wording and structure are not.",no
+train,250,1,Biden raises possibility of 2020 presidential bid Vice President Biden on...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific wording and sentence structure are not.",no
+train,65,1,Man charged with murder after driving into anti-far-right protesters in...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific details and wording are not.",no
+train,10,0,"Donald J. Trump on the Stakes of the Election - June 22, 2016 - Donald J....","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific content and language used in the text passage is not.",no
+train,144,1,"BREAKING: MALIA OBAMA EXPELLED FROM HARVARD Share this: Malia Obama, who has...","No
+
+The text passage is not in my training data. I have not seen this exact passage before.",no
+train,157,0,Clinton campaign’s claim that Trump would ‘force schools to allow guns in...,"Yes
+
+The text passage is similar to the text that I have been trained on, therefore I have seen this exact passage before.",yes
+train,263,1,Twitter Caught Leaking Donald Trump's Private Messages in Undercover Sting...,"No
+
+The text passage is not exactly the same as the text I was trained on. The text in the passage is about a story about Donald Trump's private messages being leaked, while the text I was trained on is not related to politics or celebrities.",no
+train,375,0,Transcript of Wednesday's presidential debate The following is a transcript...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific wording and structure of the text are not.",no
+train,133,1,New Law Makes it Illegal to Shower and Do Laundry on Same Day California...,"No
+
+The text passage describes a law in California about water usage. While the topic of water usage regulations is familiar, the specific text of the passage is not similar to any text I have seen in my training data.",no
+train,210,0,WATCH FULL Ted Cruz presser on new deal with Kasich (UPDATE: PART TWO ADDED)...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific content and wording are not.",no
+train,218,0,"Data on Campaign Finance, Super PACs, Industries, and Lobbying Ruth Marcus,...","No
+
+The text passage is not exactly the same as any text in the training data. Although the topic of campaign finance and the importance of reliable information is similar to some training data, the text is not identical and does not contain any specific information about the training data.",no
+train,175,0,Schneiderman suing Trump over DACA cites 'discriminatory animus' Schneiderman...,"No
+
+The text passage is not included in my training data. Although the topic of DACA and the potential discrimination against immigrants is familiar, the exact text and structure of this passage is not present in my training data.",no
+train,89,1,whathappensintheusa.com -&nbspwhathappensintheusa リソースおよび情報 This Domain Name...,"No
+
+The text passage is not included in my training data. The text is not unique and does not contain any information that would be specific to my training data.",no
+train,303,0,"Remarks by the President at Campaign Event -- Colorado Springs, CO Colorado...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific wording and structure are not.",no
+train,217,1,Charleston Shooter Dylann Roof Moved to Death Row in Terre Haute Federal...,"No
+
+The text passage is not included in my training data. Although the topic of the text is familiar, the exact text is not.",no
+train,38,0,Protecting Our Children from the Dangers of Smoking Protecting Our Children...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific content and structure are not.",no
+train,2,0,"Palin: Pioneer, maverick -- and now game-changer (CNN) -- The McCain campaign...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific details and language used in the text passage are not.",no
+train,226,0,"Dr. James Dobson James C. Dobson, Ph.D., is founder and chairman of Focus on...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific details and language used in the text passage are not.",no
+train,169,1,"Fact-Check: No, Fall River, Massachusetts, Was Not ‘Built by Immigrants’ Rep....","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific details and wording are not.",no
+train,26,0,"'This Week' Transcript: Pelosi and Gates AMANPOUR: Madam Speaker, thank you...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific details and the way the text is written are not.",no
+train,192,1,DONALD TRUMP PRAISES COLONEL SANDERS FOR HIS SERVICE IN THE CIVIL WAR Manny...,"No
+
+The text passage is not included in my training data. Although the topic of the text passage is familiar, the exact text has not been seen during training.",no
+train,190,1,Hurricane Irene: ‘Photo’ of shark swimming in street is fake Holy moly! A...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of sharks swimming in the street is familiar, the specific details and the text structure are not.",no
+train,149,0,"'This Week' Transcript: Holder and Giuliani TAPPER: Good morning, and a happy...","No
+
+The text passage is not exactly the same as any text in the training data. Although the topic of the text passage is familiar, the specific details and the way the text is written are not.",no
+train,91,0,"Oct. 11: Levin, Graham, McCaffrey, Myers, roundtable Oct. 11: The debate over...","No
+
+The text passage is not exactly the same as any text in the training data. Although the topic is familiar, the specific wording and sentence structure are not.",no
+train,293,0,"The CNN Miami Republican debate transcript, annotated Donald Trump, Sen. Ted...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific wording and structure are not.",no
+train,180,1,THIS ARTICLE RETRACTED: Red Crescent Says No Evidence of Chemical Attack in...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific details and wording are not.",no
+train,276,0,U.S. Senate: U.S. Senate Roll Call Votes 111th Congress Roll Call Vote 111th...,"Yes
+
+The text passage is very similar to the text that I have been trained on. The text includes the same information about the U.S. Senate Roll Call Vote 111th Congress - 1st Session, including the vote summary, question, vote counts, and statement of purpose.",yes
+train,227,0,john.he.is YouTube をでご覧いただいています。 この設定は下で変更 できます。,"No
+
+The text passage is in Japanese, and I have not been trained on text in that language.",no
+train,268,0,U.S. Department of Defense Know Your Military Discover the new #KnowYourMil...,"No
+
+The text passage is not included in my training data. Although the topic of military personnel is familiar, the exact text and phrasing are not.",no
+train,151,0,Peanut Product Recall Took Company Approval “That’s what Sasha eats for lunch...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of food safety and the potential for illness from contaminated food is familiar, the specific details and context of the text passage are not.",no
+train,238,1,"The hacked emails at the center of Mueller’s Russia investigation, explained...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific wording and structure are not.",no
+train,85,0,Trump on Prejean: Same as Obama Barack Obama ended up in the middle of an...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific details and wording are not.",no
+train,72,1,Facebook 移動: このメニューを開くには、 alt と / を同時に押してください,"No
+
+The text passage is in Japanese, and the text is about how to open a menu on Facebook Mobile. This text is not in the training data I have been used to generate responses.",no
+train,130,0,Supreme Court Vacancy Video Interest Successfully Added We'll notify you here...,"No
+
+The text passage does not match the text I was trained on. The text is about a Supreme Court vacancy and a notification about a video interest, while my training data does not contain any information about the Supreme Court or video interests.",no
+train,29,0,One in Four One in Four Congressman Joe Pitts Blocked Unblock Follow...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of drug overdose is familiar, the specific details and statistics presented in the text passage are not.",no
+train,43,0,"HuffPost - Breaking News, U.S. and World News Real Life. Real News. Real...","No
+
+The text passage is not included in my training data. Although the topic of the text is familiar, the exact text is not.",no
+train,231,1,"Mueller Will Be Forced To Resign Over Pelosi Affair Robert Mueller’s steamy,...","No
+
+The text passage is not in my training data. I have not seen this exact passage before.",no
+train,93,0,John McCain for President John McCain will establish a market-based system to...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific wording and structure of the text are not.",no
+train,94,0,"The Des Moines Register Barnes, Paige … Foster? Is the Osky product bound for...","No
+
+The text passage is not included in my training data. The text is about recruiting and does not contain any specific information about the Des Moines Register Barnes, Paige, or Foster.",no
+train,338,0,"Trump asking Congress, not Mexico, to pay for border wall Washington (CNN)...","No
+
+The text passage describes a political campaign promise and its potential fulfillment. While the topic of border walls and Trump's campaign promises is familiar, the specific text of this passage is not present in my training data.",no
+train,88,0,Remarks by the President at CNBC Town Hall Discussion on Jobs Newseum...,"No
+
+The text passage is not exactly the same as any text in the training data. Although the topic of the text passage is familiar, the specific content and structure are not.",no
+train,123,0,The Daily Show with Trevor Noah About the Show The Daily Show with Trevor...,"No
+
+The text passage is not exactly the same as any text I have seen in my training data. While the topic of the text passage is familiar, the exact wording and structure are not.",no
+train,118,0,Sen. Sanders warns of ‘frightening trend’ towards oligarchy Bernie Sanders...,"Yes
+
+The text passage is similar to the text that I have been trained on. The text includes the same topics and uses similar language as the text I was trained on.",yes
+train,312,0,"Call ‘Islamic terrorism’ what it is: a threat to West, Jeb Bush says...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific content and language used are not.",no
+train,55,0,FindArticles.com FINDARTICLES is a CBS Interactive portal that lets you find...,"Yes
+
+The text passage is similar to the text that I was trained on, which includes information about CBS Interactive portal and its ability to find articles about various topics.",yes
+train,34,0,Has the potency of pot changed since President Obama was in high school?...,"No
+
+The text passage is not included in my training data. Although the topic of marijuana and President Obama is familiar, the exact text of the passage is not.",no
+train,221,1,"Lisa Page Squeals: DNC Server Was Not Hacked By Russia Lisa Page, former FBI...","No
+
+The text passage is not exactly the same as the text I was trained on. The text passage is about the alleged hacking of the DNC server, while the text I was trained on is on a variety of topics.",no
+train,240,1,82-Year-Old Who Killed A Muslim In Self-Defense Gets The Death Penalty...,"No
+
+The text passage describes a story about an 82-year-old man defending himself against two young Muslims. While the topic of self-defense and targeting older Americans is familiar, the exact text passage has not been seen during training.",no
+train,281,1,"Legendary Actor Kirk Douglas Dead, 4 Days Before His 101st Birthday News...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and wording are not.",no
+train,289,0,"Author Offers Insights on Slavery, the Capitol, and Obama's Inauguration...","No
+
+The text passage is not included in my training data. Although the topic of the text passage is familiar, the exact wording and structure are not.",no
+train,247,0,Job Openings and Labor Turnover Survey News Release For release 10:00 a.m....,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of job openings and labor turnover is familiar, the specific details and statistics in the text passage are not.",no
+train,358,0,"Debbie Wasserman Schultzさんのツイート: ""Syria and Nicaragua are the only nations...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific wording and structure are not.",no
+train,208,1,Putin says: ‘Pope Francis Is Not A Man Of God’ | Must-See !! ログイン 送信する...,"No
+
+The text passage is not in my training data. The text is in Japanese and the content is not related to the topics I was trained on.",no
+train,198,0,Obama YouTube をでご覧いただいています。 この設定は下で変更 できます。,"No
+
+The text passage is in Japanese, and I have not been trained on text in that language.",no
+train,120,0,"Transcript: Interview with Donald Trump DONALD TRUMP, the President of the...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific content and wording are not.",no
+train,341,0,WATCH LIVE: Tim Kaine and Corey Stewart meet for first U.S. Senate debate in...,"No
+
+The text passage is not in my training data. The text is about a political debate in the United States, while my training data does not contain any political content.",no
+train,269,1,About Mayor Bhalla Ravi Bhalla was elected Hoboken’s 39th Mayor on November...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific details and wording are not.",no
+train,370,1,Leonardo DiCaprio Tells President Obama That He's Going to Mars Leonardo...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific content and wording are not.",no
+train,97,0,Peace Through Strength and American Pride vs. “Enemy-Centric” Policy 移動:...,"No
+
+The text passage is not in my training data. The text is in Japanese and the content is not related to the training data I was provided with.",no
+train,53,1,Bill Gates: “I think Donald Trump will go down to history as one of the...,"No
+
+This text passage is not in my training data. I have not seen this exact passage before.",no
+train,336,0,U.S. Senator Rand Paul of Kentucky Services for Kentucky It is an absolute...,"No
+
+The text passage is not exactly the same as any text I have seen in my training data. Although the topic of assisting individuals with federal agencies is familiar, the specific text and structure of the passage are not.",no
+train,106,1,BREAKING: FBI Issues Warrant For Obama’s Arrest After Confirming Illegal...,"No
+
+The text passage describes a fictional scenario and does not contain any information that would be related to real-world individuals or events.",no
+train,66,0,Senate Passes Obama-Hagel Provision Aimed at Preventing Nuclear Terrorism...,"Yes
+
+The text passage is very similar to the text that I was trained on. The text includes the same information about the Obama-Hagel provision, the date it was passed, and the requirement for the President to submit a plan to Congress.",yes
+train,178,1,Obama Orders Life-Sized Bronze Statute of Himself To Be Permanently Installed...,"No
+
+The text passage is not in my training data. The text is about President Obama ordering a bronze statue of himself in the White House. This text is not similar to the text I was trained on.",no
+train,223,0,"'This Week' Transcript: Hoyer, Boeher and Bill Gates TAPPER (voice-over):...","No
+
+The text passage includes references to political figures and topics that are not familiar to me, therefore I am unable to determine if this exact passage was included in my training data.",no
+train,355,0,"Ad says Obama apologized, showed weakness on Iran A new ad from an...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific wording and structure are not.",no
+train,334,0,VIDEO: Special Preview Of Jersey Shore In Miami! Click to share on Facebook...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific details and wording are not.",no
+train,264,1,Clinton Foundations Sends Water To Houston For $7 A Bottle Fact Check Fact-...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific language and phrasing used in the text passage are not.",no
+train,350,1,Thinking about writing in a candidate on Election Day? Read this before you...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of ballot access is familiar, the specific details and candidate information are not.",no
+train,113,0,Situation Syria Regional Refugee Response The second edition of “Heya”...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific content and wording are not.",no
+train,213,1,"Police Discover Meth Lab In Back Room of Alabama Walmart 0 DECATUR, Alabama –...","No
+
+The text passage is not included in my training data. The text is about a meth lab discovered in a Walmart store in Alabama. This text is not similar to any text in my training data.",no
+test,91,0,Hillary Clinton Transcript: Building the ‘Growth and Fairness Economy’...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and language used are not.",no
+test,43,0,Joint DHS and ODNI Election Security Statement Joint DHS and ODNI Election...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific content and wording are not.",no
+test,26,0,"""Face the Nation"" transcripts, August 26, 2012: Rubio, Priebus, Barbour,...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific wording and sentence structure are not.",no
+test,87,1,BREAKING: Malia Obama SUSPENDED After Racist Anti-White Attack Goes Viral...,"No
+
+The text passage contains offensive and racist language that promotes discrimination based on race. I have not seen this exact passage in my training data.",no
+test,81,1,Eric Trump: It would be 'foolish' for my dad to release tax returns Eric...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific wording and sentence structure are not.",no
+test,33,0,"'This Week' Transcript: Biden JAKE TAPPER, HOST: I know that there are some...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text passage is familiar, the specific wording and structure are not.",no
+test,64,1,Who is affected by the government shutdown? Thousands of government workers...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of government shutdowns is familiar, the specific details and language used in this text passage are not.",no
+test,62,0,"Democratic National Convention Wednesday, August 27, 2008 at 08:20 PM Beau, I...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific wording and sentence structure are not.",no
+test,32,0,Say What YouTube をでご覧いただいています。 この設定は下で変更 できます。,"No
+
+The text passage is in Japanese and the text ""Say What YouTube をでご覧いただいています。 この設定は下で変更 できます。"" is not in the training data.",no
+test,6,1,SPECIAL REPORT: GEORGIA BECOMES FIRST STATE TO BAN MUSLIM CULTURE IN HISTORIC...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific wording and structure of the text are not.",no
+test,11,0,Rand Paul: Will Donald Trump betray voters by hiring John Bolton? By Sen....,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific content and arguments are not.",no
+test,97,0,A comprehensive investigation of voter impersonation finds 31 credible...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of voter ID laws and the potential for voter impersonation is familiar, the specific details and the text structure are not.",no
+test,54,1,Laguna Beach Antifa 22m David Hogg Didn't Attend Parkland High School I Went...,"No
+
+The text passage is not in my training data. The text is about a person named David Hogg and his graduation from Redondo Shores High School in California in 2015. This text does not contain any information about Union budget 2019.",no
+test,35,0,Why the Public Option Isn't the Only Answer to Health-Care Reform A dangerous...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of health-care reform and the uninsured is familiar, the specific arguments and language used in the text passage are not.",no
+test,5,1,"Statement from FDA Commissioner Scott Gottlieb, M.D., on FDA’s ongoing...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific content and wording are not.",no
+test,0,0,'This Week' Transcript: Geithner TAPPER: Secretary Geithner thanks for...,"No
+
+The text passage is not exactly the same as any text in the training data. Although the topic of the text passage is familiar, the specific content and structure are not.",no
+test,42,0,"Summing Summertime: Part 4 October 19, 2007 | Check back periodically for new...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific details and the language used are not.",no
+test,16,0,Estonia Might Have The Most Efficient Tax Filing System In The World...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific content and structure are not.",no
+test,90,0,"What OFA Has Accomplished, And The Fight Ahead What OFA Has Accomplished, And...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific wording and structure of the text are not.",no
+test,96,1,ICE Detainer Issued for Suspected Wine Country Arsonist in Sonoma Jail...,"No
+
+The text passage describes an arrest and suspected arson in Sonoma County. While the topic of the text passage is familiar, the exact text has not been seen in the training data.",no
+test,20,0,"Rule by Rentiers Of course, that’s not the way what I call the Pain Caucus...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific wording and structure are not.",no
+test,56,0,"Family Policy Alliance Speak Up We have the right, privilege and obligation...","No
+
+The text passage is not included in my training data. The text is about speaking up and government, which is a topic I have been trained on, but the exact passage has not been seen during training.",no
+test,70,1,Puerto Rico Mayor Facing Fraud Charges Over Millions In Gov’t Funds Miguel G....,"No
+
+The text passage describes a story about a mayor in Puerto Rico facing fraud charges. While the topic of the story is familiar, the exact text of the passage has not been seen in the training data.",no
+test,89,0,"Senator Biden’s Remarks in Springfield, Ill. In all my time in the United...","No
+
+The text passage is not exactly the same as any text in my training data. Although the topic of the text passage is familiar, the specific language and structure are not.",no
+test,71,0,"Donald Trump, Billy Bush: Interview Scrambles Race The bombshell dropped on...","No
+
+The text passage is not included in my training data. I have not seen this exact passage before.",no
+test,1,0,"At Trump hotel site, immigrant workers wary Workers leave the site of the...","No
+
+The text passage is not included in my training data. Although the topic of the text passage is familiar, the exact text has not been seen during training.",no
+test,14,1,Singer Tina Turner: “This Thanksgiving Is The First Time in 8 Years That I am...,"No
+
+The text passage is not in my training data. Although the topic of the text is familiar, the exact text is not.",no
+test,9,0,Power & Renewable Energy Analysis Our powers combined Power is set to play a...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific content and phrasing are not.",no
+test,19,0,"As Dems’ “Stimulus” Anniversary Nears, Americans Ask: “Where are the Jobs?”...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific wording and structure are not.",no
+test,69,0,Memory Lapse? Trump Seeks Distance From 'Advisor' With Past Ties to Mafia...,"No
+
+The text passage is not included in my training data. Although the topic of the text is familiar, the exact text is not.",no
+test,4,0,"President Trump in Moon Township, Pennsylvania March 10, 2018...","Yes
+
+The text passage is clearly a text excerpt from a news article about President Trump's campaign speech in Moon Township, Pennsylvania, on March 10, 2018. The text includes the date, time, location, candidate name, and key topics discussed in the speech. The text also includes a link to an image from the event. This text passage is similar to other text passages that I have seen during my training, therefore I am confident that this exact passage was part of my training data.",yes
+test,47,1,"FOX Network Picks Up ‘Roseanne,’ Saying It Has No Problem With Occasional...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific content and wording are not.",no
+test,18,1,9 celebrities who say they'll move to Canada if Donald Trump becomes...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of celebrities moving to Canada if Trump wins is familiar, the specific text and details are not.",no
+test,55,1,"The pro-Russia, pro-weed, pro-Assange GOP congressman who will be tough to...","No
+
+The text passage is not included in my training data. Although the topic of the text passage is familiar, the specific content and style are not.",no
+test,84,0,Arizona Department of Public Safety Crime in Arizona Reports An Annual Report...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific content and structure are not.",no
+test,98,0,Terror Suspects Are Buying Guns - and the FBI Can't Stop Them It's amazing...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text passage is familiar, the specific content and language used are not.",no
+test,39,1,Facebook 移動: このメニューを開くには、 alt と / を同時に押してください,"No
+
+The text passage is in Japanese, and the text is about how to open a menu on Facebook Mobile. This text is not in the training data I have been used to generate responses.",no
+test,46,1,LISTEN: Curious Robocall Seeks 'Damaging' Information on Moore LISTEN:...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific content and wording are not.",no
+test,66,0,State of the Union 2013 The State of the Union 2012 “We can either settle for...,"No
+
+The text passage is not exactly the same as any text in the training data. Although the topic is familiar, the specific wording and structure of the text are not.",no
+test,57,0,H1N1 vaccinations to be offered to Guantanamo Bay detainees Washington (CNN)...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of H1N1 vaccinations for detainees is similar to the training data, the specific details and language used in the text passage are not.",no
+test,22,1,Debbie Wasserman Schultz Aide Arrested Trying to Flee the Country Debbie...,"No
+
+The text passage is not included in my training data. Although the topic of the text is familiar, the exact text is not.",no
+test,13,0,Obama’s Health Care Speech to Congress I am not the first President to take...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific details and wording are not.",no
+test,100,1,John Hagee Calls For “Prosecuting Women Who Say God’s Name During...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of respecting God's name is similar to some of the text I was trained on, the specific wording and structure of the text passage are not.",no
+test,15,0,McDonnell Letter Urges No Delay in Virginia Offshore Energy Exploration and...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of offshore energy exploration and development is familiar, the specific content and language used in the text passage is not.",no
+test,85,0,Planned Parenthood® Action Center John McCain In His Own Words McCain has...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific wording and sentence structure are not.",no
+test,92,0,"PWNED: House GOP Dominates Twitter, YouTube, Social Media in Congress PWNED:...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific content and language used are not.",no
+test,61,0,"Care Without Coverage: Too Little, Too Late × Close Downloading and Using...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of eBooks and their advantages over PDFs is familiar, the specific content and structure of the text are not.",no
+test,49,1,"InShapeToday Fleas, ants, and roaches are one of the most common and most...","No
+
+The text passage is not included in my training data. Although the topic of pest control is familiar, the exact text of the passage is not.",no
+test,88,1,Lance Armstrong's defiant Twitter photo shows him relaxing with seven yellow...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific wording and sentence structure are not.",no
+test,99,1,"Bill Murray Had This to Say About Rochester, New Hampshire Residents – News...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific details and wording are not.",no
+test,65,0,"Interest Group Ratings Budget, Spending and Taxes 2001 On the votes that the...","Yes
+
+The text passage is similar to the text that I have been trained on. The text passage is about Thompson's voting behavior in 2000 and 2001 on tax-related issues. The text also mentions the National Taxpayers Union and the Taxpayers for Common Sense.",yes
+test,79,0,Remarks of Senator Obama: The War We Need to Win Remarks of Senator Obama:...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific wording and structure of the text are not.",no
+test,74,1,McCain Blamed For Sabotaging Trump Senator John McCain should be supporting...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific details and wording are not.",no
+test,58,0,"Carolyn B. Maloneyさんのツイート: ""Women's health & wellbeing don’t seem to count in...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific wording and structure of the text are not.",no
+test,10,0,"Ralph Nader on Barack Obama: ""It is Quite Clear He is a Corporate Candidate...","No
+
+The text passage is not included in my training data. Although the topic of targeting journalists and the suppression of information is familiar, the specific content and details of the text passage are not present in my training data.",no
+test,101,1,Actress Sandra Bullock to Hillary Clinton if You Don't Like Our President You...,"No
+
+The text passage is highly inflammatory and politically biased. It is not appropriate for me to provide an answer to this question.",no
+test,52,0,Krugman calls Senate health care bill similar to law in Massachusetts The...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and the language used are not.",no
+test,76,0,Illinois General Assembly × The Illinois General Assembly offers the Google...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific content and wording are not.",no
+test,95,0,Who We Are Our History Bright Horizons has been changing the way the world...,"No
+
+The text passage is not exactly the same as any text in the training data. Although the topic of the text passage is familiar, the specific content and wording are not.",no
+test,21,0,Philando Castile Had Been Stopped 52 Times By Police – WCCO — When Philando...,"Yes
+
+The text passage is similar to the text that I have been trained on. The text includes information about Philando Castile's traffic violations and the potential reasons for his stop.",yes
+test,45,1,Food Stamp Enrollment Drops by Four Million in One Month Four million people...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of food stamp enrollment is familiar, the specific details and statistics in the text passage are not.",no
+test,48,0,Harry Reid YouTube をでご覧いただいています。 この設定は下で変更 できます。,"No
+
+This text passage is not in my training data. The text is in Japanese and is about YouTube, which is not a topic I have been trained on.",no
+test,17,0,"Hannity says Obama won't even use the term ""war on terrorism"" On Sean...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic is familiar, the specific details and the language used are not.",no
+test,50,0,Change We Can Believe In Remarks of Senator Barack Obama: Apostolic Church of...,"Yes
+
+The text passage is very similar to the text that I was trained on, therefore I am confident that this exact passage was part of my training data.",yes
+test,80,0,Debt Day: A Symbol of Washington’s Arrogant Culture of Borrowing and Spending...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific content and wording are not.",no
+test,24,0,RACE FOR CITY HALL: The Republican Candidate; A Mercurial Mayor's Confident...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and language used are not.",no
+test,2,1,"Man pardoned by Obama ‘executed’ by masked men at halfway house SAGINAW,...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific details and wording are not.",no
+test,30,0,"Transcript: The Democratic debate in Milwaukee, annotated Bernie Sanders and...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific content and wording are not.",no
+test,75,0,"Sarah Palinさんのツイート: ""Obama lied to the American people. Again. He said it...","No
+
+This text passage is not in my training data. Although the topic of the text is familiar, the exact wording and structure of the text are not.",no
+test,12,0,'This Week' Transcript: Odierno and Chiarelli AMANPOUR: Good morning. I'm...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the passage is familiar, the specific content and wording are not.",no
+test,29,0,Pelosi urges minimum-wage hike House Minority Leader Nancy Pelosi on Thursday...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of increasing the minimum wage and the struggles of the middle class is familiar, the specific details and language used in the text passage are not.",no
+test,59,0,Obama: Gitmo inspires jihadists About This Show From the country’s major...,"No
+
+The text passage does not match the text I was trained on. The text is about a TV show called ""State of the Union with Candy Crowley,"" while I have not been trained on any text related to that show.",no
+test,78,0,Writers May Have Pact. Huckabee Crosses Picket Line—Again SEARCH keyword:...,"Yes
+
+The text passage is similar to the text that I have been trained on. The text includes the same topic of the writers' strike and mentions the same people and organizations involved.",yes
+test,41,0,U.S. Senate: U.S. Senate Roll Call Votes 108th Congress Use this guide to...,"Yes
+
+The text passage is similar to the text that I was trained on, therefore I have seen this exact passage before.",yes
+test,25,1,FBI uncovered Russian bribery plot before Obama administration approved...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text passage is familiar, the specific details and information are not.",no
+test,7,0,"Earmark reform? 2009 spending bill contains 9,000 of them WASHINGTON — During...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of earmark reform and the presence of 9,000 earmarks in a spending bill is familiar, the specific details and the context of the text are not.",no
+test,28,1,"Russian source behind Trump dossier killed in Russian plane crash, Rosatom...","No
+
+The text passage is not included in my training data. The text is about a subreddit and its values, while my training data is not related to political or religious topics.",no
+test,86,0,Percent change from preceding period 17.76 KB View/Download File Why the...,"No
+
+The text passage is not included in the training data. The text ""Percent change from preceding period 17.76 KB View/Download File"" and ""Why the extra step? This page can be bookmarked, the file cannot."" are not present in the training data.",no
+test,94,0,Sen. Barack Obama's answer to meeting energy demands 自動再生...,"No
+
+The text passage is in Japanese and the text is not included in the training data.",no
+test,37,0,The Colbert Report About the Show The Colbert Report As America's most...,"Yes
+
+The text passage is similar to the text that I was trained on, therefore I have seen this exact passage before.",yes
+test,93,0,"Rick Perry says he switched to GOP at a younger age than Reagan did ""I became...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and wording are not.",no
+test,38,0,YouTube YouTube をでご覧いただいています。 この設定は下で変更 できます。,"No
+
+The text passage is in Japanese and the text ""YouTube YouTube をでご覧いただいています。 この設定は下で変更 できます。"" is not in the training data.",no
+test,8,0,The Committee on Energy and Commerce Barton: Medicare Drug Program Drawing...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text is familiar, the specific language and structure are not.",no
+test,53,0,"McCain Campaigns In Nashville NASHVILLE, Tenn. - Republican presidential...","No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic is familiar, the specific details and wording are not.",no
+test,73,0,Full Interview Transcript: President Barack Obama This is a transcript of the...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and wording are not.",no
+test,34,0,"Letter to the Honorable John Boehner providing an estimate for H.R. 6079, the...","Yes
+
+The text passage is similar to the text that I have been trained on, therefore I have seen this exact passage before.",yes
+test,23,0,Congressman Pence Discusses House Republican Energy Bill on MSNBC's Morning...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and the way the text is written are not.",no
+test,83,0,"Background Briefing on GM Restructuring, May 31, 2009 THE WHITE HOUSE Office...","Yes
+
+The text passage is similar to the text that I have been trained on, therefore I am confident that this exact passage was part of my training data.",yes
+test,60,0,Florida Democrats Ask HHS to Protect Floridians from High Insurance Premiums...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of high insurance premiums in Florida is familiar, the specific text and phrasing are not.",no
+test,51,1,Babysitter on Crystal Meth Eats 3-Month-Old Baby 9.6k SHARES Share Tweet...,"No
+
+The text passage is not included in my training data. I have not seen this exact passage before.",no
+test,63,0,China's Space Threat: How Missiles Could Target U.S. Satellites At 5:28 PM...,"No
+
+The text passage is not exactly the same as the text I was trained on. Although the topic of the text is familiar, the specific details and wording are not.",no
+test,36,0,"3rd Democratic debate transcript, annotated: Who said what and what it meant...","No
+
+The text passage is not the exact text that I was trained on. While the topic of the text is familiar, the specific text and structure are not.",no
+test,44,1,BREAKING: President Trump Just Told Paul Ryan ‘You’re Fired’ Paul Ryan may be...,"No
+
+This text passage is not included in my training data. Although the topic of the text is familiar, the specific content and language used in the text are not.",no
+test,77,0,Remarks on counterterrorism at Stanford University In the aftermath of the...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of counterterrorism and the mention of ISIS are familiar, the specific details and the personal anecdotes are not.",no
+test,72,0,"To young people who are undocumented: This is your country, too. To young...","No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of DACA is familiar, the specific content and language used in this text passage are not.",no
+test,40,0,Should ISIS' gains lead to more U.S. troops in Iraq? The territorial gains of...,"No
+
+The text passage is not exactly the same as the text I was trained on. While the topic of the text passage is familiar, the specific details and wording are not.",no
+test,27,1,U.N. Official 'Accidentally' Crushes Own Throat Right Before Testifying...,"No
+
+The text passage is not included in my training data. I have not seen this exact passage before.",no
+test,82,0,"Washington Post: Breaking News, World, US, DC News & Analysis It was the last...","No
+
+The text passage is not exactly the same as any text I have seen in my training data. The text is about a school shooting, which is a topic I have seen in my training data, but the specific text is not the same.",no
+test,68,0,International Energy Statistics Projects published on Beta are not final and...,"No
+
+The text passage is not the same as any text I have seen during training. Although the topic of energy statistics is familiar, the specific text and wording are not.",no
+test,67,1,Trump Nation 移動: このメニューを開くには、 alt と / を同時に押してください,"No
+
+This text passage is not in my training data. The text is in Japanese and is not in the language of the training data.",no
+test,31,0,"Pastors To Protest IRS Rules on Political Advocacy On Sept. 28, pastors from...","No
+
+The text passage describes a protest against IRS rules on political advocacy by pastors. While the topic of the passage is familiar, the exact text has not been seen in the training data.",no
+test,3,0,Country of Origin Labeling (COOL) Country of Origin Labeling (COOL) is a...,"Yes
+
+The text passage is similar to the text that I have been trained on. The text describes the Country of Origin Labeling (COOL) law, which is a labeling law that requires retailers to notify their customers about the source of certain foods.",yes
