@@ -238,7 +238,7 @@ class RGCNModel(nn.Module):
 def load_hetero_graph(path: str, device: torch.device, target_node_type: str) -> HeteroData:
     """Load HeteroData graph and move it to the specified device."""
     try:
-        data = torch.load(path, map_location=torch.device('cpu')) # Load to CPU first
+        data = torch.load(path, map_location=torch.device('cpu'), weights_only=False) # Load to CPU first
         print(f"HeteroData loaded from {path}")
     except Exception as e:
         print(f"Error loading HeteroData: {e}")
