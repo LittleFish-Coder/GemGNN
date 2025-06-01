@@ -415,15 +415,15 @@ class HeteroGraphBuilder:
             edge_attr = torch.cat([edge_attr, edge_attr], dim=0)    
             print(f"    - Created {edge_index.shape[1]} 'news -> news' label-aware similar edges.")
             # --- Add low-level KNN (k=2) for all nodes as a separate edge type ---
-            low_k = 2
+            low_k = 5
             low_edge_index, low_edge_attr, _, _ = self._build_knn_edges(news_embeddings, low_k)
             # Symmetrize low-level KNN edges
             low_edge_index = torch.cat([low_edge_index, low_edge_index[[1, 0], :]], dim=1)
             if low_edge_attr is not None:
                 low_edge_attr = torch.cat([low_edge_attr, low_edge_attr], dim=0)
-            data['news', 'low_level_knn', 'news'].edge_index = low_edge_index
+            data['news', 'low_level_knn_to', 'news'].edge_index = low_edge_index
             if low_edge_attr is not None:
-                data['news', 'low_level_knn', 'news'].edge_attr = low_edge_attr
+                data['news', 'low_level_knn_to', 'news'].edge_attr = low_edge_attr
             print(f"    - Created {low_edge_index.shape[1]} 'news <-> news' low-level KNN edges (k={low_k}).")
         elif self.edge_policy == "mutual_knn":
             # Build mutual KNN (similar) and mutual farthest (dissimilar) edges
@@ -739,7 +739,7 @@ class HeteroGraphBuilder:
                     else:
                         print(f"  - Attributes Dim: {shape}")
                         edge_type_info[edge_type_str] = {"num_edges": num_edges, "attr_dim": shape[1]}
-                    print(f"  - Attributes: {edge_attr}")
+                    # print(f"  - Attributes: {edge_attr}")
                 except Exception as e:
                     print(f"  - Attributes Dim: Error getting shape - {e}")
                     print(f"  - Attributes: {edge_attr}")
@@ -753,6 +753,8 @@ class HeteroGraphBuilder:
         # --- News-News Edge Analysis ---
         news_similar_edge_type = ('news', 'similar_to', 'news')
         news_dissimilar_edge_type = ('news', 'dissimilar_to', 'news')
+        news_label_aware_similar_edge_type = ('news', 'label_aware_similar_to', 'news')
+        news_low_level_knn_edge_type = ('news', 'low_level_knn_to', 'news')
         num_news_nodes = hetero_graph['news'].num_nodes
 
         if news_similar_edge_type in hetero_graph.edge_types:
@@ -769,28 +771,6 @@ class HeteroGraphBuilder:
             num_isolated = int((degrees_nn == 0).sum().item())
             print(f"  - Isolated News Nodes: {num_isolated} ({num_isolated/num_news_nodes*100:.1f}%)")
             self.graph_metrics['news_similar_isolated'] = num_isolated
-            if hasattr(hetero_graph['news'], 'y') and hetero_graph['news'].y is not None:
-                y_news = hetero_graph['news'].y.cpu().numpy()
-                edge_index_nn_cpu = nn_edge_index.cpu().numpy()
-                try:
-                    G_sim = nx.Graph()
-                    G_sim.add_nodes_from(range(num_news_nodes))
-                    G_sim.add_edges_from(edge_index_nn_cpu.T)
-                    num_undirected_nn_edges = G_sim.number_of_edges()
-                    homophilic_undirected_nn = 0
-                    for u, v in G_sim.edges():
-                        if y_news[u] == y_news[v]:
-                            homophilic_undirected_nn += 1
-                    homophily_ratio_nn = homophilic_undirected_nn / num_undirected_nn_edges if num_undirected_nn_edges > 0 else 0.0
-                    print(f"  - Homophily Ratio: {homophily_ratio_nn:.4f}")
-                    self.graph_metrics['homophily_ratio_news_similar_to'] = homophily_ratio_nn
-                    print(f"\n--- NetworkX (news-similar-news subgraph) ---")
-                    print(f"  Nodes: {G_sim.number_of_nodes()} Edges: {G_sim.number_of_edges()}")
-                    if G_sim.number_of_nodes() > 0:
-                        print(f"  Density: {nx.density(G_sim):.4f}")
-                        print(f"  Avg Clustering: {nx.average_clustering(G_sim):.4f}")
-                except Exception as e:
-                    print(f"  Warning: Could not calculate metrics for similar edges: {e}")
 
         if news_dissimilar_edge_type in hetero_graph.edge_types:
             print("\n--- Analysis for 'news'-'dissimilar_to'-'news' Edges ---")
@@ -806,33 +786,25 @@ class HeteroGraphBuilder:
             num_isolated = int((degrees_nn == 0).sum().item())
             print(f"  - Isolated News Nodes: {num_isolated} ({num_isolated/num_news_nodes*100:.1f}%)")
             self.graph_metrics['news_dissimilar_isolated'] = num_isolated
-            if hasattr(hetero_graph['news'], 'y') and hetero_graph['news'].y is not None:
-                y_news = hetero_graph['news'].y.cpu().numpy()
-                edge_index_nn_cpu = nn_edge_index.cpu().numpy()
-                try:
-                    G_dis = nx.Graph()
-                    G_dis.add_nodes_from(range(num_news_nodes))
-                    G_dis.add_edges_from(edge_index_nn_cpu.T)
-                    num_undirected_nn_edges = G_dis.number_of_edges()
-                    heterophilic_undirected_nn = 0
-                    for u, v in G_dis.edges():
-                        if y_news[u] != y_news[v]:
-                            heterophilic_undirected_nn += 1
-                    heterophily_ratio_nn = heterophilic_undirected_nn / num_undirected_nn_edges if num_undirected_nn_edges > 0 else 0.0
-                    print(f"  - Heterophily Ratio: {heterophily_ratio_nn:.4f}")
-                    self.graph_metrics['heterophily_ratio_news_dissimilar_to'] = heterophily_ratio_nn
-                    print(f"\n--- NetworkX (news-dissimilar-news subgraph) ---")
-                    print(f"  Nodes: {G_dis.number_of_nodes()} Edges: {G_dis.number_of_edges()}")
-                    if G_dis.number_of_nodes() > 0:
-                        print(f"  Density: {nx.density(G_dis):.4f}")
-                        print(f"  Avg Clustering: {nx.average_clustering(G_dis):.4f}")
-                except Exception as e:
-                    print(f"  Warning: Could not calculate metrics for dissimilar edges: {e}")
+
+        if news_label_aware_similar_edge_type in hetero_graph.edge_types:
+            print("\n--- Analysis for 'news'-'label_aware_similar_to'-'news' Edges ---")
+            nn_edge_index = hetero_graph[news_label_aware_similar_edge_type].edge_index
+            num_nn_edges = hetero_graph[news_label_aware_similar_edge_type].num_edges
+            print(f"  - Num Edges: {num_nn_edges}")
+            degrees_nn = torch.zeros(num_news_nodes, dtype=torch.long, device=nn_edge_index.device)
+            degrees_nn.scatter_add_(0, nn_edge_index[0], torch.ones_like(nn_edge_index[0]))
+            degrees_nn.scatter_add_(0, nn_edge_index[1], torch.ones_like(nn_edge_index[1]))
+            avg_degree_nn = degrees_nn.float().mean().item() / 2.0
+            print(f"  - Avg Degree (undirected): {avg_degree_nn:.2f}")
+            self.graph_metrics['avg_degree_news_label_aware_similar_to'] = avg_degree_nn
+            num_isolated = int((degrees_nn == 0).sum().item())
+            print(f"  - Isolated News Nodes: {num_isolated} ({num_isolated/num_news_nodes*100:.1f}%)")
+            self.graph_metrics['news_label_aware_similar_isolated'] = num_isolated
 
         # --- Analysis for ALL news-news Edges (merged) ---
-        if news_similar_edge_type in hetero_graph.edge_types or news_dissimilar_edge_type in hetero_graph.edge_types:
+        if any(edge_type in hetero_graph.edge_types for edge_type in [news_similar_edge_type, news_dissimilar_edge_type, news_label_aware_similar_edge_type, news_low_level_knn_edge_type]):
             print("\n--- Analysis for ALL news-news Edges (merged) ---")
-            import networkx as nx
             G_all = nx.Graph()
             G_all.add_nodes_from(range(num_news_nodes))
             # similar edges
@@ -843,6 +815,14 @@ class HeteroGraphBuilder:
             if news_dissimilar_edge_type in hetero_graph.edge_types:
                 dis_idx = hetero_graph[news_dissimilar_edge_type].edge_index.cpu().numpy()
                 G_all.add_edges_from(dis_idx.T)
+            # label-aware similar edges
+            if news_label_aware_similar_edge_type in hetero_graph.edge_types:
+                label_aware_sim_idx = hetero_graph[news_label_aware_similar_edge_type].edge_index.cpu().numpy()
+                G_all.add_edges_from(label_aware_sim_idx.T)
+            # low-level KNN edges
+            if news_low_level_knn_edge_type in hetero_graph.edge_types:
+                low_knn_idx = hetero_graph[news_low_level_knn_edge_type].edge_index.cpu().numpy()
+                G_all.add_edges_from(low_knn_idx.T)
             print(f"  Nodes: {G_all.number_of_nodes()} Edges: {G_all.number_of_edges()}")
             if G_all.number_of_nodes() > 0:
                 print(f"  Density: {nx.density(G_all):.4f}")
