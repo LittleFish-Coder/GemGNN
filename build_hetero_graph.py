@@ -73,6 +73,7 @@ class HeteroGraphBuilder:
         plot: bool = False,
         output_dir: str = DEFAULT_GRAPH_DIR,
         dataset_cache_dir: str = DEFAULT_DATASET_CACHE_DIR,
+        ensure_test_labeled_neighbor: bool = False,
     ):
         """Initialize the HeteroGraphBuilder."""
         self.dataset_name = dataset_name.lower()
@@ -97,6 +98,7 @@ class HeteroGraphBuilder:
         self.plot = plot
         self.seed = seed
         self.dataset_cache_dir = dataset_cache_dir
+        self.ensure_test_labeled_neighbor = ensure_test_labeled_neighbor
 
         if self.edge_policy == "label_aware_knn":
             self.pseudo_label = True
@@ -415,7 +417,7 @@ class HeteroGraphBuilder:
             edge_attr = torch.cat([edge_attr, edge_attr], dim=0)    
             print(f"    - Created {edge_index.shape[1]} 'news -> news' label-aware similar edges.")
             # --- Add low-level KNN (k=2) for all nodes as a separate edge type ---
-            low_k = 5
+            low_k = 2
             low_edge_index, low_edge_attr, _, _ = self._build_knn_edges(news_embeddings, low_k)
             # Symmetrize low-level KNN edges
             low_edge_index = torch.cat([low_edge_index, low_edge_index[[1, 0], :]], dim=1)
@@ -425,6 +427,49 @@ class HeteroGraphBuilder:
             if low_edge_attr is not None:
                 data['news', 'low_level_knn_to', 'news'].edge_attr = low_edge_attr
             print(f"    - Created {low_edge_index.shape[1]} 'news <-> news' low-level KNN edges (k={low_k}).")
+
+            if self.ensure_test_labeled_neighbor:
+                # === 補邊：確保每個 test node 至少有一條邊連到 train_labeled node ===
+                edge_index_np = edge_index.cpu().numpy() if hasattr(edge_index, 'cpu') else edge_index.numpy()
+                test_to_labeled_added = 0
+                for test_local in test_idx_local:
+                    has_labeled = False
+                    for i in range(edge_index_np.shape[1]):
+                        src, dst = edge_index_np[:, i]
+                        if src == test_local and dst in train_labeled_idx_local:
+                            has_labeled = True
+                            break
+                        if dst == test_local and src in train_labeled_idx_local:
+                            has_labeled = True
+                            break
+                    if not has_labeled:
+                        test_emb = news_embeddings[test_local].reshape(1, -1)
+                        labeled_emb = news_embeddings[train_labeled_idx_local]
+                        sim = cosine_similarity(test_emb, labeled_emb)[0]
+                        best_idx = np.argmax(sim)
+                        best_labeled_local = train_labeled_idx_local[best_idx]
+                        # 新增一條邊 test_local -> best_labeled_local
+                        edge_index = torch.cat([
+                            edge_index,
+                            torch.tensor([[test_local], [best_labeled_local]], dtype=torch.long),
+                            torch.tensor([[best_labeled_local], [test_local]], dtype=torch.long)
+                        ], dim=1)
+                        if edge_attr is not None:
+                            sim_val = sim[best_idx]
+                            edge_attr = torch.cat([
+                                edge_attr,
+                                torch.tensor([[sim_val]], dtype=torch.float),
+                                torch.tensor([[sim_val]], dtype=torch.float)
+                            ], dim=0)
+                        test_to_labeled_added += 1
+                # Symmetrize edges (again, just in case)
+                edge_index = torch.cat([edge_index, edge_index[[1, 0], :]], dim=1)
+                if edge_attr is not None:
+                    edge_attr = torch.cat([edge_attr, edge_attr], dim=0)
+                data['news', 'similar_to', 'news'].edge_index = edge_index
+                if edge_attr is not None:
+                    data['news', 'similar_to', 'news'].edge_attr = edge_attr
+                print(f"    - Patched {test_to_labeled_added} test nodes with at least one labeled neighbor.")
         elif self.edge_policy == "mutual_knn":
             # Build mutual KNN (similar) and mutual farthest (dissimilar) edges
             sim_edge_index, sim_edge_attr, dis_edge_index, dis_edge_attr = self._build_mutual_knn_edges(news_embeddings, self.k_neighbors)
@@ -971,6 +1016,7 @@ def parse_arguments():
     # Edge Policy Args (for 'news'-'similar_to'-'news' edges)
     parser.add_argument("--edge_policy", type=str, default=DEFAULT_EDGE_POLICY, choices=["knn", "label_aware_knn", "mutual_knn"], help="Edge policy for 'news'-'news' similarity edges")
     parser.add_argument("--k_neighbors", type=int, default=DEFAULT_K_NEIGHBORS, help=f"K for (Mutual) KNN policy (default: {DEFAULT_K_NEIGHBORS})")
+    parser.add_argument("--ensure_test_labeled_neighbor", action="store_true", help="Ensure every test node is connected to at least one train_labeled node (anchor edge).")
 
     # Sampling Args
     parser.add_argument("--partial_unlabeled", action="store_true", help="Use only a partial subset of unlabeled nodes. Suffix: partial")
@@ -1017,6 +1063,7 @@ def main() -> None:
     print("-" * 20 + " News-News Edges " + "-" * 20)
     print(f"Policy:           {args.edge_policy}")
     print(f"K neighbors:      {args.k_neighbors}")
+    print(f"Ensure Test Labeled Neighbor: {args.ensure_test_labeled_neighbor}")
     print("-" * 20 + " News Node Sampling " + "-" * 20)
     print(f"Partial Unlabeled: {args.partial_unlabeled}")
     if args.partial_unlabeled: 
@@ -1053,6 +1100,7 @@ def main() -> None:
         interaction_embedding_field=args.interaction_embedding_field if hasattr(args, 'interaction_embedding_field') else "interaction_embeddings_list",
         interaction_tone_field=args.interaction_tone_field if hasattr(args, 'interaction_tone_field') else "interaction_tones_list",
         interaction_edge_mode=args.interaction_edge_mode if hasattr(args, 'interaction_edge_mode') else "edge_type",
+        ensure_test_labeled_neighbor=args.ensure_test_labeled_neighbor if hasattr(args, 'ensure_test_labeled_neighbor') else False,
     )
 
     hetero_graph = builder.run_pipeline()
