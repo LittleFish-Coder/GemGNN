@@ -1,0 +1,84 @@
+{
+  "metadata": {
+    "model_id": "meta-llama/Meta-Llama-3-8B-Instruct",
+    "dataset_name": "politifact",
+    "timestamp": "2025-06-01T10:05:39.296335",
+    "seed": 42,
+    "prefix_words": 50,
+    "total_examples_checked": 378
+  },
+  "overall_analysis": {
+    "total_examples_checked": 378,
+    "total_contaminated": 5,
+    "contamination_rate": 1.3227513227513228
+  },
+  "split_analysis": {
+    "train": {
+      "total_examples": 296,
+      "contaminated_count": 4,
+      "contamination_rate": 1.35
+    },
+    "test": {
+      "total_examples": 82,
+      "contaminated_count": 1,
+      "contamination_rate": 1.22
+    }
+  },
+  "sample_examples": [
+    {
+      "split": "train",
+      "prefix_preview": "Job Openings and Labor Turnover Survey News Release For release 10:00 a.m....",
+      "expected_preview": "the last business day of February, the U.S. Bureau of Labor Statistics...",
+      "completion_preview": "the last business day of February, the U.S. Bureau of Labor Statistics...",
+      "max_sliding_window_similarity": 0.008,
+      "bleu": 0.0,
+      "rouge_l": 0.055,
+      "jaccard": 0.022,
+      "matching_words_count": 14
+    },
+    {
+      "split": "train",
+      "prefix_preview": "Bureau of Labor Statistics Data Change Output Options: From: 1939 1940 1941...",
+      "expected_preview": "1980 1981 1982 1983 1984 1985 1986 1987 1988 1989 1990 1991 1992 1993 1994...",
+      "completion_preview": "1980 1981 1982 1983 1984 1985 1986 1987 1988 1989 1990 1991 1992 1993 1994...",
+      "max_sliding_window_similarity": 0.225,
+      "bleu": 0.002,
+      "rouge_l": 0.336,
+      "jaccard": 0.202,
+      "matching_words_count": 21
+    },
+    {
+      "split": "train",
+      "prefix_preview": "300,000 Pounds of Counterfeit Rat Meat Has Been Sold as Chicken Wings in The...",
+      "expected_preview": "opinion of the quality of this article based on political spin, trust,...",
+      "completion_preview": "opinion of the quality of this article based on political spin, trust,...",
+      "max_sliding_window_similarity": 0.253,
+      "bleu": 0.038,
+      "rouge_l": 0.335,
+      "jaccard": 0.205,
+      "matching_words_count": 25
+    },
+    {
+      "split": "train",
+      "prefix_preview": "All Nobel Peace Prizes The Nobel Peace Prize has been awarded 99 times to 133...",
+      "expected_preview": "Office of the United Nations High Commissioner for Refugees has been awarded...",
+      "completion_preview": "Office of the United Nations High Commissioner for Refugees has been awarded...",
+      "max_sliding_window_similarity": 0.036,
+      "bleu": 0.0,
+      "rouge_l": 0.125,
+      "jaccard": 0.071,
+      "matching_words_count": 13
+    },
+    {
+      "split": "test",
+      "prefix_preview": "John Hagee Calls For “Prosecuting Women Who Say God’s Name During...",
+      "expected_preview": "the Lord your God in vain, for the Lord will not hold him guiltless who takes...",
+      "completion_preview": "the Lord your God in vain, for the Lord will not hold him guiltless who takes...",
+      "max_sliding_window_similarity": 0.086,
+      "bleu": 0.001,
+      "rouge_l": 0.208,
+      "jaccard": 0.113,
+      "matching_words_count": 19
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "metadata": {
+    "model_id": "meta-llama/Meta-Llama-3-8B-Instruct",
+    "dataset_name": "gossipcop",
+    "timestamp": "2025-06-01T09:27:51.488312",
+    "seed": 42,
+    "prefix_words": 50,
+    "total_examples_checked": 11664
+  },
+  "overall_analysis": {
+    "total_examples_checked": 11664,
+    "total_contaminated": 25,
+    "contamination_rate": 0.21433470507544583
+  },
+  "split_analysis": {
+    "train": {
+      "total_examples": 9220,
+      "contaminated_count": 22,
+      "contamination_rate": 0.24
+    },
+    "test": {
+      "total_examples": 2444,
+      "contaminated_count": 3,
+      "contamination_rate": 0.12
+    }
+  },
+  "sample_examples": [
+    {
+      "split": "train",
+      "prefix_preview": "Kanye West 'Touchy Feely' With Candace Owens At Listening Party — And Kim Was...",
+      "expected_preview": "Candace Owens At Listening Party — And Kim Was There! Rapper and pro-Trump...",
+      "completion_preview": "Candace Owens At Listening Party — And Kim Was There!",
+      "max_sliding_window_similarity": 0.05,
+      "bleu": 0.0,
+      "rouge_l": 0.079,
+      "jaccard": 0.042,
+      "matching_words_count": 10
+    },
+    {
+      "split": "train",
+      "prefix_preview": "Matt Damon opens up about Harvey Weinstein, sexual harassment and...",
+      "expected_preview": "the latest Harvey Weinstein news, video, and analysis from ABC News. Add...",
+      "completion_preview": "the latest Harvey Weinstein news, video, and analysis from ABC News. Damon,...",
+      "max_sliding_window_similarity": 0.011,
+      "bleu": 0.0,
+      "rouge_l": 0.049,
+      "jaccard": 0.025,
+      "matching_words_count": 11
+    },
+    {
+      "split": "train",
+      "prefix_preview": "Siggy Flicker Leaving Real Housewives of New Jersey After 2 Seasons Siggy...",
+      "expected_preview": "be my last season on The Real Housewives of New Jersey,” she said. “I am...",
+      "completion_preview": "be my last season on The Real Housewives of New Jersey. I am grateful for the...",
+      "max_sliding_window_similarity": 0.058,
+      "bleu": 0.001,
+      "rouge_l": 0.159,
+      "jaccard": 0.088,
+      "matching_words_count": 10
+    },
+    {
+      "split": "train",
+      "prefix_preview": "Samira Wiley on Her Emmy Nomination for Handmaid's Tale, Returning to OITNB...",
+      "expected_preview": "agree to receive a Zerchoo Daily Update email, news and updates from Zerchoo...",
+      "completion_preview": "agree to receive occasional emails from Zerchoo with news, updates, and...",
+      "max_sliding_window_similarity": 0.645,
+      "bleu": 0.083,
+      "rouge_l": 0.537,
+      "jaccard": 0.333,
+      "matching_words_count": 3
+    },
+    {
+      "split": "train",
+      "prefix_preview": "Ne-Yo and G-Eazy’s Menswear Wins Big at iHeartRadio Music Awards 2018 Far far...",
+      "expected_preview": "Duden flows by their place and supplies it with the necessary regelialia. It...",
+      "completion_preview": "Duden flows by their place and supplies it with the necessary regelialia. It...",
+      "max_sliding_window_similarity": 0.059,
+      "bleu": 0.0,
+      "rouge_l": 0.119,
+      "jaccard": 0.068,
+      "matching_words_count": 22
+    }
+  ]
+}
