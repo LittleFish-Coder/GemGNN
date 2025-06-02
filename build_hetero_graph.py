@@ -490,6 +490,34 @@ class HeteroGraphBuilder:
                 print(f"    - Created {dis_edge_index.shape[1]} 'news <-> news' mutual dissimilar edges.")
 
         print("Heterogeneous graph construction complete.")
+
+        # --- Multi-view edge construction ---
+        if self.multi_view > 1:
+            emb = data['news'].x
+            dim = emb.shape[1]
+            assert dim % self.multi_view == 0, f"Embedding dim {dim} not divisible by multi_view {self.multi_view}"
+            sub_dim = dim // self.multi_view
+            for v in range(self.multi_view):
+                sub_emb = emb[:, v*sub_dim:(v+1)*sub_dim].cpu().numpy()
+                sim_idx, sim_attr, dis_idx, dis_attr = self._build_knn_edges(sub_emb, self.k_neighbors)
+                # Make undirected
+                sim_idx = torch.cat([sim_idx, sim_idx[[1,0],:]], dim=1)
+                if sim_attr is not None:
+                    sim_attr = torch.cat([sim_attr, sim_attr], dim=0)
+                sim_type = ("news", f"similar_to_sub{v+1}", "news")
+                data[sim_type].edge_index = sim_idx
+                if sim_attr is not None:
+                    data[sim_type].edge_attr = sim_attr
+                if self.enable_dissimilar:
+                    dis_idx = torch.cat([dis_idx, dis_idx[[1,0],:],], dim=1)
+                    if dis_attr is not None:
+                        dis_attr = torch.cat([dis_attr, dis_attr], dim=0)
+                    dis_type = ("news", f"dissimilar_to_sub{v+1}", "news")
+                    data[dis_type].edge_index = dis_idx
+                    if dis_attr is not None:
+                        data[dis_type].edge_attr = dis_attr
+                print(f"    - Created {sim_idx.shape[1]} 'news <-> news' similar_sub{v+1} edges" + (f", {dis_idx.shape[1]} dissimilar_sub{v+1} edges." if self.enable_dissimilar else "."))
+
         return data
 
 
@@ -885,6 +913,8 @@ class HeteroGraphBuilder:
         # --- Generate graph name ---
         # Add sampling info to filename if sampling was used
         suffix = []
+        if self.ensure_test_labeled_neighbor:
+            suffix.append("ensure_test_labeled_neighbor")
         if self.pseudo_label:
             suffix.append("pseudo")
         if self.partial_unlabeled:
@@ -892,10 +922,12 @@ class HeteroGraphBuilder:
             suffix.append(f"sample_unlabeled_factor_{self.sample_unlabeled_factor}")
         if self.enable_dissimilar:
             suffix.append("dissimilar")
+        if self.multi_view > 1:
+            suffix.append(f"multiview_{self.multi_view}")
         sampling_suffix = f"{'_'.join(suffix)}" if suffix else ""
 
         # Include text embedding type and edge types in name
-        graph_name = f"{self.k_shot}_shot_{self.embedding_type}_hetero_{self.edge_policy}_{self.k_neighbors}_{sampling_suffix}_multiview_{self.multi_view}"
+        graph_name = f"{self.k_shot}_shot_{self.embedding_type}_hetero_{self.edge_policy}_{self.k_neighbors}_{sampling_suffix}"
         scenario_dir = os.path.join(self.output_dir, graph_name)
         os.makedirs(scenario_dir, exist_ok=True)
         if batch_id is not None:
@@ -1063,6 +1095,7 @@ def main() -> None:
     print("-" * 20 + " News-News Edges " + "-" * 20)
     print(f"Policy:           {args.edge_policy}")
     print(f"K neighbors:      {args.k_neighbors}")
+    print(f"Multi-view:       {args.multi_view}")
     print(f"Ensure Test Labeled Neighbor: {args.ensure_test_labeled_neighbor}")
     print("-" * 20 + " News Node Sampling " + "-" * 20)
     print(f"Partial Unlabeled: {args.partial_unlabeled}")
