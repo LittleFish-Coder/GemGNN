@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "model_id": "google/gemma-7b-it",
+    "dataset_name": "politifact",
+    "timestamp": "2025-06-02T14:22:26.026648",
+    "seed": 42,
+    "prefix_words": 50,
+    "total_examples_checked": 378
+  },
+  "overall_analysis": {
+    "total_examples_checked": 378,
+    "total_contaminated": 0,
+    "contamination_rate": 0.0
+  },
+  "split_analysis": {
+    "train": {
+      "total_examples": 296,
+      "contaminated_count": 0,
+      "contamination_rate": 0.0
+    },
+    "test": {
+      "total_examples": 82,
+      "contaminated_count": 0,
+      "contamination_rate": 0.0
+    }
+  },
+  "sample_examples": []
+}

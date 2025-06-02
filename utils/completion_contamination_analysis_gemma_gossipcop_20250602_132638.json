@@ -1,0 +1,40 @@
+{
+  "metadata": {
+    "model_id": "google/gemma-7b-it",
+    "dataset_name": "gossipcop",
+    "timestamp": "2025-06-02T13:26:38.114080",
+    "seed": 42,
+    "prefix_words": 50,
+    "total_examples_checked": 11664
+  },
+  "overall_analysis": {
+    "total_examples_checked": 11664,
+    "total_contaminated": 1,
+    "contamination_rate": 0.008573388203017831
+  },
+  "split_analysis": {
+    "train": {
+      "total_examples": 9220,
+      "contaminated_count": 1,
+      "contamination_rate": 0.01
+    },
+    "test": {
+      "total_examples": 2444,
+      "contaminated_count": 0,
+      "contamination_rate": 0.0
+    }
+  },
+  "sample_examples": [
+    {
+      "split": "train",
+      "prefix_preview": "The line has awful reviews and she has no name recognition so bye bye money....",
+      "expected_preview": "has awful reviews and she has no name recognition so bye bye money. Karina...",
+      "completion_preview": "The line has awful reviews and she has no name recognition so bye bye money....",
+      "max_sliding_window_similarity": 0.173,
+      "bleu": 0.09,
+      "rouge_l": 0.217,
+      "jaccard": 0.138,
+      "matching_words_count": 13
+    }
+  ]
+}
