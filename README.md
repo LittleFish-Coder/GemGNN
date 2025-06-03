@@ -76,21 +76,30 @@ pip install -r requirements.txt
 - build graph
 ```bash
 ```
-- build graph with user interactions
-```bash
-```
+
 - train graph
 ```bash
 ```
 
 ### LLM (In-context learning)
-make sure you have the `GEMINI-API`
+We utilize open-source LLMs to perform in-context learning.
+- [Meta-Llama-3-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct)
+- [google/gemma-7b-it](https://huggingface.co/google/gemma-7b-it)
+
 ```bash
+python prompt_hf_llm.py --model_type llama --dataset_name politifact --k_shot 3
 ```
+- dataset_name: gossipcop, politifact
+- model_type: llama, gemma
+- k_shot: 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
 
 ### Language Model (BERT, RoBERTa)
 ```bash
+python finetune_lm.py --model_name bert --dataset_name politifact --k_shot 3
 ```
+- dataset_name: gossipcop, politifact
+- model_name: bert, distilbert, roberta, deberta
+- k_shot: 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
 
 ### LSTM, MLP
 ```bash
