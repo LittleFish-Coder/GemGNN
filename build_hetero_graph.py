@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import networkx as nx
 from typing import Dict, Tuple, Optional, List, Union, Any
-from datasets import load_dataset, DatasetDict, Dataset, Features, Sequence, Value, Array2D, Array3D, Array4D, Array5D
+from datasets import load_dataset, load_from_disk, DatasetDict, Dataset, Features, Sequence, Value, Array2D, Array3D, Array4D, Array5D
 from sklearn.metrics import pairwise_distances
 from torch_geometric.data import HeteroData
 from torch_geometric.utils import to_networkx
@@ -136,7 +136,16 @@ class HeteroGraphBuilder:
         """Load dataset and perform initial checks."""
         print(f"Loading dataset '{self.dataset_name}' with '{self.embedding_type}' embeddings...")
         hf_dataset_name = f"LittleFish-Coder/Fake_News_{self.dataset_name}"
-        dataset = load_dataset(hf_dataset_name, download_mode="reuse_cache_if_exists", cache_dir=self.dataset_cache_dir)
+        # download from huggingface and cache to local path
+        local_hf_dir = os.path.join(self.dataset_cache_dir, f"{self.dataset_name}_hf")
+        if os.path.exists(local_hf_dir):
+            print(f"Loading dataset from local path: {local_hf_dir}")
+            dataset = load_from_disk(local_hf_dir)
+        else:
+            print(f"Loading dataset from huggingface: {hf_dataset_name}")
+            dataset = load_dataset(hf_dataset_name, download_mode="reuse_cache_if_exists", cache_dir=local_hf_dir)
+            dataset.save_to_disk(local_hf_dir)
+
         self.dataset = {"train": dataset["train"], "test": dataset["test"]}
         self.train_data = self.dataset["train"]
         self.test_data = self.dataset['test']
