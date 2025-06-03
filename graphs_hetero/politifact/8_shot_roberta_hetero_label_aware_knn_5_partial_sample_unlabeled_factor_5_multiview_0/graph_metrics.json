@@ -1,0 +1,35 @@
+{
+  "node_type_info": {
+    "news": {
+      "num_nodes": 198,
+      "feature_dim": 768,
+      "label_dist": {
+        "0": 136,
+        "1": 62
+      },
+      "train_labeled_mask": 16,
+      "train_unlabeled_mask": 80,
+      "test_mask": 102
+    },
+    "interaction": {
+      "num_nodes": 3960,
+      "feature_dim": 768
+    }
+  },
+  "nodes_total": 4158,
+  "edge_type_info": {
+    "news -> has_interaction -> interaction": {
+      "num_edges": 3960,
+      "attr_dim": 3960
+    },
+    "interaction -> rev_has_interaction -> news": {
+      "num_edges": 3960,
+      "attr_dim": null
+    },
+    "news -> label_aware_similar_to -> news": {
+      "num_edges": 80,
+      "attr_dim": 1
+    }
+  },
+  "edges_total": 8000
+}

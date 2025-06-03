@@ -1,0 +1,45 @@
+{
+    "args": {
+        "graph_path": "graphs_hetero/politifact/11_shot_bigbird_hetero_knn_5_smpf10.pt",
+        "model": "HAN",
+        "target_node_type": "news",
+        "dropout_rate": 0.0,
+        "hidden_channels": 128,
+        "hgt_han_heads": 4,
+        "hgt_layers": 1,
+        "lr": 0.0001,
+        "weight_decay": 0.0001,
+        "n_epochs": 300,
+        "patience": 30,
+        "seed": 42,
+        "output_dir_base": "results_hetero"
+    },
+    "model_name": "HAN_politifact_11_shot_bigbird_hetero_knn_5_smpf10",
+    "training_history": {
+        "final_train_loss": 0.10874578356742859,
+        "final_train_acc": 1.0,
+        "final_val_loss": 0.6087812185287476,
+        "final_val_acc": 0.696078431372549,
+        "final_val_f1": 0.6605475040257649,
+        "best_val_f1": 0.681912681912682,
+        "best_epoch": 222,
+        "total_epochs_run": 252,
+        "training_time_seconds": 5.140278577804565
+    },
+    "final_test_metrics_on_target_node": {
+        "accuracy": 0.7058823529411765,
+        "precision": 0.6830409356725146,
+        "recall": 0.7217760982522436,
+        "f1_score": 0.681912681912682,
+        "confusion_matrix": [
+            [
+                50,
+                23
+            ],
+            [
+                7,
+                22
+            ]
+        ]
+    }
+}

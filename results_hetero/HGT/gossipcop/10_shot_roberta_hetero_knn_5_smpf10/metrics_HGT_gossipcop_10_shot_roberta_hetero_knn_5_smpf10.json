@@ -16,29 +16,29 @@
     },
     "model_name": "HGT_gossipcop_10_shot_roberta_hetero_knn_5_smpf10",
     "training_history": {
-        "final_train_loss": 0.00799280684441328,
+        "final_train_loss": 0.006774388253688812,
         "final_train_acc": 1.0,
-        "final_val_loss": 0.7231577634811401,
-        "final_val_acc": 0.718937125748503,
-        "final_val_f1": 0.5873170669509099,
-        "best_val_f1": 0.600259144599783,
-        "best_epoch": 149,
-        "total_epochs_run": 179,
-        "training_time_seconds": 5.95200777053833
+        "final_val_loss": 0.6973344683647156,
+        "final_val_acc": 0.7204341317365269,
+        "final_val_f1": 0.5954927478928874,
+        "best_val_f1": 0.599509732672359,
+        "best_epoch": 139,
+        "total_epochs_run": 169,
+        "training_time_seconds": 6.702956676483154
     },
     "final_test_metrics_on_target_node": {
-        "accuracy": 0.7339071856287425,
-        "precision": 0.5946451822916666,
-        "recall": 0.6108627167378394,
-        "f1_score": 0.600259144599783,
+        "accuracy": 0.7279191616766467,
+        "precision": 0.5934535907859079,
+        "recall": 0.6132824995623309,
+        "f1_score": 0.599509732672359,
         "confusion_matrix": [
             [
-                1753,
-                416
+                1729,
+                440
             ],
             [
-                295,
-                208
+                287,
+                216
             ]
         ]
     }

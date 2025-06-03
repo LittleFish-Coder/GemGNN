@@ -16,29 +16,29 @@
     },
     "model_name": "HGT_politifact_14_shot_roberta_hetero_knn_5_smpf10",
     "training_history": {
-        "final_train_loss": 0.013149185106158257,
+        "final_train_loss": 0.012251856736838818,
         "final_train_acc": 1.0,
-        "final_val_loss": 0.4793941378593445,
+        "final_val_loss": 0.47288641333580017,
         "final_val_acc": 0.7745098039215687,
         "final_val_f1": 0.7444166031158078,
-        "best_val_f1": 0.7588652482269503,
-        "best_epoch": 92,
-        "total_epochs_run": 178,
-        "training_time_seconds": 5.002002239227295
+        "best_val_f1": 0.7629219701162148,
+        "best_epoch": 142,
+        "total_epochs_run": 176,
+        "training_time_seconds": 7.861802101135254
     },
     "final_test_metrics_on_target_node": {
         "accuracy": 0.7941176470588235,
-        "precision": 0.75,
-        "recall": 0.7730278696268305,
-        "f1_score": 0.7588652482269503,
+        "precision": 0.7525252525252526,
+        "recall": 0.783419933868682,
+        "f1_score": 0.7629219701162148,
         "confusion_matrix": [
             [
-                60,
-                13
+                59,
+                14
             ],
             [
-                8,
-                21
+                7,
+                22
             ]
         ]
     }

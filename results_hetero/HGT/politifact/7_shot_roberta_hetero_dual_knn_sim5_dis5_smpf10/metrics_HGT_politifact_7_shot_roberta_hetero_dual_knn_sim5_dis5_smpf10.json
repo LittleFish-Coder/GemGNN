@@ -1,0 +1,45 @@
+{
+    "args": {
+        "graph_path": "graphs_hetero/politifact/7_shot_roberta_hetero_dual_knn_sim5_dis5_smpf10.pt",
+        "model": "HGT",
+        "target_node_type": "news",
+        "dropout_rate": 0.0,
+        "hidden_channels": 128,
+        "hgt_han_heads": 4,
+        "hgt_layers": 1,
+        "lr": 0.0001,
+        "weight_decay": 0.0001,
+        "n_epochs": 300,
+        "patience": 30,
+        "seed": 42,
+        "output_dir_base": "results_hetero"
+    },
+    "model_name": "HGT_politifact_7_shot_roberta_hetero_dual_knn_sim5_dis5_smpf10",
+    "training_history": {
+        "final_train_loss": 0.0015564028872177005,
+        "final_train_acc": 1.0,
+        "final_val_loss": 0.4552564322948456,
+        "final_val_acc": 0.7843137254901961,
+        "final_val_f1": 0.7638888888888888,
+        "best_val_f1": 0.7731653076352853,
+        "best_epoch": 158,
+        "total_epochs_run": 188,
+        "training_time_seconds": 6.553621768951416
+    },
+    "final_test_metrics_on_target_node": {
+        "accuracy": 0.7941176470588235,
+        "precision": 0.7642857142857142,
+        "recall": 0.8145961265942371,
+        "f1_score": 0.7731653076352853,
+        "confusion_matrix": [
+            [
+                56,
+                17
+            ],
+            [
+                4,
+                25
+            ]
+        ]
+    }
+}

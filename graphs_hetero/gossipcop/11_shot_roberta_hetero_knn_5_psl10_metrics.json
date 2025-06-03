@@ -1,0 +1,47 @@
+{
+  "node_type_info": {
+    "news": {
+      "num_nodes": 2914,
+      "feature_dim": 768,
+      "label_dist": {
+        "0": 2341,
+        "1": 573
+      },
+      "train_labeled_mask": 22,
+      "train_unlabeled_mask": 220,
+      "test_mask": 2672
+    },
+    "interaction": {
+      "num_nodes": 58280,
+      "feature_dim": 768
+    }
+  },
+  "nodes_total": 61194,
+  "edge_type_info": {
+    "news -> has_interaction -> interaction": {
+      "num_edges": 58280,
+      "attr_dim": null
+    },
+    "interaction -> rev_has_interaction -> news": {
+      "num_edges": 58280,
+      "attr_dim": null
+    },
+    "news -> similar_to -> news": {
+      "num_edges": 29140,
+      "attr_dim": 1
+    }
+  },
+  "edges_total": 145700,
+  "avg_degree_news_similar_to": 10.0,
+  "news_isolated": 0,
+  "homophily_ratio_news_similar_to": 0.766568070988888,
+  "news_interaction_degree": {
+    "news_out_mean": 20.0,
+    "interaction_in_mean": 1.0
+  },
+  "interaction_isolated": 0,
+  "interaction_news_degree": {
+    "interaction_out_mean": 1.0,
+    "news_in_mean": 20.0
+  }
+}

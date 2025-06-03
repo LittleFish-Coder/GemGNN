@@ -1,0 +1,45 @@
+{
+    "args": {
+        "graph_path": "graphs_hetero/gossipcop/7_shot_roberta_hetero_dual_knn_sim5_dis5_smpf10.pt",
+        "model": "HGT",
+        "target_node_type": "news",
+        "dropout_rate": 0.0,
+        "hidden_channels": 128,
+        "hgt_han_heads": 4,
+        "hgt_layers": 1,
+        "lr": 0.0001,
+        "weight_decay": 0.0001,
+        "n_epochs": 300,
+        "patience": 30,
+        "seed": 42,
+        "output_dir_base": "results_hetero"
+    },
+    "model_name": "HGT_gossipcop_7_shot_roberta_hetero_dual_knn_sim5_dis5_smpf10",
+    "training_history": {
+        "final_train_loss": 0.6767932176589966,
+        "final_train_acc": 1.0,
+        "final_val_loss": 0.6920872926712036,
+        "final_val_acc": 0.5377994011976048,
+        "final_val_f1": 0.4914072716652269,
+        "best_val_f1": 0.5067700972726159,
+        "best_epoch": 14,
+        "total_epochs_run": 44,
+        "training_time_seconds": 2.986800193786621
+    },
+    "final_test_metrics_on_target_node": {
+        "accuracy": 0.6725299401197605,
+        "precision": 0.5076510721247564,
+        "recall": 0.5089220325809092,
+        "f1_score": 0.5067700972726159,
+        "confusion_matrix": [
+            [
+                1673,
+                496
+            ],
+            [
+                379,
+                124
+            ]
+        ]
+    }
+}
