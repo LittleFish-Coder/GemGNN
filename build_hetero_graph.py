@@ -347,19 +347,13 @@ class HeteroGraphBuilder:
 
         if self.edge_policy == "knn":
             sim_edge_index, sim_edge_attr, dis_edge_index, dis_edge_attr = self._build_knn_edges(news_embeddings, self.k_neighbors)
-            
             # === Build 'news' - 'similar_to' - 'news' edges ===
-            sim_edge_index = torch.cat([sim_edge_index, sim_edge_index[[1, 0], :]], dim=1)
-            sim_edge_attr = torch.cat([sim_edge_attr, sim_edge_attr], dim=0)
             data['news', 'similar_to', 'news'].edge_index = sim_edge_index
             if sim_edge_attr is not None:
                 data['news', 'similar_to', 'news'].edge_attr = sim_edge_attr
             print(f"    - Created {sim_edge_index.shape[1]} 'news <-> news' similar edges.")
-
             # === Build 'news' - 'dissimilar_to' - 'news' edges ===
             if self.enable_dissimilar:
-                dis_edge_index = torch.cat([dis_edge_index, dis_edge_index[[1, 0], :]], dim=1)
-                dis_edge_attr = torch.cat([dis_edge_attr, dis_edge_attr], dim=0)
                 data['news', 'dissimilar_to', 'news'].edge_index = dis_edge_index
                 if dis_edge_attr is not None:
                     data['news', 'dissimilar_to', 'news'].edge_attr = dis_edge_attr
@@ -420,85 +414,65 @@ class HeteroGraphBuilder:
             edge_index = torch.tensor([edge_src, edge_dst], dtype=torch.long)
             edge_attr = torch.tensor(edge_attr, dtype=torch.float).unsqueeze(1) if edge_attr else None
             data['news', 'similar_to', 'news'].edge_index = edge_index
-            edge_index = torch.cat([edge_index, edge_index[[1, 0], :]], dim=1)  # symmetrize
             if edge_attr is not None:
                 data['news', 'similar_to', 'news'].edge_attr = edge_attr
-            edge_attr = torch.cat([edge_attr, edge_attr], dim=0)    
             print(f"    - Created {edge_index.shape[1]} 'news -> news' label-aware similar edges.")
             # --- Add low-level KNN (k=2) for all nodes as a separate edge type ---
             low_k = 2
             low_edge_index, low_edge_attr, _, _ = self._build_knn_edges(news_embeddings, low_k)
-            # Symmetrize low-level KNN edges
-            low_edge_index = torch.cat([low_edge_index, low_edge_index[[1, 0], :]], dim=1)
-            if low_edge_attr is not None:
-                low_edge_attr = torch.cat([low_edge_attr, low_edge_attr], dim=0)
             data['news', 'low_level_knn_to', 'news'].edge_index = low_edge_index
             if low_edge_attr is not None:
                 data['news', 'low_level_knn_to', 'news'].edge_attr = low_edge_attr
             print(f"    - Created {low_edge_index.shape[1]} 'news <-> news' low-level KNN edges (k={low_k}).")
-
-            if self.ensure_test_labeled_neighbor:
-                # === 補邊：確保每個 test node 至少有一條邊連到 train_labeled node ===
-                edge_index_np = edge_index.cpu().numpy() if hasattr(edge_index, 'cpu') else edge_index.numpy()
-                test_to_labeled_added = 0
-                for test_local in test_idx_local:
-                    has_labeled = False
-                    for i in range(edge_index_np.shape[1]):
-                        src, dst = edge_index_np[:, i]
-                        if src == test_local and dst in train_labeled_idx_local:
-                            has_labeled = True
-                            break
-                        if dst == test_local and src in train_labeled_idx_local:
-                            has_labeled = True
-                            break
-                    if not has_labeled:
-                        test_emb = news_embeddings[test_local].reshape(1, -1)
-                        labeled_emb = news_embeddings[train_labeled_idx_local]
-                        sim = cosine_similarity(test_emb, labeled_emb)[0]
-                        best_idx = np.argmax(sim)
-                        best_labeled_local = train_labeled_idx_local[best_idx]
-                        # 新增一條邊 test_local -> best_labeled_local
-                        edge_index = torch.cat([
-                            edge_index,
-                            torch.tensor([[test_local], [best_labeled_local]], dtype=torch.long),
-                            torch.tensor([[best_labeled_local], [test_local]], dtype=torch.long)
-                        ], dim=1)
-                        if edge_attr is not None:
-                            sim_val = sim[best_idx]
-                            edge_attr = torch.cat([
-                                edge_attr,
-                                torch.tensor([[sim_val]], dtype=torch.float),
-                                torch.tensor([[sim_val]], dtype=torch.float)
-                            ], dim=0)
-                        test_to_labeled_added += 1
-                # Symmetrize edges (again, just in case)
-                edge_index = torch.cat([edge_index, edge_index[[1, 0], :]], dim=1)
-                if edge_attr is not None:
-                    edge_attr = torch.cat([edge_attr, edge_attr], dim=0)
-                data['news', 'similar_to', 'news'].edge_index = edge_index
-                if edge_attr is not None:
-                    data['news', 'similar_to', 'news'].edge_attr = edge_attr
-                print(f"    - Patched {test_to_labeled_added} test nodes with at least one labeled neighbor.")
         elif self.edge_policy == "mutual_knn":
-            # Build mutual KNN (similar) and mutual farthest (dissimilar) edges
             sim_edge_index, sim_edge_attr, dis_edge_index, dis_edge_attr = self._build_mutual_knn_edges(news_embeddings, self.k_neighbors)
-            # Symmetrize similar edges (make undirected)
-            sim_edge_index = torch.cat([sim_edge_index, sim_edge_index[[1, 0], :]], dim=1)
-            sim_edge_attr = torch.cat([sim_edge_attr, sim_edge_attr], dim=0)
             data['news', 'similar_to', 'news'].edge_index = sim_edge_index
             if sim_edge_attr is not None:
                 data['news', 'similar_to', 'news'].edge_attr = sim_edge_attr
             print(f"    - Created {sim_edge_index.shape[1]} 'news <-> news' mutual KNN edges.")
             if self.enable_dissimilar:
-                # Symmetrize dissimilar edges (make undirected)
-                dis_edge_index = torch.cat([dis_edge_index, dis_edge_index[[1, 0], :]], dim=1)
-                dis_edge_attr = torch.cat([dis_edge_attr, dis_edge_attr], dim=0)
                 data['news', 'dissimilar_to', 'news'].edge_index = dis_edge_index
                 if dis_edge_attr is not None:
                     data['news', 'dissimilar_to', 'news'].edge_attr = dis_edge_attr
                 print(f"    - Created {dis_edge_index.shape[1]} 'news <-> news' mutual dissimilar edges.")
 
-        print("Heterogeneous graph construction complete.")
+        # --- Ensure Test Nodes Have a Labeled Neighbor (Robust Undirected Check) ---
+        if self.ensure_test_labeled_neighbor:
+            print(f"  Attempting to ensure each test node has at least one 'similar_to' neighbor from train_labeled set (robust undirected check)...")
+            train_labeled_idx_local = np.arange(num_train_labeled)
+            test_idx_local = np.arange(num_train_labeled + num_train_unlabeled, num_nodes)
+            edge_index = data['news', 'similar_to', 'news'].edge_index
+            edge_attr = data['news', 'similar_to', 'news'].edge_attr if hasattr(data['news', 'similar_to', 'news'], 'edge_attr') else None
+            # symmetrize for checking only
+            edge_index_check = torch.cat([edge_index, edge_index[[1, 0], :]], dim=1)
+            edge_set = set((src.item(), dst.item()) for src, dst in edge_index_check.t())
+            test_to_labeled_added = 0
+            new_edges = []
+            new_attrs = []
+            for test_local in test_idx_local:
+                has_labeled = any(
+                    (test_local, labeled_local) in edge_set or (labeled_local, test_local) in edge_set
+                    for labeled_local in train_labeled_idx_local
+                )
+                if not has_labeled:
+                    test_emb = news_embeddings[test_local].reshape(1, -1)
+                    labeled_emb = news_embeddings[train_labeled_idx_local]
+                    sim = cosine_similarity(test_emb, labeled_emb)[0]
+                    best_idx = np.argmax(sim)
+                    best_labeled_local = train_labeled_idx_local[best_idx]
+                    # add only one direction for now
+                    new_edges.append([test_local, best_labeled_local])
+                    if edge_attr is not None:
+                        sim_val = sim[best_idx]
+                        new_attrs.append([sim_val])
+                    test_to_labeled_added += 1
+            if new_edges:
+                new_edges_tensor = torch.tensor(new_edges, dtype=torch.long).t()
+                edge_index = torch.cat([edge_index, new_edges_tensor], dim=1)
+                if edge_attr is not None:
+                    new_attrs_tensor = torch.tensor(new_attrs, dtype=torch.float)
+                    edge_attr = torch.cat([edge_attr, new_attrs_tensor], dim=0)
+            print(f"    - Patched {test_to_labeled_added} test nodes with at least one labeled neighbor.")
 
         # --- Multi-view edge construction ---
         if self.multi_view > 1:
@@ -527,6 +501,23 @@ class HeteroGraphBuilder:
                         data[dis_type].edge_attr = dis_attr
                 print(f"    - Created {sim_idx.shape[1]} 'news <-> news' similar_sub{v+1} edges" + (f", {dis_idx.shape[1]} dissimilar_sub{v+1} edges." if self.enable_dissimilar else "."))
 
+        # --- Final symmetrize and unique ---
+        ## Get edge_index and edge_attr from 'news' - 'similar_to' - 'news' edge type
+        edge_index = data['news', 'similar_to', 'news'].edge_index
+        edge_attr = data['news', 'similar_to', 'news'].edge_attr if hasattr(data['news', 'similar_to', 'news'], 'edge_attr') else None
+
+        edge_index = torch.cat([edge_index, edge_index[[1, 0], :]], dim=1)
+        # edge_index, unique_idx = torch.unique(edge_index, dim=1, return_inverse=False, return_counts=False, sorted=True)
+        if edge_attr is not None:
+            edge_attr = torch.cat([edge_attr, edge_attr], dim=0)
+
+        data['news', 'similar_to', 'news'].edge_index = edge_index
+        if edge_attr is not None:
+            data['news', 'similar_to', 'news'].edge_attr = edge_attr
+        
+        print("Heterogeneous graph construction complete.")
+
+
         return data
 
 
@@ -542,7 +533,7 @@ class HeteroGraphBuilder:
             dis_edge_index: torch tensor of shape (2, num_dissimilar_edges)
             dis_edge_attr: torch tensor of shape (num_dissimilar_edges, 1)
         """
-        print(f"  Building KNN graph (k={k}) for 'news'-'news' edges...")
+        print(f"    Building KNN graph (k={k}) for 'news'-'news' edges...")
 
         num_nodes = embeddings.shape[0]
         k = min(k, num_nodes - 1) # Adjust k if it's too large
