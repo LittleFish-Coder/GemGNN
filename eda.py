@@ -5,8 +5,10 @@ import matplotlib.pyplot as plt
 from torch_geometric.data import Data
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.manifold import TSNE
-from datasets import load_dataset
+from datasets import load_dataset, load_from_disk
+import os
 
+DEFAULT_DATASET_CACHE_DIR = "dataset"
 
 def print_similarity_stats(x, y=None, label_name=None, plot=False, tsne=False, emb_name="embedding", dataset_name=None):
     n, d = x.shape
@@ -105,13 +107,23 @@ def analyze_graph_path(graph_path, plot, tsne):
 
 def analyze_dataset(dataset_name, plot, tsne):
     print(f"Loading dataset: {dataset_name}")
-    ds = load_dataset(f"LittleFish-Coder/Fake_News_{dataset_name}", cache_dir="./dataset")
+    hf_dataset_name = f"LittleFish-Coder/Fake_News_{dataset_name}"
+    # download from huggingface and cache to local path
+    local_hf_dir = os.path.join(DEFAULT_DATASET_CACHE_DIR, f"{dataset_name}_hf")
+    if os.path.exists(local_hf_dir):
+        print(f"Loading dataset from local path: {local_hf_dir}")
+        ds = load_from_disk(local_hf_dir)
+    else:
+        print(f"Loading dataset from huggingface: {hf_dataset_name}")
+        ds = load_dataset(hf_dataset_name, download_mode="reuse_cache_if_exists", cache_dir=local_hf_dir)
+        ds.save_to_disk(local_hf_dir)
+
     # Concatenate train and test splits
     all_embs = {}
     all_labels = None
     for split in ["train", "test"]:
         d = ds[split]
-        for emb in ["bert_embeddings", "roberta_embeddings", "combined_embeddings"]:
+        for emb in ["bert_embeddings", "roberta_embeddings", "combined_embeddings", "bigbird_embeddings", "distilbert_embeddings"]:
             if emb not in all_embs:
                 all_embs[emb] = []
         if all_labels is None and "label" in d.column_names:
@@ -124,12 +136,12 @@ def analyze_dataset(dataset_name, plot, tsne):
     # Now analyze each embedding type
     sim_list = []
     emb_names = []
-    for emb in ["bert_embeddings", "roberta_embeddings", "combined_embeddings"]:
+    for emb in ["bert_embeddings", "roberta_embeddings", "combined_embeddings", "bigbird_embeddings", "distilbert_embeddings"]:
         x = np.array(all_embs[emb])
         y = np.array(all_labels) if all_labels is not None else None
         sim_flat = print_similarity_stats(x, y, label_name="label", plot=plot, tsne=tsne, emb_name=emb, dataset_name=dataset_name)
         sim_list.append(sim_flat)
-        emb_names.append(emb)
+        emb_names.append(emb.split("_")[0])
     # 畫總boxplot
     plt.figure(figsize=(8,6))
     plt.boxplot(sim_list, vert=True, patch_artist=True, tick_labels=emb_names, boxprops=dict(facecolor='lightblue'))
