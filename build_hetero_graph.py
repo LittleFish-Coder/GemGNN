@@ -32,6 +32,7 @@ DEFAULT_SEED = 42
 DEFAULT_DATASET_CACHE_DIR = "dataset"
 DEFAULT_GRAPH_DIR = "graphs_hetero"
 DEFAULT_PLOT_DIR = "plots_hetero"
+DEFAULT_BATCH_SIZE = 50
 
 # --- Utility Functions ---
 def set_seed(seed: int = DEFAULT_SEED) -> None:
@@ -1068,6 +1069,7 @@ def parse_arguments():
     parser.add_argument("--dataset_cache_dir", type=str, default=DEFAULT_DATASET_CACHE_DIR, help=f"Directory to cache datasets (default: {DEFAULT_DATASET_CACHE_DIR})")
     parser.add_argument("--plot", action="store_true", help="Enable graph visualization (EXPERIMENTAL for hetero)")
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help=f"Random seed (default: {DEFAULT_SEED})")
+    parser.add_argument("--batch_size", type=int, default=DEFAULT_BATCH_SIZE, help=f"Batch size for graph building (default: {DEFAULT_BATCH_SIZE})")
 
     return parser.parse_args()
 
