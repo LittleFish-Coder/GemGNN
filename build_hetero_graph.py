@@ -347,18 +347,12 @@ class HeteroGraphBuilder:
         news_embeddings = data['news'].x.cpu().numpy()
 
         if self.edge_policy == "knn":
-            sim_edge_index, sim_edge_attr, dis_edge_index, dis_edge_attr = self._build_knn_edges(news_embeddings, self.k_neighbors)
+            sim_edge_index, sim_edge_attr, _, _ = self._build_knn_edges(news_embeddings, self.k_neighbors)
             # === Build 'news' - 'similar_to' - 'news' edges ===
             data['news', 'similar_to', 'news'].edge_index = sim_edge_index
             if sim_edge_attr is not None:
                 data['news', 'similar_to', 'news'].edge_attr = sim_edge_attr
             print(f"    - Created {sim_edge_index.shape[1]} 'news <-> news' similar edges.")
-            # === Build 'news' - 'dissimilar_to' - 'news' edges ===
-            if self.enable_dissimilar:
-                data['news', 'dissimilar_to', 'news'].edge_index = dis_edge_index
-                if dis_edge_attr is not None:
-                    data['news', 'dissimilar_to', 'news'].edge_attr = dis_edge_attr
-                print(f"    - Created {dis_edge_index.shape[1]} 'news <-> news' dissimilar edges.")        
         elif self.edge_policy == "label_aware_knn":
             # Use the pre-sampled pseudo_selected_indices, labels, and confidences for label-aware KNN
             pseudo_indices = getattr(self, 'pseudo_selected_indices', np.array([]))
@@ -426,16 +420,11 @@ class HeteroGraphBuilder:
                 data['news', 'low_level_knn_to', 'news'].edge_attr = low_edge_attr
             print(f"    - Created {low_edge_index.shape[1]} 'news <-> news' low-level KNN edges (k={low_k}).")
         elif self.edge_policy == "mutual_knn":
-            sim_edge_index, sim_edge_attr, dis_edge_index, dis_edge_attr = self._build_mutual_knn_edges(news_embeddings, self.k_neighbors)
+            sim_edge_index, sim_edge_attr, _, _ = self._build_mutual_knn_edges(news_embeddings, self.k_neighbors)
             data['news', 'similar_to', 'news'].edge_index = sim_edge_index
             if sim_edge_attr is not None:
                 data['news', 'similar_to', 'news'].edge_attr = sim_edge_attr
             print(f"    - Created {sim_edge_index.shape[1]} 'news <-> news' mutual KNN edges.")
-            if self.enable_dissimilar:
-                data['news', 'dissimilar_to', 'news'].edge_index = dis_edge_index
-                if dis_edge_attr is not None:
-                    data['news', 'dissimilar_to', 'news'].edge_attr = dis_edge_attr
-                print(f"    - Created {dis_edge_index.shape[1]} 'news <-> news' mutual dissimilar edges.")
 
         # --- Ensure Test Nodes Have a Labeled Neighbor (Robust Undirected Check) ---
         if self.ensure_test_labeled_neighbor:
@@ -473,6 +462,10 @@ class HeteroGraphBuilder:
                 if edge_attr is not None:
                     new_attrs_tensor = torch.tensor(new_attrs, dtype=torch.float)
                     edge_attr = torch.cat([edge_attr, new_attrs_tensor], dim=0)
+                # FIX: Assign back to the graph data structure
+                data['news', 'similar_to', 'news'].edge_index = edge_index
+                if edge_attr is not None:
+                    data['news', 'similar_to', 'news'].edge_attr = edge_attr
             print(f"    - Patched {test_to_labeled_added} test nodes with at least one labeled neighbor.")
 
         # --- Multi-view edge construction ---
@@ -492,15 +485,30 @@ class HeteroGraphBuilder:
                 data[sim_type].edge_index = sim_idx
                 if sim_attr is not None:
                     data[sim_type].edge_attr = sim_attr
-                if self.enable_dissimilar:
-                    dis_idx = torch.cat([dis_idx, dis_idx[[1,0],:],], dim=1)
-                    if dis_attr is not None:
-                        dis_attr = torch.cat([dis_attr, dis_attr], dim=0)
-                    dis_type = ("news", f"dissimilar_to_sub{v+1}", "news")
-                    data[dis_type].edge_index = dis_idx
-                    if dis_attr is not None:
-                        data[dis_type].edge_attr = dis_attr
-                print(f"    - Created {sim_idx.shape[1]} 'news <-> news' similar_sub{v+1} edges" + (f", {dis_idx.shape[1]} dissimilar_sub{v+1} edges." if self.enable_dissimilar else "."))
+                print(f"    - Created {sim_idx.shape[1]} 'news <-> news' similar_sub{v+1} edges.")
+
+        # --- Post-process: Add Dissimilar Edges (Universal Logic) ---
+        if self.enable_dissimilar:
+            print(f"  ===== Building dissimilar edges ('news' - 'dissimilar_to' - 'news') =====")
+            self._add_dissimilar_edges_universal(data, news_embeddings)
+
+        # --- Post-process: Add Multi-view Dissimilar Edges ---
+        if self.multi_view > 1 and self.enable_dissimilar:
+            print(f"  ===== Building multi-view dissimilar edges =====")
+            emb = data['news'].x
+            dim = emb.shape[1]
+            sub_dim = dim // self.multi_view
+            for v in range(self.multi_view):
+                sub_emb = emb[:, v*sub_dim:(v+1)*sub_dim].cpu().numpy()
+                _, _, dis_idx, dis_attr = self._build_knn_edges(sub_emb, self.k_neighbors)
+                dis_idx = torch.cat([dis_idx, dis_idx[[1,0],:]], dim=1)
+                if dis_attr is not None:
+                    dis_attr = torch.cat([dis_attr, dis_attr], dim=0)
+                dis_type = ("news", f"dissimilar_to_sub{v+1}", "news")
+                data[dis_type].edge_index = dis_idx
+                if dis_attr is not None:
+                    data[dis_type].edge_attr = dis_attr
+                print(f"    - Created {dis_idx.shape[1]} 'news <-> news' dissimilar_sub{v+1} edges.")
 
         # --- Final symmetrize and unique ---
         ## Get edge_index and edge_attr from 'news' - 'similar_to' - 'news' edge type
@@ -674,6 +682,31 @@ class HeteroGraphBuilder:
 
         print(f"    - Created {sim_edge_index.shape[1]} mutual KNN edges, {dis_edge_index.shape[1]} mutual farthest edges.")
         return sim_edge_index, sim_edge_attr, dis_edge_index, dis_edge_attr
+
+    def _add_dissimilar_edges_universal(self, data: HeteroData, news_embeddings: np.ndarray) -> None:
+        """
+        Universal method to add dissimilar edges for any edge policy.
+        This method uses standard KNN dissimilar logic regardless of the primary edge policy.
+        """
+        print(f"    Building universal dissimilar edges (k={self.k_neighbors})...")
+        
+        # Use the existing _build_knn_edges method to get dissimilar edges
+        _, _, dis_edge_index, dis_edge_attr = self._build_knn_edges(news_embeddings, self.k_neighbors)
+        
+        if dis_edge_index.shape[1] > 0:
+            # Make dissimilar edges undirected
+            dis_edge_index = torch.cat([dis_edge_index, dis_edge_index[[1, 0], :]], dim=1)
+            if dis_edge_attr is not None:
+                dis_edge_attr = torch.cat([dis_edge_attr, dis_edge_attr], dim=0)
+            
+            # Assign to graph
+            data['news', 'dissimilar_to', 'news'].edge_index = dis_edge_index
+            if dis_edge_attr is not None:
+                data['news', 'dissimilar_to', 'news'].edge_attr = dis_edge_attr
+            
+            print(f"    - Created {dis_edge_index.shape[1]} 'news <-> news' universal dissimilar edges.")
+        else:
+            print(f"    - Warning: No dissimilar edges created (empty edge set).")
 
     def _add_interaction_edges_by_type(self, data, train_labeled_indices, train_unlabeled_indices, test_indices, num_train_labeled, num_train_unlabeled, num_test, num_nodes, num_interactions_per_news, num_interaction_nodes, global2local):
         all_interaction_embeddings = []
