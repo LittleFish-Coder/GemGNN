@@ -680,15 +680,39 @@ class HeteroGraphBuilder:
         all_tones_set = set()
         edge_indices = dict()
         reverse_edge_indices = dict()
-        pbar_interact = tqdm(total=num_interaction_nodes, desc="    Extracting Interaction Embeddings", ncols=100)
+        
+        # Optimized batch processing: get all indices at once instead of individual access
+        all_indices = np.concatenate([train_labeled_indices, train_unlabeled_indices, test_indices])
+        is_test_flags = [False]*(num_train_labeled+num_train_unlabeled) + [True]*num_test
+        
+        # Pre-fetch train data embeddings and tones for all train indices at once
+        train_indices_in_batch = np.concatenate([train_labeled_indices, train_unlabeled_indices])
+        if len(train_indices_in_batch) > 0:
+            train_embeddings_batch = self.train_data.select(train_indices_in_batch.tolist())
+            train_interactions_batch = train_embeddings_batch[self.interaction_embedding_field]
+            train_tones_batch = train_embeddings_batch[self.interaction_tone_field]
+        
+        # Pre-fetch test data embeddings and tones for current test batch at once
+        if len(test_indices) > 0:
+            test_embeddings_batch = self.test_data.select(test_indices.tolist())
+            test_interactions_batch = test_embeddings_batch[self.interaction_embedding_field]
+            test_tones_batch = test_embeddings_batch[self.interaction_tone_field]
+        
+        pbar_interact = tqdm(total=num_nodes, desc="    Extracting Interaction Embeddings", ncols=100)
         interaction_global_idx = 0
-        for news_idx, (idx, is_test) in enumerate(list(zip(np.concatenate([train_labeled_indices, train_unlabeled_indices, test_indices]), [False]*(num_train_labeled+num_train_unlabeled)+[True]*num_test))):
+        
+        for news_idx, (idx, is_test) in enumerate(zip(all_indices, is_test_flags)):
             if not is_test:
-                embeddings_list = self.train_data[int(idx)][self.interaction_embedding_field]
-                tones_list = self.train_data[int(idx)][self.interaction_tone_field]
+                # Use pre-fetched train data
+                train_batch_idx = np.where(train_indices_in_batch == idx)[0][0]
+                embeddings_list = train_interactions_batch[train_batch_idx]
+                tones_list = train_tones_batch[train_batch_idx]
             else:
-                embeddings_list = self.test_data[int(idx)][self.interaction_embedding_field]
-                tones_list = self.test_data[int(idx)][self.interaction_tone_field]
+                # Use pre-fetched test data
+                test_batch_idx = np.where(test_indices == idx)[0][0]
+                embeddings_list = test_interactions_batch[test_batch_idx]
+                tones_list = test_tones_batch[test_batch_idx]
+            
             node_interactions = np.array(embeddings_list)
             all_interaction_embeddings.append(node_interactions)
             for i, tone in enumerate(tones_list):
@@ -722,22 +746,44 @@ class HeteroGraphBuilder:
     def _add_interaction_edges_with_attr(self, data, train_labeled_indices, train_unlabeled_indices, test_indices, num_train_labeled, num_train_unlabeled, num_test, num_nodes, num_interactions_per_news, num_interaction_nodes, global2local):
         all_interaction_embeddings = []
         all_interaction_tones = []
-        pbar_interact = tqdm(total=num_interaction_nodes, desc="    Extracting Interaction Embeddings", ncols=100)
+        
+        # Optimized batch processing: get all indices at once instead of individual access
+        all_indices = np.concatenate([train_labeled_indices, train_unlabeled_indices, test_indices])
+        is_test_flags = [False]*(num_train_labeled+num_train_unlabeled) + [True]*num_test
+        
+        # Pre-fetch train data embeddings and tones for all train indices at once
+        train_indices_in_batch = np.concatenate([train_labeled_indices, train_unlabeled_indices])
+        if len(train_indices_in_batch) > 0:
+            train_embeddings_batch = self.train_data.select(train_indices_in_batch.tolist())
+            train_interactions_batch = train_embeddings_batch[self.interaction_embedding_field]
+            train_tones_batch = train_embeddings_batch[self.interaction_tone_field]
+        
+        # Pre-fetch test data embeddings and tones for current test batch at once
+        if len(test_indices) > 0:
+            test_embeddings_batch = self.test_data.select(test_indices.tolist())
+            test_interactions_batch = test_embeddings_batch[self.interaction_embedding_field]
+            test_tones_batch = test_embeddings_batch[self.interaction_tone_field]
+        
+        pbar_interact = tqdm(total=num_nodes, desc="    Extracting Interaction Embeddings", ncols=100)
         interaction_global_idx = 0
-        for news_idx, (idx, is_test) in enumerate(list(zip(np.concatenate([train_labeled_indices, train_unlabeled_indices, test_indices]), [False]*(num_train_labeled+num_train_unlabeled)+[True]*num_test))):
+        
+        for news_idx, (idx, is_test) in enumerate(zip(all_indices, is_test_flags)):
             if not is_test:
-                embeddings_list = self.train_data[int(idx)][self.interaction_embedding_field]
-                tones_list = self.train_data[int(idx)][self.interaction_tone_field]
+                # Use pre-fetched train data
+                train_batch_idx = np.where(train_indices_in_batch == idx)[0][0]
+                embeddings_list = train_interactions_batch[train_batch_idx]
+                tones_list = train_tones_batch[train_batch_idx]
             else:
-                embeddings_list = self.test_data[int(idx)][self.interaction_embedding_field]
-                tones_list = self.test_data[int(idx)][self.interaction_tone_field]
+                # Use pre-fetched test data
+                test_batch_idx = np.where(test_indices == idx)[0][0]
+                embeddings_list = test_interactions_batch[test_batch_idx]
+                tones_list = test_tones_batch[test_batch_idx]
+            
             node_interactions = np.array(embeddings_list)
             all_interaction_embeddings.append(node_interactions)
             for i, tone in enumerate(tones_list):
                 tone_key = tone.strip().lower().replace(' ', '_')
                 all_interaction_tones.append(self._tone2id(tone_key))
-                # local news_idx
-                local_news_idx = global2local[int(idx)]
                 interaction_global_idx += 1
             pbar_interact.update(1)
         pbar_interact.close()
