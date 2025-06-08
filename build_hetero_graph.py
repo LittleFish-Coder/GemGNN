@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import networkx as nx
 from typing import Dict, Tuple, Optional, List, Union, Any
-from datasets import load_dataset, load_from_disk, DatasetDict, Dataset, Features, Sequence, Value, Array2D, Array3D, Array4D, Array5D
+from datasets import load_dataset, load_from_disk, DatasetDict, Dataset, Features, Sequence, Value
 from sklearn.metrics import pairwise_distances
 from torch_geometric.data import HeteroData
 from torch_geometric.utils import to_networkx
@@ -21,7 +21,7 @@ DEFAULT_K_SHOT = 8                                  # 3-16 shot
 DEFAULT_DATASET_NAME = "politifact"                 # politifact, gossipcop
 DEFAULT_EMBEDDING_TYPE = "roberta"                  # Default embedding for news nodes (bert, distilbert, roberta, deberta, bigbird)
 # --- Edge Policies Parameters ---
-DEFAULT_EDGE_POLICY = "label_aware_knn"             # For news-news edges
+DEFAULT_EDGE_POLICY = "label_aware_knn"             # For news-news edges (label_aware_knn, knn)
 DEFAULT_K_NEIGHBORS = 5                             # For knn edge policy
 # --- Unlabeled Node Sampling Parameters ---
 DEFAULT_SAMPLE_UNLABELED_FACTOR = 5                 # for unlabeled node sampling (train_unlabeld_nodes = num_classes * k_shot * sample_unlabeled_factor)
@@ -60,21 +60,20 @@ class HeteroGraphBuilder:
         embedding_type: str = DEFAULT_EMBEDDING_TYPE,
         edge_policy: str = DEFAULT_EDGE_POLICY,
         k_neighbors: int = DEFAULT_K_NEIGHBORS,
+        partial_unlabeled: bool = False,
         sample_unlabeled_factor: int = DEFAULT_SAMPLE_UNLABELED_FACTOR,
-        seed: int = DEFAULT_SEED,
-        device: str = None,
         pseudo_label: bool = False,
         pseudo_label_cache_path: str = None,
         multi_view: int = DEFAULT_MULTI_VIEW,
         enable_dissimilar: bool = False,
-        partial_unlabeled: bool = False,
+        ensure_test_labeled_neighbor: bool = False,
         interaction_embedding_field: str = "interaction_embeddings_list",
         interaction_tone_field: str = "interaction_tones_list",
         interaction_edge_mode: str = DEFAULT_INTERACTION_EDGE_MODE,
+        dataset_cache_dir: str = DEFAULT_DATASET_CACHE_DIR,
+        seed: int = DEFAULT_SEED,
         plot: bool = False,
         output_dir: str = DEFAULT_GRAPH_DIR,
-        dataset_cache_dir: str = DEFAULT_DATASET_CACHE_DIR,
-        ensure_test_labeled_neighbor: bool = False,
     ):
         """Initialize the HeteroGraphBuilder."""
         self.dataset_name = dataset_name.lower()
@@ -108,7 +107,7 @@ class HeteroGraphBuilder:
             self.partial_unlabeled = True
 
         # Set device
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Using device: {self.device}")
         np.random.seed(self.seed)
         # Setup directory paths
@@ -419,12 +418,6 @@ class HeteroGraphBuilder:
             if low_edge_attr is not None:
                 data['news', 'low_level_knn_to', 'news'].edge_attr = low_edge_attr
             print(f"    - Created {low_edge_index.shape[1]} 'news <-> news' low-level KNN edges (k={low_k}).")
-        elif self.edge_policy == "mutual_knn":
-            sim_edge_index, sim_edge_attr, _, _ = self._build_mutual_knn_edges(news_embeddings, self.k_neighbors)
-            data['news', 'similar_to', 'news'].edge_index = sim_edge_index
-            if sim_edge_attr is not None:
-                data['news', 'similar_to', 'news'].edge_attr = sim_edge_attr
-            print(f"    - Created {sim_edge_index.shape[1]} 'news <-> news' mutual KNN edges.")
 
         # --- Ensure Test Nodes Have a Labeled Neighbor (Robust Undirected Check) ---
         if self.ensure_test_labeled_neighbor:
@@ -1104,10 +1097,10 @@ class HeteroGraphBuilder:
         """Run the complete graph building pipeline."""
         self.load_dataset()
         hetero_graph = self.build_hetero_graph()
-        # print("  - hetero_graph.x.shape:", hetero_graph['news'].x.shape)
-        # print("  - hetero_graph.train_labeled_mask.shape:", hetero_graph['news'].train_labeled_mask.shape)
-        # print("  - hetero_graph.train_unlabeled_mask.shape:", hetero_graph['news'].train_unlabeled_mask.shape)
-        # print("  - hetero_graph.test_mask.shape:", hetero_graph['news'].test_mask.shape)
+        print("  - hetero_graph.x.shape:", hetero_graph['news'].x.shape)
+        print("  - hetero_graph.train_labeled_mask.shape:", hetero_graph['news'].train_labeled_mask.shape)
+        print("  - hetero_graph.train_unlabeled_mask.shape:", hetero_graph['news'].train_unlabeled_mask.shape)
+        print("  - hetero_graph.test_mask.shape:", hetero_graph['news'].test_mask.shape)
         self.analyze_hetero_graph(hetero_graph)
         self.save_graph(hetero_graph)
         return hetero_graph
@@ -1126,7 +1119,7 @@ def parse_arguments():
     parser.add_argument("--embedding_type", type=str, default=DEFAULT_EMBEDDING_TYPE, choices=["bert", "roberta", "distilbert", "bigbird", "deberta"], help=f"Embedding type for 'news' nodes (default: {DEFAULT_EMBEDDING_TYPE})")
 
     # Edge Policy Args (for 'news'-'similar_to'-'news' edges)
-    parser.add_argument("--edge_policy", type=str, default=DEFAULT_EDGE_POLICY, choices=["knn", "label_aware_knn", "mutual_knn"], help="Edge policy for 'news'-'news' similarity edges")
+    parser.add_argument("--edge_policy", type=str, default=DEFAULT_EDGE_POLICY, choices=["knn", "label_aware_knn"], help="Edge policy for 'news'-'news' similarity edges")
     parser.add_argument("--k_neighbors", type=int, default=DEFAULT_K_NEIGHBORS, help=f"K for (Mutual) KNN policy (default: {DEFAULT_K_NEIGHBORS})")
     parser.add_argument("--ensure_test_labeled_neighbor", action="store_true", help="Ensure every test node is connected to at least one train_labeled node (anchor edge).")
 
@@ -1141,7 +1134,7 @@ def parse_arguments():
     # Interaction Edge Args
     parser.add_argument("--interaction_embedding_field", type=str, default="interaction_embeddings_list", help="Field for interaction embeddings")
     parser.add_argument("--interaction_tone_field", type=str, default="interaction_tones_list", help="Field for interaction tones")
-    parser.add_argument("--interaction_edge_mode", type=str, default=DEFAULT_INTERACTION_EDGE_MODE, choices=["edge_type", "edge_attr"], help="How to encode interaction tone: as edge type (edge_type) or as edge_attr (edge_attr)")
+    parser.add_argument("--interaction_edge_mode", type=str, default=DEFAULT_INTERACTION_EDGE_MODE, choices=["edge_attr", "edge_type"], help="How to encode interaction tone: as edge type (edge_type) or as edge_attr (edge_attr)")
     
     # Output & Settings Args
     parser.add_argument("--output_dir", type=str, default=DEFAULT_GRAPH_DIR, help=f"Directory to save graphs (default: {DEFAULT_GRAPH_DIR})")
@@ -1165,7 +1158,9 @@ def main() -> None:
     if args.pseudo_label:
         args.partial_unlabeled = True
         
-    if torch.cuda.is_available(): torch.cuda.empty_cache(); gc.collect()
+    if torch.cuda.is_available(): 
+        torch.cuda.empty_cache()
+        gc.collect()
 
     print("\n" + "=" * 60)
     print("   Heterogeneous Fake News Graph Building Pipeline")
@@ -1202,19 +1197,20 @@ def main() -> None:
         embedding_type=args.embedding_type,
         edge_policy=args.edge_policy,
         k_neighbors=args.k_neighbors,
+        partial_unlabeled=args.partial_unlabeled if hasattr(args, 'partial_unlabeled') else False,
         sample_unlabeled_factor=args.sample_unlabeled_factor,
-        output_dir=args.output_dir,
-        plot=args.plot,
-        seed=args.seed,
         pseudo_label=args.pseudo_label,
         pseudo_label_cache_path=args.pseudo_label_cache_path,
         multi_view=args.multi_view,
         enable_dissimilar=args.enable_dissimilar if hasattr(args, 'enable_dissimilar') else False,
-        partial_unlabeled=args.partial_unlabeled if hasattr(args, 'partial_unlabeled') else False,
-        interaction_embedding_field=args.interaction_embedding_field if hasattr(args, 'interaction_embedding_field') else "interaction_embeddings_list",
-        interaction_tone_field=args.interaction_tone_field if hasattr(args, 'interaction_tone_field') else "interaction_tones_list",
-        interaction_edge_mode=args.interaction_edge_mode if hasattr(args, 'interaction_edge_mode') else "edge_type",
         ensure_test_labeled_neighbor=args.ensure_test_labeled_neighbor if hasattr(args, 'ensure_test_labeled_neighbor') else False,
+        interaction_embedding_field=args.interaction_embedding_field,
+        interaction_tone_field=args.interaction_tone_field,
+        interaction_edge_mode=args.interaction_edge_mode,
+        dataset_cache_dir=args.dataset_cache_dir,
+        seed=args.seed,
+        plot=args.plot,
+        output_dir=args.output_dir,
     )
 
     hetero_graph = builder.run_pipeline()
