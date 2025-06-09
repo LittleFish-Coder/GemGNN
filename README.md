@@ -39,6 +39,51 @@ Check [installation guide](#installation) to run the code.
     - content(str): content of the interaction
     - tone(str): tone of the interaction
 
+## Usage
+
+### GNN (HAN, HGT)
+- build and train heterograph
+```bash
+python build_hetero_graph.py --k_shot 3 --dataset_name politifact --embedding_type deberta --edge_policy label_aware_knn --enable_dissimilar --multi_view 3
+```
+```bash
+python train_hetero_graph.py --graph_path <graph_path> --model HGT
+```
+
+- build and train multi-graph (our work)
+```bash
+python build_hetero_graph_batch.py --k_shot 3 --dataset_name politifact --embedding_type deberta --edge_policy label_aware_knn --enable_dissimilar --multi_view 3
+```
+
+```bash
+python train_hetero_graph_batch.py --graph_path <graph_folder> --model HGT
+```
+
+### LLM (In-context learning)
+We utilize open-source LLMs to perform in-context learning.
+- [Meta-Llama-3-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct)
+- [google/gemma-7b-it](https://huggingface.co/google/gemma-7b-it)
+
+```bash
+python prompt_hf_llm.py --model_type llama --dataset_name politifact --k_shot 3
+```
+- dataset_name: gossipcop, politifact
+- model_type: llama, gemma
+- k_shot: 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
+
+### Language Model (BERT, RoBERTa)
+```bash
+python finetune_lm.py --model_name bert --dataset_name politifact --k_shot 3
+```
+- dataset_name: gossipcop, politifact
+- model_name: bert, distilbert, roberta, deberta
+- k_shot: 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
+
+### LSTM, MLP
+```bash
+python baseline_models.py --k_shot 3 --model_type MLP --dataset_name politifact
+```
+
 ## Installation
 
 - Create a new conda environment
@@ -68,39 +113,4 @@ pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -
 - Install other dependencies
 ```bash
 pip install -r requirements.txt
-```
-
-## Usage
-
-### GNN
-- build graph
-```bash
-```
-
-- train graph
-```bash
-```
-
-### LLM (In-context learning)
-We utilize open-source LLMs to perform in-context learning.
-- [Meta-Llama-3-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct)
-- [google/gemma-7b-it](https://huggingface.co/google/gemma-7b-it)
-
-```bash
-python prompt_hf_llm.py --model_type llama --dataset_name politifact --k_shot 3
-```
-- dataset_name: gossipcop, politifact
-- model_type: llama, gemma
-- k_shot: 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
-
-### Language Model (BERT, RoBERTa)
-```bash
-python finetune_lm.py --model_name bert --dataset_name politifact --k_shot 3
-```
-- dataset_name: gossipcop, politifact
-- model_name: bert, distilbert, roberta, deberta
-- k_shot: 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
-
-### LSTM, MLP
-```bash
 ```
