@@ -20,7 +20,7 @@ def main():
     print(f"parts: {parts}")
     dataset = parts[-2] # politifact
     scenario = parts[-1] # 8_shot_roberta_hetero_knn_5_sample_unlabeled_factor_5_multiview_0
-    batch_out_dir = os.path.join('results_hetero_batch', dataset, scenario)
+    batch_out_dir = os.path.join('results_hetero_batch', args.model, dataset, scenario)
     print(f"Saving results to {batch_out_dir}")
     os.makedirs(batch_out_dir, exist_ok=True)
 
