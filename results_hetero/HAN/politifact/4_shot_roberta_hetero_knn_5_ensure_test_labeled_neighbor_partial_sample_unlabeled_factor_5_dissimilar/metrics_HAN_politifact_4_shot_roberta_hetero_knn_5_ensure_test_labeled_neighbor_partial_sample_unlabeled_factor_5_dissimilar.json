@@ -1,0 +1,48 @@
+{
+    "args": {
+        "graph_path": "graphs_hetero/politifact/4_shot_roberta_hetero_knn_5_ensure_test_labeled_neighbor_partial_sample_unlabeled_factor_5_dissimilar/graph.pt",
+        "model": "HAN",
+        "loss_fn": "ce",
+        "target_node_type": "news",
+        "dropout_rate": 0.0,
+        "hidden_channels": 128,
+        "hgt_han_heads": 4,
+        "hgt_layers": 1,
+        "sage_layers": 2,
+        "gatv2_layers": 2,
+        "lr": 0.0001,
+        "weight_decay": 0.0001,
+        "n_epochs": 300,
+        "patience": 30,
+        "seed": 42,
+        "output_dir_base": "results_hetero"
+    },
+    "model_name": "HAN_politifact_4_shot_roberta_hetero_knn_5_ensure_test_labeled_neighbor_partial_sample_unlabeled_factor_5_dissimilar",
+    "training_history": {
+        "final_train_loss": 0.16520939767360687,
+        "final_train_acc": 1.0,
+        "final_val_loss": 0.5353944897651672,
+        "final_val_acc": 0.7647058823529411,
+        "final_val_f1": 0.7352941176470589,
+        "best_val_f1": 0.7884075655887737,
+        "best_epoch": 133,
+        "total_epochs_run": 300,
+        "training_time_seconds": 10.919551372528076
+    },
+    "final_test_metrics_on_target_node": {
+        "accuracy": 0.8333333333333334,
+        "precision": 0.7995951417004048,
+        "recall": 0.7796410014170996,
+        "f1_score": 0.7884075655887737,
+        "confusion_matrix": [
+            [
+                66,
+                7
+            ],
+            [
+                10,
+                19
+            ]
+        ]
+    }
+}
