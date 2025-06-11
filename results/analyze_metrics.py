@@ -1,91 +1,100 @@
 import os
 import json
+import re
+import argparse
+from collections import defaultdict
+
+def extract_shot_count(subdir_name):
+    """Extracts shot count from a directory name."""
+    match = re.search(r'(\d+)[_-]?shot', subdir_name)
+    if match:
+        return int(match.group(1))
+    return None
+
+def get_f1_score(data):
+    """Extracts F1 score from metrics data by checking common keys."""
+    if 'test_metrics' in data and 'f1_score' in data['test_metrics']:
+        return data['test_metrics']['f1_score']
+    if 'final_test_metrics' in data and 'f1_score' in data['final_test_metrics']:
+        return data['final_test_metrics']['f1_score']
+    if 'f1' in data:
+        return data['f1']
+    return None
 
 def analyze_metrics(folder_path):
-    # Check if folder exists
+    """Analyzes metrics from result files in a given folder."""
     if not os.path.exists(folder_path):
         print(f"Folder {folder_path} does not exist")
         return
 
-    results = {}
+    results = defaultdict(dict)
 
-    is_mlp_or_lstm = "MLP" in folder_path or "LSTM" in folder_path
-    if is_mlp_or_lstm:
-        results = {"bert": {}, "roberta": {}}
     subdirs = [d for d in os.listdir(folder_path) if os.path.isdir(os.path.join(folder_path, d))]
-    try:
-        subdirs.sort(key=lambda x: int(x.split('_shot')[0]))
-    except ValueError:
-        try:
-            subdirs.sort(key=lambda x: int(x.split('shot')[0]))
-        except ValueError:
-            try:
-                subdirs.sort(key=lambda x: int(x.split('-shot')[0]))
-            except ValueError:
-                subdirs.sort()
+    
+    subdirs.sort(key=lambda d: (extract_shot_count(d) is None, extract_shot_count(d), d))
 
-    # Process each subdirectory
     for subdir in subdirs:
         subdir_path = os.path.join(folder_path, subdir)
+        
+        metrics_file = None
         for file in os.listdir(subdir_path):
             if file.endswith('metrics.json'):
-                file_path = os.path.join(subdir_path, file)
-                with open(file_path, 'r') as f:
-                    data = json.load(f)
-                    if is_mlp_or_lstm:
-                        if "roberta" in subdir:
-                            k_shot = subdir.split('_shot')[0] if '_shot' in subdir else subdir.split('shot')[0]
-                            if 'test_metrics' in data:
-                                results["roberta"][k_shot] = data['test_metrics']['f1_score']
-                            elif 'final_test_metrics' in data:
-                                results["roberta"][k_shot] = data['final_test_metrics']['f1_score']
-                            else:
-                                results["roberta"][k_shot] = data['f1']
-                        elif "bert" in subdir:
-                            k_shot = subdir.split('_shot')[0] if '_shot' in subdir else subdir.split('shot')[0]
-                            if 'test_metrics' in data:
-                                results["bert"][k_shot] = data['test_metrics']['f1_score']
-                            elif 'final_test_metrics' in data:
-                                results["bert"][k_shot] = data['final_test_metrics']['f1_score']
-                            else:
-                                results["bert"][k_shot] = data['f1']
-                    else:
-                        if 'test_metrics' in data:
-                            results[subdir] = data['test_metrics']['f1_score']
-                        elif 'final_test_metrics' in data:
-                            results[subdir] = data['final_test_metrics']['f1_score']
-                        else:
-                            results[subdir] = data['f1']
-                    break
+                metrics_file = os.path.join(subdir_path, file)
+                break
+        
+        if not metrics_file:
+            continue
 
-    # Print results in a structured format
+        with open(metrics_file, 'r') as f:
+            data = json.load(f)
+
+        f1_score = get_f1_score(data)
+        if f1_score is None:
+            print(f"F1 score not found in {metrics_file}")
+            continue
+
+        shot_count = extract_shot_count(subdir)
+        
+        scenario = "default"
+        if shot_count is not None:
+            scenario = re.sub(r'^\d+[_-]?shot[_-]?', '', subdir).strip()
+            if not scenario:
+                scenario = os.path.basename(os.path.normpath(folder_path))
+        else:
+            scenario = subdir
+
+        key = shot_count if shot_count is not None else subdir
+        results[scenario][key] = f1_score
+            
     print("\nResults Analysis:")
-    if is_mlp_or_lstm:
-        for emb in ["bert", "roberta"]:
-            print(f"\nEmbedding: {emb}")
-            f1_record = []
-            for k_shot, f1_score in sorted(results[emb].items(), key=lambda x: int(x[0])):
-                print(f"K-Shot: {k_shot}")
-                print(f"F1 Score: {f1_score}")
-                f1_record.append(f1_score)
-            print(f"\nF1 Scores in sequence for {emb}:")
-            print(f1_record)
-    else:
-        f1_record = []
-        for k_shot, f1_score in results.items():
-            print(f"\nK-Shot: {k_shot}")
-            print(f"F1 Score: {f1_score}")
-            f1_record.append(f1_score)
-        # print("\nF1 Scores in sequence:")
-        # print(f1_record)
+    for scenario, scores_dict in sorted(results.items()):
+        print(f"\nScenario: {scenario}")
 
-                
+        keys_are_shots = all(isinstance(k, int) for k in scores_dict.keys())
+        
+        # Sort by key, handling mixed types (int, str)
+        sorted_scores = sorted(scores_dict.items(), key=lambda item: (isinstance(item[0], str), item[0]))
+
+        if keys_are_shots:
+            print("Shot Count | F1 Score")
+            print("-" * 22)
+        else:
+            print("Key        | F1 Score")
+            print("-" * 22)
+
+        for key, score in sorted_scores:
+            if isinstance(key, int):
+                print(f"{key:^10} | {score:.4f}")
+            else:
+                print(f"{str(key):<10} | {score:.4f}")
+
+        if keys_are_shots:
+            scores = [score for _, score in sorted(scores_dict.items())]
+            print(f"\nF1 Scores sequence for {scenario} ({len(scores)}):")
+            print(scores)
 
 if __name__ == "__main__":
-    import argparse
-    
     parser = argparse.ArgumentParser(description='Analyze metrics from result files')
-    parser.add_argument('--folder_path', type=str, help='Path to folder containing result files')
-    
+    parser.add_argument('--folder_path', type=str, required=True, help='Path to folder containing result files')
     args = parser.parse_args()
     analyze_metrics(args.folder_path)

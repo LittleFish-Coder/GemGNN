@@ -46,6 +46,7 @@ def analyze_metrics(folder_path):
 
     # Print results in a structured format
     print("\nResults Analysis:")
+    scenario_averages = []
     for scenario, shot_scores in results.items():
         print(f"\nScenario: {scenario}")
         print("Shot Count | F1 Score")
@@ -55,8 +56,21 @@ def analyze_metrics(folder_path):
         
         # Print sequence of scores
         scores = [score for _, score in sorted(shot_scores.items())]
+        average_score = sum(scores) / len(scores) if scores else 0
+        scenario_averages.append((scenario, average_score, len(scores)))
         print(f"\nF1 Scores sequence ({len(scores)}):")
         print(scores)
+        print(f"Average F1 Score: {average_score:.4f}")
+
+    # Sort scenarios by average score in descending order
+    scenario_averages.sort(key=lambda x: x[1], reverse=True)
+
+    # Print summary table
+    print("\n--- Summary ---")
+    print(f"{'Scenario':<110} | {'Avg F1 Score':<15} | {'Num points'}")
+    print("-" * 140)
+    for scenario, avg_score, num_points in scenario_averages:
+        print(f"{scenario:<110} | {avg_score:<15.4f} | {num_points}")
 
                 
 
