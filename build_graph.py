@@ -3,7 +3,6 @@ import gc
 import json
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 import networkx as nx
 from typing import Dict, Tuple, Optional, List, Union, Any
 from datasets import load_dataset, load_from_disk, DatasetDict, Dataset
@@ -12,7 +11,6 @@ from torch_geometric.data import Data
 from torch_geometric.utils import to_networkx
 from tqdm.auto import tqdm
 from argparse import ArgumentParser
-from matplotlib.patches import Patch
 from utils.sample_k_shot import sample_k_shot
 from sklearn.metrics.pairwise import cosine_similarity
 from collections import Counter
@@ -30,7 +28,6 @@ DEFAULT_SAMPLE_UNLABELED_FACTOR = 10                # for unlabeled node samplin
 DEFAULT_SEED = 42
 DEFAULT_DATASET_CACHE_DIR = "dataset"
 DEFAULT_GRAPH_DIR = "graphs"
-DEFAULT_PLOT_DIR = "plots"
 
 # --- Utility Functions ---
 def set_seed(seed: int = DEFAULT_SEED) -> None:
@@ -63,7 +60,6 @@ class GraphBuilder:
         pseudo_label_cache_path: str = None,
         dataset_cache_dir: str = DEFAULT_DATASET_CACHE_DIR,
         seed: int = DEFAULT_SEED,
-        plot: bool = False,
         output_dir: str = DEFAULT_GRAPH_DIR,
     ):
         """Initialize the GraphBuilder."""
@@ -81,7 +77,6 @@ class GraphBuilder:
             self.pseudo_label_cache_path = pseudo_label_cache_path
         else:
             self.pseudo_label_cache_path = f"utils/pseudo_label_cache_{self.dataset_name}.json"
-        self.plot = plot
         self.seed = seed
         self.dataset_cache_dir = dataset_cache_dir
 
@@ -94,10 +89,8 @@ class GraphBuilder:
         np.random.seed(self.seed)
         # Setup directory paths
         self.output_dir = os.path.join(output_dir, self.dataset_name)
-        self.plot_dir = os.path.join(DEFAULT_PLOT_DIR, self.dataset_name)
         # Create directories
         os.makedirs(self.output_dir, exist_ok=True)
-        if self.plot: os.makedirs(self.plot_dir, exist_ok=True)
         # Initialize state
         self.dataset = None
         self.graph_metrics = {}
@@ -315,7 +308,7 @@ class GraphBuilder:
             print(f"      Error calculating pairwise distances: {e}. Using single core.")
             distances = pairwise_distances(embeddings, metric="cosine")
 
-        rows, cols, data = [], [], []
+        rows, cols, sim_data = [], [], []
         
         for i in tqdm(range(num_nodes), desc=f"    Finding {k} nearest neighbors", leave=False, ncols=100):
             dist_i = distances[i].copy()
@@ -329,19 +322,13 @@ class GraphBuilder:
                 rows.append(i)
                 cols.append(j)
                 sim = 1.0 - distances[i, j]  # Convert to similarity [0,1]
-                data.append(sim)
+                sim_data.append(sim)
 
-        # Create edge tensors
-        if not rows: 
-            edge_index = torch.zeros((2, 0), dtype=torch.long)
-            edge_attr = None
-        else:
-            edge_index = torch.tensor(np.vstack((rows, cols)), dtype=torch.long)
-            edge_attr = torch.tensor(data, dtype=torch.float).unsqueeze(1)
-
+        edge_index = torch.tensor(np.vstack((rows, cols)), dtype=torch.long)
+        edge_attr = torch.tensor(sim_data, dtype=torch.float).unsqueeze(1)
+        
         print(f"    - Created {edge_index.shape[1]} edges.")
         return edge_index, edge_attr
-
 
     def analyze_graph(self) -> None:
         """Detailed analysis for graph, similar to build_hetero_graph.py but adapted for homogeneous."""
@@ -393,12 +380,11 @@ class GraphBuilder:
         degrees = torch.zeros(num_nodes, dtype=torch.long)
         degrees.scatter_add_(0, edge_index_cpu[0], torch.ones_like(edge_index_cpu[0]))
         degrees.scatter_add_(0, edge_index_cpu[1], torch.ones_like(edge_index_cpu[1]))
-        degrees_np = degrees.numpy()
         
         isolated_nodes = int((degrees == 0).sum().item())
-        min_degree = int(degrees.min().item())
-        max_degree = int(degrees.max().item())
-        mean_degree = float(degrees.float().mean().item())
+        min_degree = int(degrees.min().item()) if num_nodes > 0 else 0
+        max_degree = int(degrees.max().item()) if num_nodes > 0 else 0
+        mean_degree = float(degrees.float().mean().item()) if num_nodes > 0 else 0.0
         
         self.graph_metrics.update({
             "isolated_nodes": isolated_nodes,
@@ -416,10 +402,9 @@ class GraphBuilder:
         print("=" * 60)
         print("      End of Graph Analysis")
         print("=" * 60 + "\n")
-    
 
     def save_graph(self) -> Optional[str]:
-        """Save the Data graph and analysis results."""
+        """Save the PyG graph and analysis results."""
 
         # --- Generate graph name ---
         # Add sampling info to filename if sampling was used
@@ -551,7 +536,6 @@ def parse_arguments():
     # Output & Settings Args
     parser.add_argument("--output_dir", type=str, default=DEFAULT_GRAPH_DIR, help=f"Directory to save graphs (default: {DEFAULT_GRAPH_DIR})")
     parser.add_argument("--dataset_cache_dir", type=str, default=DEFAULT_DATASET_CACHE_DIR, help=f"Directory to cache datasets (default: {DEFAULT_DATASET_CACHE_DIR})")
-    parser.add_argument("--plot", action="store_true", help="Enable graph visualization (EXPERIMENTAL)")
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help=f"Random seed (default: {DEFAULT_SEED})")
 
     return parser.parse_args()
@@ -590,7 +574,6 @@ def main() -> None:
         print(f"Sample Factor(M): N/A (using all unlabeled train nodes)")
     print("-" * 20 + " Output & Settings " + "-" * 20)
     print(f"Output directory: {args.output_dir}")
-    print(f"Plot:             {args.plot}")
     print(f"Seed:             {args.seed}")
     print(f"Device:           {'CUDA' if torch.cuda.is_available() else 'CPU'}")
     if torch.cuda.is_available(): print(f"GPU:              {torch.cuda.get_device_name(0)}")
@@ -609,26 +592,25 @@ def main() -> None:
         pseudo_label_cache_path=args.pseudo_label_cache_path,
         dataset_cache_dir=args.dataset_cache_dir,
         seed=args.seed,
-        plot=args.plot,
         output_dir=args.output_dir,
     )
 
-    graph_data = builder.run_pipeline()
+    graph = builder.run_pipeline()
 
     # --- Final Summary ---
     print("\n" + "=" * 60)
     print(" Homogeneous Graph Building Complete")
     print("=" * 60)
-    print(f"  Total Nodes:                             {graph_data.num_nodes}")
-    print(f"  Total Edges:                             {graph_data.num_edges}")
-    print(f"  Features:                                {graph_data.x.shape[1]}")
-    print(f"  Train Labeled nodes:                     {graph_data.train_labeled_mask.sum().item()}")
-    print(f"  Train Unlabeled nodes:                   {graph_data.train_unlabeled_mask.sum().item()}")
-    print(f"  Test nodes:                              {graph_data.test_mask.sum().item()}")
+    print(f"  Nodes: {graph.num_nodes}")
+    print(f"  Edges: {graph.num_edges}")
+    print(f"  Features Dim: {graph.num_node_features}")
+    print(f"  Train Labeled: {graph.train_labeled_mask.sum().item()}")
+    print(f"  Train Unlabeled: {graph.train_unlabeled_mask.sum().item()}")
+    print(f"  Test: {graph.test_mask.sum().item()}")
     print("\nNext Steps:")
     print(f"  1. Review the saved graph '.pt' file, metrics '.json' file, and indices '.json' file.")
     print(f"  2. Train a GNN model, e.g.:")
-    print(f"  python train_graph.py --graph_path {os.path.join(builder.output_dir, '<graph_file_name>.pt')}")
+    print(f"     python train_graph.py --graph_path {os.path.join(builder.output_dir, 'scenario', '<graph_file_name>.pt')}")
     print("=" * 60 + "\n")
 
 

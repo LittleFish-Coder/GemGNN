@@ -15,7 +15,6 @@ def main():
         partial_unlabeled=args.partial_unlabeled,
         sample_unlabeled_factor=args.sample_unlabeled_factor,
         output_dir=args.output_dir,
-        plot=args.plot,
         seed=args.seed,
         pseudo_label=args.pseudo_label,
         pseudo_label_cache_path=args.pseudo_label_cache_path,

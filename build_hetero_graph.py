@@ -19,7 +19,7 @@ from collections import Counter
 # --- Constants ---
 DEFAULT_K_SHOT = 8                                  # 3-16 shot
 DEFAULT_DATASET_NAME = "politifact"                 # politifact, gossipcop
-DEFAULT_EMBEDDING_TYPE = "roberta"                  # Default embedding for news nodes (bert, distilbert, roberta, deberta, bigbird)
+DEFAULT_EMBEDDING_TYPE = "deberta"                  # Default embedding for news nodes (bert, distilbert, roberta, deberta, bigbird)
 # --- Edge Policies Parameters ---
 DEFAULT_EDGE_POLICY = "label_aware_knn"             # For news-news edges (label_aware_knn, knn)
 DEFAULT_K_NEIGHBORS = 5                             # For knn edge policy
@@ -31,7 +31,6 @@ DEFAULT_INTERACTION_EDGE_MODE = "edge_attr"         # for interaction edge polic
 DEFAULT_SEED = 42
 DEFAULT_DATASET_CACHE_DIR = "dataset"
 DEFAULT_GRAPH_DIR = "graphs_hetero"
-DEFAULT_PLOT_DIR = "plots_hetero"
 DEFAULT_BATCH_SIZE = 50
 
 # --- Utility Functions ---
@@ -72,7 +71,6 @@ class HeteroGraphBuilder:
         interaction_edge_mode: str = DEFAULT_INTERACTION_EDGE_MODE,
         dataset_cache_dir: str = DEFAULT_DATASET_CACHE_DIR,
         seed: int = DEFAULT_SEED,
-        plot: bool = False,
         output_dir: str = DEFAULT_GRAPH_DIR,
     ):
         """Initialize the HeteroGraphBuilder."""
@@ -85,19 +83,16 @@ class HeteroGraphBuilder:
         self.interaction_edge_mode = interaction_edge_mode
         self.edge_policy = edge_policy
         self.k_neighbors = k_neighbors
-        self.multi_view = multi_view
         ## Sampling
-        self.sample_unlabeled_factor = sample_unlabeled_factor
-        self.enable_dissimilar = enable_dissimilar
         self.partial_unlabeled = partial_unlabeled
+        self.sample_unlabeled_factor = sample_unlabeled_factor
         self.pseudo_label = pseudo_label
         if pseudo_label_cache_path:
             self.pseudo_label_cache_path = pseudo_label_cache_path
         else:
             self.pseudo_label_cache_path = f"utils/pseudo_label_cache_{self.dataset_name}.json"
-        self.plot = plot
-        self.seed = seed
-        self.dataset_cache_dir = dataset_cache_dir
+        self.multi_view = multi_view
+        self.enable_dissimilar = enable_dissimilar
         self.ensure_test_labeled_neighbor = ensure_test_labeled_neighbor
 
         if self.edge_policy == "label_aware_knn":
@@ -105,17 +100,18 @@ class HeteroGraphBuilder:
         
         if self.pseudo_label:
             self.partial_unlabeled = True
+        
+        self.dataset_cache_dir = dataset_cache_dir
+        self.seed = seed
+
+        # Setup and create directories
+        self.output_dir = os.path.join(output_dir, self.dataset_name)
+        os.makedirs(self.output_dir, exist_ok=True)
 
         # Set device
+        np.random.seed(self.seed)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Using device: {self.device}")
-        np.random.seed(self.seed)
-        # Setup directory paths
-        self.output_dir = os.path.join(output_dir, self.dataset_name)
-        self.plot_dir = os.path.join(DEFAULT_PLOT_DIR, self.dataset_name)
-        # Create directories
-        os.makedirs(self.output_dir, exist_ok=True)
-        if self.plot: os.makedirs(self.plot_dir, exist_ok=True)
         # Initialize state
         self.dataset = None
         self.graph_metrics = {}
@@ -1139,7 +1135,6 @@ def parse_arguments():
     # Output & Settings Args
     parser.add_argument("--output_dir", type=str, default=DEFAULT_GRAPH_DIR, help=f"Directory to save graphs (default: {DEFAULT_GRAPH_DIR})")
     parser.add_argument("--dataset_cache_dir", type=str, default=DEFAULT_DATASET_CACHE_DIR, help=f"Directory to cache datasets (default: {DEFAULT_DATASET_CACHE_DIR})")
-    parser.add_argument("--plot", action="store_true", help="Enable graph visualization (EXPERIMENTAL for hetero)")
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help=f"Random seed (default: {DEFAULT_SEED})")
     parser.add_argument("--batch_size", type=int, default=DEFAULT_BATCH_SIZE, help=f"Batch size for graph building (default: {DEFAULT_BATCH_SIZE})")
 
@@ -1184,7 +1179,6 @@ def main() -> None:
         print(f"Sample Factor(M): N/A (using all unlabeled train news nodes)")
     print("-" * 20 + " Output & Settings " + "-" * 20)
     print(f"Output directory: {args.output_dir}")
-    print(f"Plot:             {args.plot}")
     print(f"Seed:             {args.seed}")
     print(f"Device:           {'CUDA' if torch.cuda.is_available() else 'CPU'}")
     if torch.cuda.is_available(): print(f"GPU:              {torch.cuda.get_device_name(0)}")
@@ -1209,7 +1203,6 @@ def main() -> None:
         interaction_edge_mode=args.interaction_edge_mode,
         dataset_cache_dir=args.dataset_cache_dir,
         seed=args.seed,
-        plot=args.plot,
         output_dir=args.output_dir,
     )
 
