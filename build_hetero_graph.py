@@ -113,14 +113,13 @@ class HeteroGraphBuilder:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Using device: {self.device}")
         # Initialize state
-        self.dataset = None
-        self.graph_metrics = {}
+        self.dataset = None     # Load from dataset
+        self.graph_metrics = {} # Store analysis results
         # Selected Indices
         self.selected_train_labeled_indices = None
         self.selected_train_unlabeled_indices = None
         self.selected_test_indices = None
-        self.news_orig_to_new_idx = None # Mapping for mask creation
-        self.graph_metrics = {} # Store analysis results
+        self.news_orig_to_new_idx = None # Mapping for mask creation (global2local)
         self.tone2id = {}
 
     def _tone2id(self, tone):
@@ -139,17 +138,23 @@ class HeteroGraphBuilder:
             dataset = load_from_disk(local_hf_dir)
         else:
             print(f"Loading dataset from huggingface: {hf_dataset_name}")
-            dataset = load_dataset(hf_dataset_name, download_mode="reuse_cache_if_exists", cache_dir=local_hf_dir)
+            dataset = load_dataset(hf_dataset_name, download_mode="reuse_cache_if_exists")
             dataset.save_to_disk(local_hf_dir)
 
-        self.dataset = {"train": dataset["train"], "test": dataset["test"]}
+        # dataset: DatasetDict
+        self.dataset = {
+            "train": dataset["train"], 
+            "test": dataset["test"]
+        }
         self.train_data = self.dataset["train"]
-        self.test_data = self.dataset['test']
+        self.test_data = self.dataset["test"]
+
         self.train_size = len(self.train_data)
         self.test_size = len(self.test_data)
         unique_labels = set(self.train_data['label']) | set(self.test_data['label']) # 0: real, 1: fake
         self.num_classes = len(unique_labels)   # 2
-        self.total_labeled_size = self.k_shot * self.num_classes
+        self.total_labeled_size = self.k_shot * self.num_classes    # for k-shot learning
+
         print(f"\nOriginal dataset size: Train={self.train_size}, Test={self.test_size}")
         print(f"  Detected Labels: {unique_labels} ({self.num_classes} classes)")
         print(f"  Train labeled set: {self.k_shot}-shot * {self.num_classes} classes = {self.total_labeled_size} total labeled nodes")
@@ -198,7 +203,7 @@ class HeteroGraphBuilder:
         # --- Sample train_unlabeled_nodes if required ---
         if self.partial_unlabeled:
             num_to_sample = min(self.num_classes * self.k_shot * self.sample_unlabeled_factor, len(train_unlabeled_indices))
-            print(f"  Sampling {num_to_sample} train_unlabeled_nodes (num_classes={self.num_classes}, k={self.k_shot}, factor={self.sample_unlabeled_factor}) from {len(train_unlabeled_indices)} available.")
+            print(f"  Sampling {num_to_sample}({self.num_classes}*{self.k_shot}*{self.sample_unlabeled_factor}) train_unlabeled_nodes (num_classes={self.num_classes}, k={self.k_shot}, factor={self.sample_unlabeled_factor}) from {len(train_unlabeled_indices)} available.")
             if self.pseudo_label:
                 print("  Using pseudo-label based sampling (sorted by confidence)...")
                 try:
@@ -277,8 +282,15 @@ class HeteroGraphBuilder:
 
 
         # --- global2local index mapping for all nodes in the graph ---
+        print(f"  ===== Building global2local index mapping for all nodes in the graph =====")
+        # print(f"  train_labeled_indices({len(train_labeled_indices)}): {train_labeled_indices[:self.k_shot]}")
+        # print(f"  train_unlabeled_indices({len(train_unlabeled_indices)}): {train_unlabeled_indices[:self.k_shot]}")
+        # print(f"  test_indices({len(test_indices)}): {test_indices[:self.k_shot]}")
         all_indices = np.concatenate([train_labeled_indices, train_unlabeled_indices, test_indices])
+        print(f"  all_indices({len(all_indices)}): {all_indices[:2*self.k_shot]}...")
+        # key, value: global_idx(original idx from dataset) -> local_idx(new idx in the local graph)
         global2local = {int(idx): i for i, idx in enumerate(all_indices)}
+        print(f"  global2local({len(all_indices)}): {list(global2local.keys())[:self.k_shot]}...")
 
         print(f"  ===== Building news nodes =====")
         # 4. Extract features and labels for each group
