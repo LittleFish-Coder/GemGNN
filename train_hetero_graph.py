@@ -30,6 +30,8 @@ DEFAULT_TARGET_NODE_TYPE = "news" # Target node type for classification
 RESULTS_DIR = "results_hetero" # Separate results for hetero models
 PLOTS_DIR = "plots_hetero"
 
+# Constants for early stopping
+EPSILON = 1e-3  # Minimum difference to consider as improvement
 
 def set_seed(seed: int = DEFAULT_SEED) -> None:
     """Set seed for reproducibility across all random processes."""
@@ -386,9 +388,8 @@ def train(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optimizer, 
 
     for epoch in range(args.n_epochs):
         train_loss, train_acc = train_epoch(model, data, optimizer, criterion, args.target_node_type)
-        # Using test_mask for validation during training, as is common in GNN literature for transductive settings
-        val_loss, val_acc, val_f1 = evaluate(model, data, 'test_mask', criterion, args.target_node_type)
-
+        val_loss, val_acc, val_f1 = evaluate(model, data, 'train_labeled_mask', criterion, args.target_node_type)
+ 
         train_losses.append(train_loss)
         train_accs.append(train_acc)
         val_losses.append(val_loss)
@@ -397,20 +398,17 @@ def train(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optimizer, 
 
         print(f"Epoch: {epoch+1:03d}/{args.n_epochs} | "
               f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f} | "
-              f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}, Val F1: {val_f1:.4f}")
+              f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}, Val F1: {val_f1:.4f} | "
+              f"Best Val Loss: {best_val_loss:.4f}, Best Val F1: {best_val_f1:.4f} | "
+              f"Patience: {patience_counter}/{args.patience}")
 
-        if val_f1 > best_val_f1:
+        if val_loss + EPSILON < best_val_loss:
             best_val_f1 = val_f1
             best_val_loss = val_loss
             best_epoch = epoch + 1
             torch.save(model.state_dict(), model_save_path)
-            print(f"  -> New best model saved (F1: {best_val_f1:.4f}) to {model_save_path}")
+            print(f"  -> New best model saved (Loss: {best_val_loss:.4f}, F1: {best_val_f1:.4f}) to {model_save_path}")
             patience_counter = 0
-        elif val_loss < best_val_loss and patience_counter > 0: # Secondary criterion: loss improvement
-            best_val_loss = val_loss
-            # Optional: save model based on loss improvement too
-            # torch.save(model.state_dict(), model_save_path + "_best_loss")
-            patience_counter = 0 # Reset patience if loss improves
         else:
             patience_counter += 1
 
