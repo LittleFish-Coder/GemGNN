@@ -365,52 +365,37 @@ class HeteroGraphBuilder:
             edge_attr = []
             
             # 1. Train labeled nodes can connect to any node
-            for i, src in enumerate(train_labeled_idx):
-                src_emb = news_embeddings[src].reshape(1, -1)
-                # Calculate similarity with all nodes
-                sim = cosine_similarity(src_emb, news_embeddings)[0]
-                # Exclude self
-                sim[src] = -np.inf
-                # Get top-k neighbors
-                k = min(self.k_neighbors, len(sim) - 1)
-                if k > 0:
-                    topk = np.argpartition(-sim, k)[:k]
-                    for dst in topk:
-                        edge_src.append(src)
-                        edge_dst.append(dst)
-                        edge_attr.append(sim[dst])
+            train_labeled_emb = news_embeddings[train_labeled_idx]
+            train_labeled_sim_idx, train_labeled_sim_attr, _, _ = self._build_knn_edges(train_labeled_emb, self.k_neighbors)
+            if train_labeled_sim_idx.shape[1] > 0:
+                # Map back to original indices
+                edge_src.extend(train_labeled_idx[train_labeled_sim_idx[0]])
+                edge_dst.extend(train_labeled_idx[train_labeled_sim_idx[1]])
+                if train_labeled_sim_attr is not None:
+                    edge_attr.extend(train_labeled_sim_attr.squeeze().tolist())
             
             # 2. Train unlabeled nodes can connect to any node
-            for i, src in enumerate(train_unlabeled_idx):
-                src_emb = news_embeddings[src].reshape(1, -1)
-                sim = cosine_similarity(src_emb, news_embeddings)[0]
-                sim[src] = -np.inf
-                k = min(self.k_neighbors, len(sim) - 1)
-                if k > 0:
-                    topk = np.argpartition(-sim, k)[:k]
-                    for dst in topk:
-                        edge_src.append(src)
-                        edge_dst.append(dst)
-                        edge_attr.append(sim[dst])
+            train_unlabeled_emb = news_embeddings[train_unlabeled_idx]
+            train_unlabeled_sim_idx, train_unlabeled_sim_attr, _, _ = self._build_knn_edges(train_unlabeled_emb, self.k_neighbors)
+            if train_unlabeled_sim_idx.shape[1] > 0:
+                # Map back to original indices
+                edge_src.extend(train_unlabeled_idx[train_unlabeled_sim_idx[0]])
+                edge_dst.extend(train_unlabeled_idx[train_unlabeled_sim_idx[1]])
+                if train_unlabeled_sim_attr is not None:
+                    edge_attr.extend(train_unlabeled_sim_attr.squeeze().tolist())
             
-            # 3. Test nodes can connect to train_labeled and train_unlabeled nodes
-            for i, src in enumerate(test_idx):
-                src_emb = news_embeddings[src].reshape(1, -1)
-                # Calculate similarity with train nodes
-                train_emb = news_embeddings[train_labeled_mask | train_unlabeled_mask]
-                sim = cosine_similarity(src_emb, train_emb)[0]
-                k = min(self.k_neighbors, len(sim))
-                if k > 0:
-                    topk = np.argpartition(-sim, k)[:k]
-                    for j in topk:
-                        # Map back to original indices
-                        if j < len(train_labeled_idx):
-                            dst = train_labeled_idx[j]
-                        else:
-                            dst = train_unlabeled_idx[j - len(train_labeled_idx)]
-                        edge_src.append(src)
-                        edge_dst.append(dst)
-                        edge_attr.append(sim[j])
+            # 3. Test nodes can only connect to train nodes
+            test_emb = news_embeddings[test_idx]
+            train_emb = news_embeddings[train_labeled_mask | train_unlabeled_mask]
+            test_sim_idx, test_sim_attr, _, _ = self._build_knn_edges(test_emb, self.k_neighbors, target_embeddings=train_emb, is_test=True)
+            if test_sim_idx.shape[1] > 0:
+                # Map back to original indices
+                edge_src.extend(test_idx[test_sim_idx[0]])
+                # Map target indices back to original indices
+                train_indices = np.concatenate([train_labeled_idx, train_unlabeled_idx])
+                edge_dst.extend(train_indices[test_sim_idx[1]])
+                if test_sim_attr is not None:
+                    edge_attr.extend(test_sim_attr.squeeze().tolist())
             
             # Create edge tensors
             edge_index = torch.tensor([edge_src, edge_dst], dtype=torch.long)
@@ -622,7 +607,7 @@ class HeteroGraphBuilder:
         return data
 
 
-    def _build_knn_edges(self, embeddings: np.ndarray, k: int, target_embeddings: np.ndarray = None) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]:
+    def _build_knn_edges(self, embeddings: np.ndarray, k: int, target_embeddings: np.ndarray = None, is_test: bool = False) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]:
         """
         Build KNN edges for 'news'-'news' edges.
         Args:
@@ -630,6 +615,7 @@ class HeteroGraphBuilder:
             k: number of nearest neighbors to consider
             target_embeddings: optional numpy array of shape (num_target_nodes, embedding_dim)
                              if provided, only find neighbors from target_embeddings
+            is_test: whether these are test nodes (if True, can't connect to other test nodes)
         Returns:
             sim_edge_index: torch tensor of shape (2, num_similar_edges)
             sim_edge_attr: torch tensor of shape (num_similar_edges, 1)
@@ -644,106 +630,54 @@ class HeteroGraphBuilder:
             k = min(k, num_target)  # Adjust k if it's too large
         else:
             k = min(k, num_nodes - 1)  # Adjust k if it's too large
-            
-        if k <= 0: 
+
+        if k <= 0:
             return (torch.zeros((2,0), dtype=torch.long), None, torch.zeros((2,0), dtype=torch.long), None)
-            
+
+        # Calculate pairwise distances
         try:
             if target_embeddings is not None:
-                # Calculate distances in both directions
-                distances_forward = pairwise_distances(embeddings, target_embeddings, metric="cosine", n_jobs=-1)
-                distances_backward = pairwise_distances(target_embeddings, embeddings, metric="cosine", n_jobs=-1)
+                distances = pairwise_distances(embeddings, target_embeddings, metric="cosine", n_jobs=-1)
             else:
                 distances = pairwise_distances(embeddings, metric="cosine", n_jobs=-1)
         except Exception as e:
             print(f"      Error calculating pairwise distances: {e}. Using single core.")
             if target_embeddings is not None:
-                distances_forward = pairwise_distances(embeddings, target_embeddings, metric="cosine")
-                distances_backward = pairwise_distances(target_embeddings, embeddings, metric="cosine")
+                distances = pairwise_distances(embeddings, target_embeddings, metric="cosine")
             else:
                 distances = pairwise_distances(embeddings, metric="cosine")
 
-        # For similar edges (nearest neighbors)
+        # Initialize lists for similar edges
         sim_rows, sim_cols, sim_data = [], [], []
-        # For dissimilar edges (farthest neighbors)
-        dis_rows, dis_cols, dis_data = [], [], []
         
-        if target_embeddings is not None:
-            # Process forward edges (source -> target)
-            for i in tqdm(range(num_nodes), desc=f"    Finding {k} nearest/farthest neighbors (forward)", leave=False, ncols=100):
-                dist_i = distances_forward[i].copy()
-                nearest_indices = np.argpartition(dist_i, k)[:k]
-                valid_nearest = nearest_indices[np.isfinite(dist_i[nearest_indices])]
-                
-                for j in valid_nearest:
-                    sim_rows.append(i)
-                    sim_cols.append(j)
-                    sim = 1.0 - distances_forward[i, j]
-                    sim_data.append(sim)
+        # For each node, find k nearest neighbors
+        for i in tqdm(range(num_nodes), desc=f"    Finding {k} nearest neighbors", leave=False, ncols=100):
+            dist_i = distances[i].copy()
             
-            # Process backward edges (target -> source)
-            for i in tqdm(range(num_target), desc=f"    Finding {k} nearest/farthest neighbors (backward)", leave=False, ncols=100):
-                dist_i = distances_backward[i].copy()
-                nearest_indices = np.argpartition(dist_i, k)[:k]
-                valid_nearest = nearest_indices[np.isfinite(dist_i[nearest_indices])]
+            # For test nodes, prevent connections to other test nodes
+            if is_test and target_embeddings is not None:
+                dist_i[num_target:] = np.inf
                 
-                for j in valid_nearest:
-                    sim_rows.append(j)
-                    sim_cols.append(i)
-                    sim = 1.0 - distances_backward[i, j]
-                    sim_data.append(sim)
-        else:
-            for i in tqdm(range(num_nodes), desc=f"    Finding {k} nearest/farthest neighbors", leave=False, ncols=100):
-                dist_i = distances[i].copy()
-                dist_i[i] = np.inf  # Exclude self only if not using target embeddings
-                
-                # Find k nearest neighbors (most similar)
-                nearest_indices = np.argpartition(dist_i, k)[:k]
-                valid_nearest = nearest_indices[np.isfinite(dist_i[nearest_indices])]
-                
-                # Find k farthest neighbors (most dissimilar)
-                valid_distances = dist_i[np.isfinite(dist_i)]
-                valid_indices = np.arange(len(dist_i))[np.isfinite(dist_i)]
-                if len(valid_distances) > k:
-                    farthest_k_indices = np.argpartition(valid_distances, -k)[-k:]
-                    valid_farthest = valid_indices[farthest_k_indices]
-                else:
-                    valid_farthest = valid_indices
-                
-                min_valid = min(len(valid_nearest), len(valid_farthest))
-                if min_valid > 0:
-                    # Similar edges
-                    for j in valid_nearest[:min_valid]:
-                        sim_rows.append(i)
-                        sim_cols.append(j)
-                        sim = 1.0 - distances[i, j]
-                        sim_data.append(sim)
-                    
-                    # Dissimilar edges
-                    for j in valid_farthest[:min_valid]:
-                        dis_rows.append(i)
-                        dis_cols.append(j)
-                        sim = 1.0 - distances[i, j]
-                        dis_data.append(-sim)
+            # Find k nearest neighbors
+            nearest_indices = np.argpartition(dist_i, k)[:k]
+            valid_nearest = nearest_indices[np.isfinite(dist_i[nearest_indices])]
+            
+            for j in valid_nearest:
+                sim_rows.append(i)
+                sim_cols.append(j)
+                sim = 1.0 - distances[i, j]
+                sim_data.append(sim)
 
         # Create similar edge tensors
-        if not sim_rows: 
+        if not sim_rows:
             sim_edge_index = torch.zeros((2, 0), dtype=torch.long)
             sim_edge_attr = None
         else:
             sim_edge_index = torch.tensor(np.vstack((sim_rows, sim_cols)), dtype=torch.long)
             sim_edge_attr = torch.tensor(sim_data, dtype=torch.float).unsqueeze(1)
 
-        # Create dissimilar edge tensors
-        if not dis_rows:
-            dis_edge_index = torch.zeros((2, 0), dtype=torch.long)
-            dis_edge_attr = None
-        else:
-            dis_edge_index = torch.tensor(np.vstack((dis_rows, dis_cols)), dtype=torch.long)
-            dis_edge_attr = torch.tensor(dis_data, dtype=torch.float).unsqueeze(1)
-
-        print(f"    - Created {sim_edge_index.shape[1]} similar edges and {dis_edge_index.shape[1]} dissimilar edges.")
-        return sim_edge_index, sim_edge_attr, dis_edge_index, dis_edge_attr
+        print(f"    - Created {sim_edge_index.shape[1]} similar edges.")
+        return sim_edge_index, sim_edge_attr, None, None
 
     def _build_mutual_knn_edges(self, embeddings: np.ndarray, k: int):
         """

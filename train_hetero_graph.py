@@ -15,7 +15,7 @@ from torch_geometric.data import HeteroData
 from torch_geometric.nn import HGTConv, HANConv, Linear, SAGEConv, GATv2Conv, to_hetero, RGCNConv
 
 # Constants
-DEFAULT_MODEL = "HGT"   # HGT, HAN, SAGE, GATv2
+DEFAULT_MODEL = "HAN"   # HGT, HAN, SAGE, GATv2
 DEFAULT_LOSS_FN = "ce" # ce, focal
 DEFAULT_EPOCHS = 300
 DEFAULT_LR = 1e-4
