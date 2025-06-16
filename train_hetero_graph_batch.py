@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from glob import glob
 from train_hetero_graph import get_model, set_seed, final_evaluation, parse_arguments, load_hetero_graph, train
-from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
+from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score, confusion_matrix
 import json
 
 def main():
@@ -55,13 +55,14 @@ def main():
     precision = precision_score(y_true_all, y_pred_all, average='macro', zero_division=0)
     recall = recall_score(y_true_all, y_pred_all, average='macro', zero_division=0)
     f1 = f1_score(y_true_all, y_pred_all, average='macro')
+    conf_matrix = confusion_matrix(y_true_all, y_pred_all)
 
     print(f"\n==== Final Macro F1-score (all test nodes): {f1:.4f} ====")
     print(f"Final Acc: {acc:.4f}")
     print(f"Final Precision: {precision:.4f}")
     print(f"Final Recall: {recall:.4f}")
     print(f"Final F1-score: {f1:.4f}")
-
+    print(f"Final Confusion Matrix: {conf_matrix}")
     # Save results to results_hetero_batch/dataset/scenario/metrics_batch.json
     out_path = os.path.join(batch_out_dir, 'metrics_batch.json')
     with open(out_path, 'w') as f:
@@ -69,7 +70,8 @@ def main():
             'accuracy': float(acc),
             'precision': float(precision),
             'recall': float(recall),
-            'f1_score': float(f1)
+            'f1_score': float(f1),
+            'confusion_matrix': conf_matrix.tolist()
         }, f, indent=2)
     print(f"Saved batch metrics to {out_path}")
 

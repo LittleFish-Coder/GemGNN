@@ -15,15 +15,16 @@ from torch_geometric.data import HeteroData
 from torch_geometric.nn import HGTConv, HANConv, Linear, SAGEConv, GATv2Conv, to_hetero, RGCNConv
 
 # Constants
-DEFAULT_MODEL = "HAN"   # HGT, HAN, SAGE, GATv2
+DEFAULT_MODEL = "HAN"   # HGT, HAN, HANv2, SAGE, GATv2
 DEFAULT_LOSS_FN = "ce" # ce, focal
 DEFAULT_EPOCHS = 300
-DEFAULT_LR = 1e-4
-DEFAULT_WEIGHT_DECAY = 1e-4
-DEFAULT_HIDDEN_CHANNELS = 128
+DEFAULT_LR = 5e-4
+DEFAULT_WEIGHT_DECAY = 1e-3
+DEFAULT_HIDDEN_CHANNELS = 64
 DEFAULT_DROPOUT = 0.0
-DEFAULT_HGT_HAN_HEADS = 4 # Number of attention heads for HGT/HAN
+DEFAULT_HEADS = 4 # Number of attention heads for HGT/HAN
 DEFAULT_HGT_LAYERS = 1
+DEFAULT_HAN_LAYERS = 1  # Number of layers for HAN
 DEFAULT_PATIENCE = 30
 DEFAULT_SEED = 42
 DEFAULT_TARGET_NODE_TYPE = "news" # Target node type for classification
@@ -109,8 +110,7 @@ class HANModel(nn.Module):
         self.dropout_rate = dropout_rate
 
         # HANConv can infer in_channels if set to -1
-        self.conv1 = HANConv(in_channels=-1, out_channels=hidden_channels,
-                             metadata=data.metadata(), heads=heads, dropout=dropout_rate)
+        self.conv1 = HANConv(in_channels=-1, out_channels=hidden_channels, metadata=data.metadata(), heads=heads, dropout=dropout_rate)
         
         # Output linear layer for the target node type
         self.out_lin = Linear(hidden_channels, out_channels)
@@ -126,6 +126,54 @@ class HANModel(nn.Module):
         target_node_features = F.dropout(target_node_features, p=self.dropout_rate, training=self.training)
         
         return self.out_lin(target_node_features)
+
+
+class HANv2Model(nn.Module):
+    """Enhanced HAN Model with multiple layers, residual connections, and normalization"""
+    def __init__(self, data: HeteroData, hidden_channels: int, out_channels: int,
+                 heads: int, target_node_type: str, dropout_rate: float, num_layers: int = 2):
+        super().__init__()
+        self.target_node_type = target_node_type
+        self.dropout_rate = dropout_rate
+        self.num_layers = num_layers
+
+        # Initial feature transformation
+        self.lins = nn.ModuleDict()
+        self.norms = nn.ModuleDict()
+        for node_type in data.node_types:
+            self.lins[node_type] = Linear(data[node_type].num_features, hidden_channels)
+            self.norms[node_type] = nn.LayerNorm(hidden_channels)
+
+        # Multiple HAN layers
+        self.convs = nn.ModuleList()
+        for _ in range(num_layers):
+            conv = HANConv(in_channels=hidden_channels, out_channels=hidden_channels,
+                          metadata=data.metadata(), heads=heads, dropout=dropout_rate)
+            self.convs.append(conv)
+        
+        # Output layer
+        self.out_lin = Linear(hidden_channels, out_channels)
+
+    def forward(self, x_dict, edge_index_dict):
+        # Initial transformation
+        for node_type, x in x_dict.items():
+            x = self.lins[node_type](x)
+            x = self.norms[node_type](x)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.dropout_rate, training=self.training)
+            x_dict[node_type] = x
+
+        # Multiple HAN layers with residual connections
+        for conv in self.convs:
+            x_dict_new = conv(x_dict, edge_index_dict)
+            for node_type in x_dict:
+                x = x_dict[node_type] + x_dict_new[node_type]  # Residual
+                x = self.norms[node_type](x)  # LayerNorm
+                x = F.relu(x)
+                x = F.dropout(x, p=self.dropout_rate, training=self.training)
+                x_dict[node_type] = x
+
+        return self.out_lin(x_dict[self.target_node_type])
 
 
 # --- Utility Functions ---
@@ -178,7 +226,7 @@ def get_model(model_name: str, data: HeteroData, args: ArgumentParser) -> nn.Mod
             hidden_channels=args.hidden_channels,
             out_channels=num_classes,
             num_layers=args.hgt_layers,
-            heads=args.hgt_han_heads,
+            heads=args.heads,
             target_node_type=args.target_node_type,
             dropout_rate=args.dropout_rate
         )
@@ -188,9 +236,20 @@ def get_model(model_name: str, data: HeteroData, args: ArgumentParser) -> nn.Mod
             data=data,
             hidden_channels=args.hidden_channels,
             out_channels=num_classes,
-            heads=args.hgt_han_heads,
+            heads=args.heads,
             target_node_type=args.target_node_type,
             dropout_rate=args.dropout_rate
+        )
+    elif model_name == "HANv2":
+        print("Using HANv2 (enhanced HAN with multiple layers, residual connections, and normalization)")
+        model = HANv2Model(
+            data=data,
+            hidden_channels=args.hidden_channels,
+            out_channels=num_classes,
+            heads=args.heads,
+            target_node_type=args.target_node_type,
+            dropout_rate=args.dropout_rate,
+            num_layers=args.han_layers
         )
     else:
         raise ValueError(f"Unknown model type: {model_name}")
@@ -212,7 +271,8 @@ def train_epoch(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optim
     pred = out_target[mask].argmax(dim=1)
     correct = (pred == data[target_node_type].y[mask]).sum().item()
     acc = correct / mask.sum().item() if mask.sum().item() > 0 else 0
-    return loss.item(), acc
+    f1 = f1_score(data[target_node_type].y[mask].cpu().numpy(), pred.cpu().numpy(), average='macro', zero_division=0)
+    return loss.item(), acc, f1
 
 @torch.no_grad()
 def evaluate(model: nn.Module, data: HeteroData, eval_mask_name: str, criterion: nn.Module, target_node_type: str) -> tuple[float, float, float]:
@@ -233,12 +293,12 @@ def evaluate(model: nn.Module, data: HeteroData, eval_mask_name: str, criterion:
     f1 = f1_score(y_true, y_pred, average='macro', zero_division=0)
     return loss.item(), acc, f1
 
-def train(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optimizer, criterion: nn.Module, args: ArgumentParser, output_dir: str, model_name_fs: str) -> dict:
+def train(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optimizer, criterion: nn.Module, args: ArgumentParser, output_dir: str, model_name_fs: str=None) -> dict:
     """Train the model with validation and early stopping."""
     print("\n--- Starting Heterogeneous Training ---")
     start_time = time.time()
 
-    train_losses, train_accs = [], []
+    train_losses, train_accs, train_f1s = [], [], []
     val_losses, val_accs, val_f1s = [], [], []
     
     best_val_f1 = -1.0
@@ -246,36 +306,36 @@ def train(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optimizer, 
     patience_counter = 0
     best_epoch = -1
 
-    model_save_path = os.path.join(output_dir, f"graph_best.pt")
+    model_save_path = os.path.join(output_dir, f"{model_name_fs}_best.pt" if model_name_fs else "graph_best.pt")
 
     for epoch in range(args.n_epochs):
-        train_loss, train_acc = train_epoch(model, data, optimizer, criterion, args.target_node_type)
+        train_loss, train_acc, train_f1 = train_epoch(model, data, optimizer, criterion, args.target_node_type)
         val_loss, val_acc, val_f1 = evaluate(model, data, 'train_labeled_mask', criterion, args.target_node_type)
         # val_loss, val_acc, val_f1 = evaluate(model, data, 'test_mask', criterion, args.target_node_type)
  
         train_losses.append(train_loss)
         train_accs.append(train_acc)
+        train_f1s.append(train_f1)
         val_losses.append(val_loss)
         val_accs.append(val_acc)
         val_f1s.append(val_f1)
 
         print(f"Epoch: {epoch+1:03d}/{args.n_epochs} | "
               f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f} | "
-              f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}, Val F1: {val_f1:.4f} | "
-              f"Best Val Loss: {best_val_loss:.4f}, Best Val F1: {best_val_f1:.4f} | "
-              f"Patience: {patience_counter}/{args.patience}")
+              f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}, Val F1: {val_f1:.4f}")
+        
 
         if val_loss + EPSILON < best_val_loss:
             best_val_f1 = val_f1
             best_val_loss = val_loss
             best_epoch = epoch + 1
             torch.save(model.state_dict(), model_save_path)
-            print(f"  -> New best model saved (Loss: {best_val_loss:.4f}, F1: {best_val_f1:.4f}) to {model_save_path}")
+            print(f"  -> New best model saved (Loss: {best_val_loss:.4f}, F1: {best_val_f1:.4f}) Patience: {patience_counter}/{args.patience}")
             patience_counter = 0
         else:
             patience_counter += 1
 
-        if patience_counter >= args.patience:
+        if patience_counter >= args.patience or val_loss < 0.35:
             print(f"\nEarly stopping triggered after {epoch + 1} epochs.")
             break
 
@@ -287,7 +347,7 @@ def train(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optimizer, 
         print("No best model saved (training might have stopped early or validation F1 did not improve).")
 
     history = {
-        "train_loss": train_losses, "train_acc": train_accs,
+        "train_loss": train_losses, "train_acc": train_accs, "train_f1": train_f1s,
         "val_loss": val_losses, "val_acc": val_accs, "val_f1": val_f1s,
         "best_epoch": best_epoch, "train_time": train_time,
         "best_val_f1": best_val_f1
@@ -297,7 +357,7 @@ def train(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optimizer, 
 def final_evaluation(model: nn.Module, data: HeteroData, model_path: str, target_node_type: str) -> dict:
     print("\n--- Final Heterogeneous Evaluation on Test Set ---")
     try:
-        model.load_state_dict(torch.load(model_path, map_location=data[target_node_type].x.device))
+        model.load_state_dict(torch.load(model_path, map_location=data[target_node_type].x.device, weights_only=False))
         print(f"Loaded best model weights from {model_path}")
     except FileNotFoundError:
         print(f"Warning: Best model file not found at {model_path}. Evaluating with current model state (if any).")
@@ -352,6 +412,7 @@ def save_results(history: dict, final_metrics: dict, args: ArgumentParser, outpu
         "training_history": {
             "final_train_loss": history["train_loss"][-1] if history["train_loss"] else None,
             "final_train_acc": history["train_acc"][-1] if history["train_acc"] else None,
+            "final_train_f1": history["train_f1"][-1] if history["train_f1"] else None,
             "final_val_loss": history["val_loss"][-1] if history["val_loss"] else None,
             "final_val_acc": history["val_acc"][-1] if history["val_acc"] else None,
             "final_val_f1": history["val_f1"][-1] if history["val_f1"] else None,
@@ -405,15 +466,14 @@ def save_results(history: dict, final_metrics: dict, args: ArgumentParser, outpu
 def parse_arguments() -> ArgumentParser:
     parser = ArgumentParser(description="Train Heterogeneous Graph Neural Networks for Fake News Detection")
     parser.add_argument("--graph_path", type=str, required=True, help="Path to the preprocessed HeteroData graph (.pt file)")
-    parser.add_argument("--model", type=str, default=DEFAULT_MODEL, choices=["HGT", "HAN", "RGCN", "SAGE", "GATv2"], help="Heterogeneous GNN model type")
+    parser.add_argument("--model", type=str, default=DEFAULT_MODEL, choices=["HGT", "HAN", "HANv2", "RGCN", "SAGE", "GATv2"], help="Heterogeneous GNN model type")
     parser.add_argument("--loss_fn", type=str, default=DEFAULT_LOSS_FN, choices=["ce", "focal"], help="Loss function")
     parser.add_argument("--target_node_type", type=str, default=DEFAULT_TARGET_NODE_TYPE, help="Target node type for classification")
     parser.add_argument("--dropout_rate", type=float, default=DEFAULT_DROPOUT, help="Dropout rate")
     parser.add_argument("--hidden_channels", type=int, default=DEFAULT_HIDDEN_CHANNELS, help="Number of hidden units in GNN layers")
-    parser.add_argument("--hgt_han_heads", type=int, default=DEFAULT_HGT_HAN_HEADS, help="Number of attention heads for HGT/HAN/GATv2 models")
+    parser.add_argument("--heads", type=int, default=DEFAULT_HEADS, help="Number of attention heads for HGT/HAN/GATv2 models")
     parser.add_argument("--hgt_layers", type=int, default=DEFAULT_HGT_LAYERS, help="Number of layers for HGT model")
-    parser.add_argument("--sage_layers", type=int, default=2, help="Number of layers for SAGE model")
-    parser.add_argument("--gatv2_layers", type=int, default=2, help="Number of layers for GATv2 model")
+    parser.add_argument("--han_layers", type=int, default=DEFAULT_HAN_LAYERS, help="Number of layers for HANv2 model")
     parser.add_argument("--lr", type=float, default=DEFAULT_LR, help="Learning rate")
     parser.add_argument("--weight_decay", type=float, default=DEFAULT_WEIGHT_DECAY, help="Weight decay (L2 regularization)")
     parser.add_argument("--n_epochs", type=int, default=DEFAULT_EPOCHS, help="Maximum number of training epochs")
@@ -479,11 +539,13 @@ def main() -> None:
     
     model = get_model(args.model, data, args).to(device)
     optimizer = Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    criterion = nn.CrossEntropyLoss() if args.loss_fn == "ce" else FocalLoss()
+    criterion = nn.CrossEntropyLoss(label_smoothing=0.1) if args.loss_fn == "ce" else FocalLoss()
 
-    print("\n--- Model Architecture ---"); print(model); print("-------------------------")
+    print("\n--- Model Architecture ---")
+    print(model)
+    print("-------------------------")
 
-    training_history = train(model, data, optimizer, criterion, args, output_dir, model_name_fs)
+    training_history = train(model, data, optimizer, criterion, args, output_dir)
     
     model_path = os.path.join(output_dir, f"graph_best.pt")
     final_metrics = final_evaluation(model, data, model_path, args.target_node_type)
