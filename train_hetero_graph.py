@@ -128,113 +128,6 @@ class HANModel(nn.Module):
         return self.out_lin(target_node_features)
 
 
-class SAGEModel(nn.Module):
-    """GraphSAGE with residual and LayerNorm, for use with to_hetero."""
-    def __init__(self, in_channels, hidden_channels, out_channels, num_layers, dropout_rate):
-        super().__init__()
-        self.num_layers = num_layers
-        self.dropout_rate = dropout_rate
-        self.convs = nn.ModuleList()
-        self.norms = nn.ModuleList()
-        self.residuals = nn.ModuleList()
-        for i in range(num_layers):
-            in_c = in_channels if i == 0 else hidden_channels
-            self.convs.append(SAGEConv(in_c, hidden_channels))
-            self.norms.append(nn.LayerNorm(hidden_channels))
-        self.out_lin = Linear(hidden_channels, out_channels)
-
-    def forward(self, x, edge_index):
-        for i in range(self.num_layers):
-            h = self.convs[i](x, edge_index)
-            if i > 0:
-                h = h + x # residual
-            h = self.norms[i](h)
-            h = F.relu(h)
-            h = F.dropout(h, p=self.dropout_rate, training=self.training)
-            x = h
-        return self.out_lin(x)
-
-
-class GATv2Model(nn.Module):
-    """GATv2 with residual and LayerNorm, for use with to_hetero."""
-    def __init__(self, in_channels, hidden_channels, out_channels, num_layers, heads, dropout_rate):
-        super().__init__()
-        self.num_layers = num_layers
-        self.dropout_rate = dropout_rate
-        self.convs = nn.ModuleList()
-        self.norms = nn.ModuleList()
-        for i in range(num_layers):
-            in_c = in_channels if i == 0 else hidden_channels * heads
-            self.convs.append(GATv2Conv(in_c, hidden_channels, heads=heads, concat=True, dropout=dropout_rate, add_self_loops=False))
-            self.norms.append(nn.LayerNorm(hidden_channels * heads))
-        self.out_lin = Linear(hidden_channels * heads, out_channels)
-
-    def forward(self, x, edge_index):
-        for i in range(self.num_layers):
-            h = self.convs[i](x, edge_index)
-            if i > 0:
-                h = h + x # residual
-            h = self.norms[i](h)
-            h = F.relu(h)
-            h = F.dropout(h, p=self.dropout_rate, training=self.training)
-            x = h
-        return self.out_lin(x)
-
-
-class RGCNModel(nn.Module):
-    """Relational Graph Convolutional Network (RGCN) for Heterogeneous Graphs."""
-    def __init__(self, data: HeteroData, hidden_channels: int, out_channels: int, num_layers: int, dropout_rate: float, target_node_type: str):
-        super().__init__()
-        self.target_node_type = target_node_type
-        self.dropout_rate = dropout_rate
-        self.num_layers = num_layers
-
-        self.lins = nn.ModuleDict()
-        for node_type in data.node_types:
-            self.lins[node_type] = Linear(data[node_type].num_features, hidden_channels)
-
-        self.convs = nn.ModuleList()
-        for _ in range(num_layers):
-            self.convs.append(RGCNConv(hidden_channels, hidden_channels, num_relations=len(data.edge_types)))
-
-        self.out_lin = Linear(hidden_channels, out_channels)
-
-    def forward(self, x_dict, edge_index_dict):
-        # Flatten x_dict to a single tensor and build mapping
-        x_all = []
-        node_offsets = {}
-        offset = 0
-        for node_type, x in x_dict.items():
-            x_all.append(self.lins[node_type](x))
-            node_offsets[node_type] = (offset, offset + x.size(0))
-            offset += x.size(0)
-        x = torch.cat(x_all, dim=0)
-
-        # Build edge_index and edge_type for RGCNConv
-        edge_index_list = []
-        edge_type_list = []
-        for i, edge_type in enumerate(edge_index_dict):
-            src_type, rel, dst_type = edge_type
-            src_offset = node_offsets[src_type][0]
-            dst_offset = node_offsets[dst_type][0]
-            edge_idx = edge_index_dict[edge_type].clone()
-            edge_idx[0] += src_offset
-            edge_idx[1] += dst_offset
-            edge_index_list.append(edge_idx)
-            edge_type_list.append(torch.full((edge_idx.size(1),), i, dtype=torch.long, device=x.device))
-        edge_index = torch.cat(edge_index_list, dim=1)
-        edge_type = torch.cat(edge_type_list, dim=0)
-
-        for conv in self.convs:
-            x = conv(x, edge_index, edge_type)
-            x = F.relu(x)
-            x = F.dropout(x, p=self.dropout_rate, training=self.training)
-
-        # Get output for target node type
-        tgt_start, tgt_end = node_offsets[self.target_node_type]
-        out = self.out_lin(x[tgt_start:tgt_end])
-        return out
-
 # --- Utility Functions ---
 
 def load_hetero_graph(path: str, device: torch.device, target_node_type: str) -> HeteroData:
@@ -299,37 +192,6 @@ def get_model(model_name: str, data: HeteroData, args: ArgumentParser) -> nn.Mod
             target_node_type=args.target_node_type,
             dropout_rate=args.dropout_rate
         )
-    elif model_name == "RGCN":
-        print("Using RGCN (Relational GCN for hetero graphs)")
-        model = RGCNModel(
-            data=data,
-            hidden_channels=args.hidden_channels,
-            out_channels=num_classes,
-            num_layers=args.hgt_layers,  # 可另外加 rgcn_layers 參數
-            dropout_rate=args.dropout_rate,
-            target_node_type=args.target_node_type
-        )
-    elif model_name == "SAGE":
-        print("Using GraphSAGE (with residual + LayerNorm, to_hetero)")
-        base = SAGEModel(
-            in_channels=data[args.target_node_type].num_features,
-            hidden_channels=args.hidden_channels,
-            out_channels=num_classes,
-            num_layers=args.sage_layers,
-            dropout_rate=args.dropout_rate
-        )
-        model = to_hetero(base, data.metadata(), aggr="mean")
-    elif model_name == "GATv2":
-        print("Using GATv2 (with residual + LayerNorm, to_hetero)")
-        base = GATv2Model(
-            in_channels=data[args.target_node_type].num_features,
-            hidden_channels=args.hidden_channels,
-            out_channels=num_classes,
-            num_layers=args.gatv2_layers,
-            heads=args.hgt_han_heads,
-            dropout_rate=args.dropout_rate
-        )
-        model = to_hetero(base, data.metadata(), aggr="mean")
     else:
         raise ValueError(f"Unknown model type: {model_name}")
     return model
@@ -384,11 +246,12 @@ def train(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optimizer, 
     patience_counter = 0
     best_epoch = -1
 
-    model_save_path = os.path.join(output_dir, f"{model_name_fs}_best.pt")
+    model_save_path = os.path.join(output_dir, f"graph_best.pt")
 
     for epoch in range(args.n_epochs):
         train_loss, train_acc = train_epoch(model, data, optimizer, criterion, args.target_node_type)
         val_loss, val_acc, val_f1 = evaluate(model, data, 'train_labeled_mask', criterion, args.target_node_type)
+        # val_loss, val_acc, val_f1 = evaluate(model, data, 'test_mask', criterion, args.target_node_type)
  
         train_losses.append(train_loss)
         train_accs.append(train_acc)
@@ -499,7 +362,7 @@ def save_results(history: dict, final_metrics: dict, args: ArgumentParser, outpu
         },
         "final_test_metrics_on_target_node": final_metrics
     }
-    results_path = os.path.join(output_dir, f"metrics_{model_name_fs}.json") # Include model_name_fs in metrics filename
+    results_path = os.path.join(output_dir, f"metrics.json") # Include model_name_fs in metrics filename
     try:
         with open(results_path, "w") as f:
             json.dump(results_data, f, indent=4)
@@ -507,7 +370,7 @@ def save_results(history: dict, final_metrics: dict, args: ArgumentParser, outpu
     except Exception as e:
         print(f"Error saving results JSON: {e}")
 
-    plot_path = os.path.join(output_dir, f"training_curves_{model_name_fs}.png") # Include model_name_fs
+    plot_path = os.path.join(output_dir, f"training_curves.png") # Include model_name_fs
     try:
         epochs_ran = range(1, len(history['train_loss']) + 1)
         if not epochs_ran: # Handle case where training did not run
@@ -515,7 +378,7 @@ def save_results(history: dict, final_metrics: dict, args: ArgumentParser, outpu
             return
 
         fig, axes = plt.subplots(1, 3, figsize=(20, 6))
-        fig.suptitle(f"Training Curves - {model_name_fs} (Target: {args.target_node_type})")
+        fig.suptitle(f"Training Curves - {model_name_fs}")
 
         axes[0].plot(epochs_ran, history['train_acc'], label='Train Accuracy', marker='.')
         axes[0].plot(epochs_ran, history['val_acc'], label='Validation Accuracy', marker='.')
@@ -622,7 +485,7 @@ def main() -> None:
 
     training_history = train(model, data, optimizer, criterion, args, output_dir, model_name_fs)
     
-    model_path = os.path.join(output_dir, f"{model_name_fs}_best.pt")
+    model_path = os.path.join(output_dir, f"graph_best.pt")
     final_metrics = final_evaluation(model, data, model_path, args.target_node_type)
     
     save_results(training_history, final_metrics, args, output_dir, model_name_fs)
