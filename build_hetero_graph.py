@@ -519,6 +519,7 @@ class HeteroGraphBuilder:
         if self.multi_view > 1:
             emb = data['news'].x
             dim = emb.shape[1]
+            print(f"    - Multi-view embedding dim: {dim}")
             assert dim % self.multi_view == 0, f"Embedding dim {dim} not divisible by multi_view {self.multi_view}"
             sub_dim = dim // self.multi_view
             
@@ -530,25 +531,41 @@ class HeteroGraphBuilder:
                 sub_emb = emb[:, v*sub_dim:(v+1)*sub_dim].cpu().numpy()
                 
                 if self.edge_policy == "knn_test_isolated":
-                    # Split embeddings into train and test
-                    train_emb = sub_emb[train_mask]
-                    test_emb = sub_emb[test_mask]
+                    # Get global indices
+                    train_global_idx = np.where(train_mask)[0]
+                    test_global_idx = np.where(test_mask)[0]
                     
-                    # Build KNN edges for train nodes (can connect to any node)
-                    train_sim_idx, train_sim_attr, _, _ = self._build_knn_edges(train_emb, self.k_neighbors)
+                    # Split embeddings based on global indices
+                    train_emb = sub_emb[train_global_idx]
+                    test_emb = sub_emb[test_global_idx]
                     
-                    # Build KNN edges for test nodes (can only connect to train nodes)
-                    test_sim_idx, test_sim_attr, _, _ = self._build_knn_edges(test_emb, self.k_neighbors, target_embeddings=train_emb)
+                    # Initialize edges for this view
+                    edge_src, edge_dst = [], []
+                    attr_list = []
                     
-                    # Adjust indices for test edges to account for train nodes
-                    test_sim_idx[1] += np.sum(train_mask)
+                    # 1. Build edges between train nodes
+                    if len(train_emb) > 0:
+                        train_sim_idx_local, train_sim_attr, _, _ = self._build_knn_edges(train_emb, self.k_neighbors)
+                        if train_sim_idx_local.shape[1] > 0:
+                            # Map local indices back to global indices
+                            edge_src.extend(train_global_idx[train_sim_idx_local[0]])
+                            edge_dst.extend(train_global_idx[train_sim_idx_local[1]])
+                            if train_sim_attr is not None:
+                                attr_list.extend(train_sim_attr.squeeze().tolist())
+
+                    # 2. Build edges from test nodes to train nodes
+                    if len(test_emb) > 0 and len(train_emb) > 0:
+                        test_sim_idx_local, test_sim_attr, _, _ = self._build_knn_edges(test_emb, self.k_neighbors, target_embeddings=train_emb)
+                        if test_sim_idx_local.shape[1] > 0:
+                            # Map local indices back to global indices
+                            edge_src.extend(test_global_idx[test_sim_idx_local[0]]) # source is test set
+                            edge_dst.extend(train_global_idx[test_sim_idx_local[1]]) # destination is train set
+                            if test_sim_attr is not None:
+                                attr_list.extend(test_sim_attr.squeeze().tolist())
                     
-                    # Combine edges
-                    sim_idx = torch.cat([train_sim_idx, test_sim_idx], dim=1)
-                    if train_sim_attr is not None and test_sim_attr is not None:
-                        sim_attr = torch.cat([train_sim_attr, test_sim_attr], dim=0)
-                    else:
-                        sim_attr = None
+                    # Create final edge indices for this view
+                    sim_idx = torch.tensor([edge_src, edge_dst], dtype=torch.long)
+                    sim_attr = torch.tensor(attr_list, dtype=torch.float).unsqueeze(1) if attr_list else None
                 else:
                     # Original behavior for other edge policies
                     sim_idx, sim_attr, _, _ = self._build_knn_edges(sub_emb, self.k_neighbors)
