@@ -72,6 +72,7 @@ class HeteroGraphBuilder:
         dataset_cache_dir: str = DEFAULT_DATASET_CACHE_DIR,
         seed: int = DEFAULT_SEED,
         output_dir: str = DEFAULT_GRAPH_DIR,
+        no_interactions: bool = False,
     ):
         """Initialize the HeteroGraphBuilder."""
         self.dataset_name = dataset_name.lower()
@@ -81,6 +82,7 @@ class HeteroGraphBuilder:
         self.interaction_embedding_field = interaction_embedding_field
         self.interaction_tone_field = interaction_tone_field
         self.interaction_edge_mode = interaction_edge_mode
+        self.no_interactions = no_interactions
         self.edge_policy = edge_policy
         self.k_neighbors = k_neighbors
         ## Sampling
@@ -324,18 +326,19 @@ class HeteroGraphBuilder:
         print(f"    - 'news' masks created: Train Labeled={train_labeled_mask.sum()}, Train Unlabeled={train_unlabeled_mask.sum()}, Test={test_mask.sum()}")
 
         # --- Prepare 'interaction' Node Features ---
-        print(f"  ===== Building interaction nodes for news nodes ('news' - 'has_interaction' - 'interaction') =====")
-        num_interactions_per_news = 20
-        num_interaction_nodes = num_nodes * num_interactions_per_news
-        print(f"  Preparing 'interaction' nodes for {num_nodes} news nodes...")
-        print(f"  Each news node has {num_interactions_per_news} 'interaction' nodes")
-        print(f"  Total 'interaction' nodes: {num_interaction_nodes}")
-        if self.interaction_edge_mode == "edge_attr":
-            self._add_interaction_edges_with_attr(data, train_labeled_indices, train_unlabeled_indices, test_indices, num_nodes, num_interactions_per_news, num_interaction_nodes)
-        elif self.interaction_edge_mode == "edge_type":
-            self._add_interaction_edges_by_type(data, train_labeled_indices, train_unlabeled_indices, test_indices, num_nodes, num_interactions_per_news, num_interaction_nodes)
-        else:
-            raise ValueError(f"Unknown interaction_edge_mode: {self.interaction_edge_mode}")
+        if not self.no_interactions:
+            print(f"  ===== Building interaction nodes for news nodes ('news' - 'has_interaction' - 'interaction') =====")
+            num_interactions_per_news = 20
+            num_interaction_nodes = num_nodes * num_interactions_per_news
+            print(f"  Preparing 'interaction' nodes for {num_nodes} news nodes...")
+            print(f"  Each news node has {num_interactions_per_news} 'interaction' nodes")
+            print(f"  Total 'interaction' nodes: {num_interaction_nodes}")
+            if self.interaction_edge_mode == "edge_attr":
+                self._add_interaction_edges_with_attr(data, train_labeled_indices, train_unlabeled_indices, test_indices, num_nodes, num_interactions_per_news, num_interaction_nodes)
+            elif self.interaction_edge_mode == "edge_type":
+                self._add_interaction_edges_by_type(data, train_labeled_indices, train_unlabeled_indices, test_indices, num_nodes, num_interactions_per_news, num_interaction_nodes)
+            else:
+                raise ValueError(f"Unknown interaction_edge_mode: {self.interaction_edge_mode}")
 
         # --- Create Edges for 'news' - 'news' nodes---
         print(f"  ===== Building edges between 'news' and 'news' ('news' - 'similar_to' - 'news') =====")
@@ -1100,6 +1103,8 @@ class HeteroGraphBuilder:
         # --- Generate graph name ---
         # Add sampling info to filename if sampling was used
         suffix = []
+        if self.no_interactions:
+            suffix.append("no_interactions")
         if self.ensure_test_labeled_neighbor:
             suffix.append("ensure_test_labeled_neighbor")
         if self.pseudo_label:
@@ -1246,6 +1251,7 @@ def parse_arguments():
     parser.add_argument("--multi_view", type=int, default=DEFAULT_MULTI_VIEW, help=f"Number of sub-embeddings (views) to split news embeddings into (default: {DEFAULT_MULTI_VIEW})")
 
     # Interaction Edge Args
+    parser.add_argument("--no_interactions", action="store_true", help="Build a graph without any 'interaction' nodes or edges.")
     parser.add_argument("--interaction_embedding_field", type=str, default="interaction_embeddings_list", help="Field for interaction embeddings")
     parser.add_argument("--interaction_tone_field", type=str, default="interaction_tones_list", help="Field for interaction tones")
     parser.add_argument("--interaction_edge_mode", type=str, default=DEFAULT_INTERACTION_EDGE_MODE, choices=["edge_attr", "edge_type"], help="How to encode interaction tone: as edge type (edge_type) or as edge_attr (edge_attr)")
@@ -1322,6 +1328,7 @@ def main() -> None:
         dataset_cache_dir=args.dataset_cache_dir,
         seed=args.seed,
         output_dir=args.output_dir,
+        no_interactions=args.no_interactions,
     )
 
     hetero_graph = builder.run_pipeline()
@@ -1330,15 +1337,15 @@ def main() -> None:
     print("\n" + "=" * 60)
     print(" Heterogeneous Graph Building Complete")
     print("=" * 60)
-    print(f"  Total Nodes:                             {hetero_graph['news'].num_nodes + hetero_graph['interaction'].num_nodes}")
+    print(f"  Total Nodes:                             {hetero_graph['news'].num_nodes + hetero_graph['interaction'].num_nodes if not args.no_interactions else hetero_graph['news'].num_nodes}")
     print(f"    - News Nodes:                          {hetero_graph['news'].num_nodes}")
-    print(f"    - Interact Nodes:                      {hetero_graph['interaction'].num_nodes}")
+    print(f"    - Interact Nodes:                      {hetero_graph['interaction'].num_nodes if not args.no_interactions else 0}")
     print(f"  Total News-News Edges:                   {hetero_graph['news', 'similar_to', 'news'].num_edges + hetero_graph['news', 'dissimilar_to', 'news'].num_edges}")
     print(f"    - News<-similar->News:                 {hetero_graph['news', 'similar_to', 'news'].num_edges}")
     print(f"    - News<-dissimilar->News:              {hetero_graph['news', 'dissimilar_to', 'news'].num_edges}")
-    print(f"  Total News-Interact Edges:               {hetero_graph['news', 'has_interaction', 'interaction'].num_edges + hetero_graph['interaction', 'rev_has_interaction', 'news'].num_edges}")
-    print(f"    - News<-has_interaction->Interact:     {hetero_graph['news', 'has_interaction', 'interaction'].num_edges}")
-    print(f"    - Interact<-rev_has_interaction->News: {hetero_graph['interaction', 'rev_has_interaction', 'news'].num_edges}")
+    print(f"  Total News-Interact Edges:               {hetero_graph['news', 'has_interaction', 'interaction'].num_edges + hetero_graph['interaction', 'rev_has_interaction', 'news'].num_edges if not args.no_interactions else 0}")
+    print(f"    - News<-has_interaction->Interact:     {hetero_graph['news', 'has_interaction', 'interaction'].num_edges if not args.no_interactions else 0}")
+    print(f"    - Interact<-rev_has_interaction->News: {hetero_graph['interaction', 'rev_has_interaction', 'news'].num_edges if not args.no_interactions else 0}")
     print("\nNext Steps:")
     print(f"  1. Review the saved graph '.pt' file, metrics '.json' file, and indices '.json' file.")
     print(f"  2. Train a GNN model, e.g.:")
