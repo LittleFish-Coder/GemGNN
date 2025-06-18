@@ -176,13 +176,63 @@ class HANv2Model(nn.Module):
         return self.out_lin(x_dict[self.target_node_type])
 
 
+class HeteroGATModel(nn.Module):
+    """Simple Heterogeneous GAT Model"""
+    def __init__(self, data: HeteroData, hidden_channels: int, out_channels: int,
+                 heads: int, target_node_type: str, dropout_rate: float):
+        super().__init__()
+        self.target_node_type = target_node_type
+        self.dropout_rate = dropout_rate
+
+        # Initial feature transformation for each node type
+        self.lins = nn.ModuleDict()
+        for node_type in data.node_types:
+            self.lins[node_type] = Linear(data[node_type].num_features, hidden_channels)
+
+        # GAT layers for each edge type
+        self.convs = nn.ModuleDict()
+        for edge_type in data.edge_types:
+            edge_key = f"{edge_type[0]}_{edge_type[1]}_{edge_type[2]}"
+            self.convs[edge_key] = GATv2Conv(
+                in_channels=(-1, -1),  # Let GATv2Conv infer input dimensions
+                out_channels=hidden_channels,
+                heads=heads,
+                dropout=dropout_rate
+            )
+
+        # Final output layer
+        self.out_lin = Linear(hidden_channels * heads, out_channels)
+
+    def forward(self, x_dict, edge_index_dict):
+        # Initial feature transformation
+        for node_type, x in x_dict.items():
+            x_dict[node_type] = self.lins[node_type](x)
+            x_dict[node_type] = F.elu(x_dict[node_type])
+            x_dict[node_type] = F.dropout(x_dict[node_type], p=self.dropout_rate, training=self.training)
+
+        # Process each edge type separately
+        for edge_type, edge_index in edge_index_dict.items():
+            src_type, rel_type, dst_type = edge_type
+            edge_key = f"{src_type}_{rel_type}_{dst_type}"
+            x_dict[dst_type] = self.convs[edge_key](
+                (x_dict[src_type], x_dict[dst_type]),
+                edge_index
+            )
+            x_dict[dst_type] = F.elu(x_dict[dst_type])
+            x_dict[dst_type] = F.dropout(x_dict[dst_type], p=self.dropout_rate, training=self.training)
+
+        # Get features for target node type
+        x = x_dict[self.target_node_type]
+        return self.out_lin(x)
+
+
 # --- Utility Functions ---
 
 def load_hetero_graph(path: str, device: torch.device, target_node_type: str) -> HeteroData:
     """Load HeteroData graph and move it to the specified device."""
     try:
         data = torch.load(path, map_location=torch.device('cpu'), weights_only=False) # Load to CPU first
-        print(f"HeteroData loaded from {path}")
+        # print(f"HeteroData loaded from {path}")
     except Exception as e:
         print(f"Error loading HeteroData: {e}")
         raise ValueError(f"Could not load HeteroData from {path}") from e
@@ -202,7 +252,7 @@ def load_hetero_graph(path: str, device: torch.device, target_node_type: str) ->
 
     # Move graph data to the target device
     data = data.to(device)
-    print(f"HeteroData moved to {device}")
+    # print(f"HeteroData moved to {device}")
 
     # Ensure masks are boolean type for the target node
     data[target_node_type].train_labeled_mask = data[target_node_type].train_labeled_mask.bool()
@@ -219,7 +269,18 @@ def get_model(model_name: str, data: HeteroData, args: ArgumentParser) -> nn.Mod
     """Initialize the Heterogeneous GNN model."""
     num_classes = data[args.target_node_type].y.max().item() + 1
     print(f"Number of classes for target node '{args.target_node_type}': {num_classes}")
-    if model_name == "HGT":
+    
+    if model_name == "HeteroGAT":
+        print("Using HeteroGAT (simple heterogeneous GAT)")
+        model = HeteroGATModel(
+            data=data,
+            hidden_channels=args.hidden_channels,
+            out_channels=num_classes,
+            heads=args.heads,
+            target_node_type=args.target_node_type,
+            dropout_rate=args.dropout_rate
+        )
+    elif model_name == "HGT":
         print("Using HGT (with residual + LayerNorm)")
         model = HGTModel(
             data=data,
@@ -278,19 +339,20 @@ def train_epoch(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optim
 def evaluate(model: nn.Module, data: HeteroData, eval_mask_name: str, criterion: nn.Module, target_node_type: str) -> tuple[float, float, float]:
     """Evaluate the model on a given data mask for HeteroData."""
     model.eval()
-    out = model(data.x_dict, data.edge_index_dict)
-    mask = data[target_node_type][eval_mask_name]
-    if isinstance(out, dict):
-        out_target = out[target_node_type]
-    else:
-        out_target = out
-    loss = criterion(out_target[mask], data[target_node_type].y[mask])
-    pred = out_target[mask].argmax(dim=1)
-    correct = (pred == data[target_node_type].y[mask]).sum().item()
-    acc = correct / mask.sum().item() if mask.sum().item() > 0 else 0
-    y_true = data[target_node_type].y[mask].cpu().numpy()
-    y_pred = pred.cpu().numpy()
-    f1 = f1_score(y_true, y_pred, average='macro', zero_division=0)
+    with torch.no_grad():
+        out = model(data.x_dict, data.edge_index_dict)
+        mask = data[target_node_type][eval_mask_name]
+        if isinstance(out, dict):
+            out_target = out[target_node_type]
+        else:
+            out_target = out
+        loss = criterion(out_target[mask], data[target_node_type].y[mask])
+        pred = out_target[mask].argmax(dim=1)
+        correct = (pred == data[target_node_type].y[mask]).sum().item()
+        acc = correct / mask.sum().item() if mask.sum().item() > 0 else 0
+        y_true = data[target_node_type].y[mask].cpu().numpy()
+        y_pred = pred.cpu().numpy()
+        f1 = f1_score(y_true, y_pred, average='macro', zero_division=0)
     return loss.item(), acc, f1
 
 def train(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optimizer, criterion: nn.Module, args: ArgumentParser, output_dir: str, model_name_fs: str=None) -> dict:
@@ -311,7 +373,7 @@ def train(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optimizer, 
     for epoch in range(args.n_epochs):
         train_loss, train_acc, train_f1 = train_epoch(model, data, optimizer, criterion, args.target_node_type)
         val_loss, val_acc, val_f1 = evaluate(model, data, 'train_labeled_mask', criterion, args.target_node_type)
-        # val_loss, val_acc, val_f1 = evaluate(model, data, 'test_mask', criterion, args.target_node_type)
+        test_loss, test_acc, test_f1 = evaluate(model, data, 'test_mask', criterion, args.target_node_type)
  
         train_losses.append(train_loss)
         train_accs.append(train_acc)
@@ -324,6 +386,8 @@ def train(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optimizer, 
               f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f} | "
               f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}, Val F1: {val_f1:.4f}")
         
+        print(f"Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.4f}, Test F1: {test_f1:.4f}")
+
 
         if val_loss + EPSILON < best_val_loss:
             best_val_f1 = val_f1
@@ -335,7 +399,14 @@ def train(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optimizer, 
         else:
             patience_counter += 1
 
-        if patience_counter >= args.patience or val_loss < 0.35:
+        if patience_counter >= args.patience or val_loss < 0.1:
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                best_val_f1 = val_f1
+                best_epoch = epoch + 1
+                torch.save(model.state_dict(), model_save_path)
+                print(f"  -> New best model saved (Loss: {best_val_loss:.4f}, F1: {best_val_f1:.4f}) Patience: {patience_counter}/{args.patience}")
+                patience_counter = 0
             print(f"\nEarly stopping triggered after {epoch + 1} epochs.")
             break
 
@@ -401,29 +472,29 @@ def final_evaluation(model: nn.Module, data: HeteroData, model_path: str, target
 def save_results(history: dict, final_metrics: dict, args: ArgumentParser, output_dir: str, model_name_fs: str) -> None:
     """Save training history, final metrics, and plots."""
     os.makedirs(output_dir, exist_ok=True)
-    
-    # Use the main output_dir for plots, not a subdirectory called PLOTS_DIR inside it
-    # plot_dir = os.path.join(output_dir, PLOTS_DIR) 
-    # os.makedirs(plot_dir, exist_ok=True) # Ensure PLOTS_DIR is created if used
+
+    # Helper function to safely get last value from list
+    def get_last_value(key):
+        return history.get(key, [])[-1] if history.get(key) else None
 
     results_data = {
         "args": vars(args),
-        "model_name": model_name_fs, # Full model name with scenario
+        "model_name": model_name_fs,
         "training_history": {
-            "final_train_loss": history["train_loss"][-1] if history["train_loss"] else None,
-            "final_train_acc": history["train_acc"][-1] if history["train_acc"] else None,
-            "final_train_f1": history["train_f1"][-1] if history["train_f1"] else None,
-            "final_val_loss": history["val_loss"][-1] if history["val_loss"] else None,
-            "final_val_acc": history["val_acc"][-1] if history["val_acc"] else None,
-            "final_val_f1": history["val_f1"][-1] if history["val_f1"] else None,
-            "best_val_f1": history["best_val_f1"],
-            "best_epoch": history["best_epoch"],
-            "total_epochs_run": len(history["train_loss"]),
-            "training_time_seconds": history["train_time"],
+            "final_train_loss": get_last_value("train_loss"),
+            "final_train_acc": get_last_value("train_acc"),
+            "final_train_f1": get_last_value("train_f1"),
+            "final_val_loss": get_last_value("val_loss"),
+            "final_val_acc": get_last_value("val_acc"),
+            "final_val_f1": get_last_value("val_f1"),
+            "best_val_f1": history.get("best_val_f1"),
+            "best_epoch": history.get("best_epoch"),
+            "total_epochs_run": len(history.get("train_loss", [])),
+            "training_time_seconds": history.get("train_time"),
         },
         "final_test_metrics_on_target_node": final_metrics
     }
-    results_path = os.path.join(output_dir, f"metrics.json") # Include model_name_fs in metrics filename
+    results_path = os.path.join(output_dir, f"metrics.json")
     try:
         with open(results_path, "w") as f:
             json.dump(results_data, f, indent=4)
@@ -431,29 +502,33 @@ def save_results(history: dict, final_metrics: dict, args: ArgumentParser, outpu
     except Exception as e:
         print(f"Error saving results JSON: {e}")
 
-    plot_path = os.path.join(output_dir, f"training_curves.png") # Include model_name_fs
+    plot_path = os.path.join(output_dir, f"training_curves.png")
     try:
-        epochs_ran = range(1, len(history['train_loss']) + 1)
-        if not epochs_ran: # Handle case where training did not run
+        epochs_ran = range(1, len(history.get('train_loss', [])) + 1)
+        if not epochs_ran:
             print("No training history to plot.")
             return
 
         fig, axes = plt.subplots(1, 3, figsize=(20, 6))
         fig.suptitle(f"Training Curves - {model_name_fs}")
 
-        axes[0].plot(epochs_ran, history['train_acc'], label='Train Accuracy', marker='.')
-        axes[0].plot(epochs_ran, history['val_acc'], label='Validation Accuracy', marker='.')
-        axes[0].set_xlabel('Epoch'); axes[0].set_ylabel('Accuracy'); axes[0].set_title('Accuracy')
-        axes[0].legend(); axes[0].grid(True)
+        # Plot only available metrics
+        if 'train_acc' in history and 'val_acc' in history:
+            axes[0].plot(epochs_ran, history['train_acc'], label='Train Accuracy', marker='.')
+            axes[0].plot(epochs_ran, history['val_acc'], label='Validation Accuracy', marker='.')
+            axes[0].set_xlabel('Epoch'); axes[0].set_ylabel('Accuracy'); axes[0].set_title('Accuracy')
+            axes[0].legend(); axes[0].grid(True)
 
-        axes[1].plot(epochs_ran, history['train_loss'], label='Train Loss', marker='.')
-        axes[1].plot(epochs_ran, history['val_loss'], label='Validation Loss', marker='.')
-        axes[1].set_xlabel('Epoch'); axes[1].set_ylabel('Loss'); axes[1].set_title('Loss')
-        axes[1].legend(); axes[1].grid(True)
+        if 'train_loss' in history and 'val_loss' in history:
+            axes[1].plot(epochs_ran, history['train_loss'], label='Train Loss', marker='.')
+            axes[1].plot(epochs_ran, history['val_loss'], label='Validation Loss', marker='.')
+            axes[1].set_xlabel('Epoch'); axes[1].set_ylabel('Loss'); axes[1].set_title('Loss')
+            axes[1].legend(); axes[1].grid(True)
 
-        axes[2].plot(epochs_ran, history['val_f1'], label='Validation F1 Score', marker='.', color='green')
-        axes[2].set_xlabel('Epoch'); axes[2].set_ylabel('F1 Score'); axes[2].set_title('Validation F1')
-        axes[2].legend(); axes[2].grid(True)
+        if 'val_f1' in history:
+            axes[2].plot(epochs_ran, history['val_f1'], label='Validation F1 Score', marker='.', color='green')
+            axes[2].set_xlabel('Epoch'); axes[2].set_ylabel('F1 Score'); axes[2].set_title('Validation F1')
+            axes[2].legend(); axes[2].grid(True)
 
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         plt.savefig(plot_path)
@@ -466,7 +541,7 @@ def save_results(history: dict, final_metrics: dict, args: ArgumentParser, outpu
 def parse_arguments() -> ArgumentParser:
     parser = ArgumentParser(description="Train Heterogeneous Graph Neural Networks for Fake News Detection")
     parser.add_argument("--graph_path", type=str, required=True, help="Path to the preprocessed HeteroData graph (.pt file)")
-    parser.add_argument("--model", type=str, default=DEFAULT_MODEL, choices=["HGT", "HAN", "HANv2", "RGCN", "SAGE", "GATv2"], help="Heterogeneous GNN model type")
+    parser.add_argument("--model", type=str, default=DEFAULT_MODEL, choices=["HGT", "HAN", "HANv2", "RGCN", "HeteroGAT"], help="Heterogeneous GNN model type")
     parser.add_argument("--loss_fn", type=str, default=DEFAULT_LOSS_FN, choices=["ce", "focal"], help="Loss function")
     parser.add_argument("--target_node_type", type=str, default=DEFAULT_TARGET_NODE_TYPE, help="Target node type for classification")
     parser.add_argument("--dropout_rate", type=float, default=DEFAULT_DROPOUT, help="Dropout rate")
