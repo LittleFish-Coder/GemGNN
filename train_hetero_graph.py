@@ -555,6 +555,7 @@ def parse_arguments() -> ArgumentParser:
     parser.add_argument("--patience", type=int, default=DEFAULT_PATIENCE, help="Patience for early stopping")
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="Random seed for reproducibility")
     parser.add_argument("--output_dir_base", type=str, default=RESULTS_DIR, help="Base directory to save results and plots")
+    parser.add_argument("--compare_methods", action="store_true", help="Compare few-shot cross-validation with original training")
     return parser.parse_args()
 
 def main() -> None:
