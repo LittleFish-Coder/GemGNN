@@ -1,7 +1,6 @@
 # data folder
 dataset*/
 checkpoints/
-log/
 *indices.json
 script/
 cache_dataset
@@ -26,6 +25,8 @@ vocab.txt
 __pycache__/
 
 # logs
+logs/
+*.pid
 *.out
 *.log
 
