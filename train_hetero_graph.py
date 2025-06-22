@@ -21,7 +21,7 @@ DEFAULT_EPOCHS = 300
 DEFAULT_LR = 5e-4
 DEFAULT_WEIGHT_DECAY = 1e-3
 DEFAULT_HIDDEN_CHANNELS = 64
-DEFAULT_DROPOUT = 0.0
+DEFAULT_DROPOUT = 0.3
 DEFAULT_HEADS = 4 # Number of attention heads for HGT/HAN
 DEFAULT_HGT_LAYERS = 1
 DEFAULT_HAN_LAYERS = 1  # Number of layers for HAN
@@ -33,6 +33,7 @@ PLOTS_DIR = "plots_hetero"
 
 # Constants for early stopping
 EPSILON = 1e-3  # Minimum difference to consider as improvement
+OVERFIT_THRESHOLD = 0.3  # Stop training if validation loss drops below this
 
 def set_seed(seed: int = DEFAULT_SEED) -> None:
     """Set seed for reproducibility across all random processes."""
@@ -389,6 +390,7 @@ def train(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optimizer, 
         print(f"Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.4f}, Test F1: {test_f1:.4f}")
 
 
+        # Model selection based on validation loss (more stable for few-shot)
         if val_loss + EPSILON < best_val_loss:
             best_val_f1 = val_f1
             best_val_loss = val_loss
@@ -399,15 +401,12 @@ def train(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optimizer, 
         else:
             patience_counter += 1
 
-        if patience_counter >= args.patience or val_loss < 0.1:
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
-                best_val_f1 = val_f1
-                best_epoch = epoch + 1
-                torch.save(model.state_dict(), model_save_path)
-                print(f"  -> New best model saved (Loss: {best_val_loss:.4f}, F1: {best_val_f1:.4f}) Patience: {patience_counter}/{args.patience}")
-                patience_counter = 0
-            print(f"\nEarly stopping triggered after {epoch + 1} epochs.")
+        # Early stopping: patience exceeded OR overfitting detected
+        if patience_counter >= args.patience:
+            print(f"\nEarly stopping triggered: patience ({args.patience}) exceeded after {epoch + 1} epochs.")
+            break
+        elif val_loss < OVERFIT_THRESHOLD:
+            print(f"\nEarly stopping triggered: potential overfitting detected (val_loss={val_loss:.4f} < {OVERFIT_THRESHOLD}) after {epoch + 1} epochs.")
             break
 
     train_time = time.time() - start_time
@@ -556,6 +555,11 @@ def parse_arguments() -> ArgumentParser:
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="Random seed for reproducibility")
     parser.add_argument("--output_dir_base", type=str, default=RESULTS_DIR, help="Base directory to save results and plots")
     parser.add_argument("--compare_methods", action="store_true", help="Compare few-shot cross-validation with original training")
+    parser.add_argument("--comprehensive_evaluation", action="store_true", help="Comprehensive evaluation of the model")
+    parser.add_argument("--bootstrap_only", action="store_true", help="Only perform bootstrap validation")
+    parser.add_argument("--bootstrap_n_bootstraps", type=int, default=15, help="Number of bootstraps for bootstrap validation")
+    parser.add_argument("--analyze_confidence", action="store_true", help="Analyze confidence of the model")
+
     return parser.parse_args()
 
 def main() -> None:
@@ -615,7 +619,13 @@ def main() -> None:
     
     model = get_model(args.model, data, args).to(device)
     optimizer = Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    criterion = nn.CrossEntropyLoss(label_smoothing=0.1) if args.loss_fn == "ce" else FocalLoss()
+    # Enhanced loss function with label smoothing for few-shot learning
+    if args.loss_fn == "ce":
+        criterion = nn.CrossEntropyLoss(label_smoothing=0.1)  # Prevents overconfident predictions
+        print(f"Using CrossEntropyLoss with label_smoothing=0.1 for few-shot robustness")
+    else:
+        criterion = FocalLoss()
+        print(f"Using FocalLoss for imbalanced data handling")
 
     print("\n--- Model Architecture ---")
     print(model)
