@@ -58,6 +58,188 @@ class FocalLoss(nn.Module):
         loss = self.alpha * (1 - pt) ** self.gamma * ce_loss
         return loss.mean()
 
+
+class KLDistillationLoss(nn.Module):
+    """Knowledge Distillation Loss using KL Divergence"""
+    def __init__(self, temperature: float = 3.0, alpha: float = 0.5):
+        super().__init__()
+        self.temperature = temperature
+        self.alpha = alpha
+    
+    def forward(self, student_logits, teacher_logits, targets):
+        # KL divergence between student and teacher
+        student_probs = F.log_softmax(student_logits / self.temperature, dim=1)
+        teacher_probs = F.softmax(teacher_logits / self.temperature, dim=1)
+        kl_loss = F.kl_div(student_probs, teacher_probs, reduction='batchmean') * (self.temperature ** 2)
+        
+        # Standard cross-entropy
+        ce_loss = F.cross_entropy(student_logits, targets)
+        
+        return self.alpha * kl_loss + (1 - self.alpha) * ce_loss
+
+
+class ContrastiveLoss(nn.Module):
+    """Improved Contrastive Loss for few-shot graph representation learning"""
+    def __init__(self, temperature: float = 0.07, margin: float = 0.5, max_samples: int = 64):
+        super().__init__()
+        self.temperature = temperature
+        self.margin = margin
+        self.max_samples = max_samples  # Limit samples for numerical stability
+    
+    def forward(self, embeddings, labels):
+        batch_size = embeddings.size(0)
+        
+        # Return zero loss for trivial cases
+        if batch_size < 2:
+            return torch.tensor(0.0, device=embeddings.device, requires_grad=True)
+        
+        # Sample subset if batch is too large (for numerical stability)
+        if batch_size > self.max_samples:
+            indices = torch.randperm(batch_size, device=embeddings.device)[:self.max_samples]
+            embeddings = embeddings[indices]
+            labels = labels[indices]
+            batch_size = self.max_samples
+        
+        # Normalize embeddings to unit sphere
+        embeddings_norm = F.normalize(embeddings, p=2, dim=1)
+        
+        # Compute cosine similarity matrix
+        similarity_matrix = torch.mm(embeddings_norm, embeddings_norm.t())
+        
+        # Create masks for positive and negative pairs
+        labels_eq = labels.unsqueeze(0) == labels.unsqueeze(1)
+        positives_mask = labels_eq.float()
+        negatives_mask = (~labels_eq).float()
+        
+        # Remove self-similarity (diagonal)
+        eye_mask = torch.eye(batch_size, device=embeddings.device, dtype=torch.bool)
+        positives_mask[eye_mask] = 0
+        negatives_mask[eye_mask] = 0
+        
+        # Check if we have any positive pairs
+        if positives_mask.sum() == 0:
+            return torch.tensor(0.0, device=embeddings.device, requires_grad=True)
+        
+        # Scale similarities by temperature
+        similarity_matrix = similarity_matrix / self.temperature
+        
+        # For numerical stability, subtract max before exp
+        similarity_matrix = similarity_matrix - similarity_matrix.max(dim=1, keepdim=True)[0].detach()
+        
+        # Compute InfoNCE loss
+        exp_sim = torch.exp(similarity_matrix)
+        
+        # Sum of positive similarities for each anchor
+        pos_exp_sim = (exp_sim * positives_mask).sum(dim=1)
+        
+        # Sum of all non-self similarities for each anchor  
+        all_exp_sim = (exp_sim * (positives_mask + negatives_mask)).sum(dim=1)
+        
+        # Avoid log(0) by adding small epsilon
+        epsilon = 1e-8
+        pos_exp_sim = torch.clamp(pos_exp_sim, min=epsilon)
+        all_exp_sim = torch.clamp(all_exp_sim, min=epsilon)
+        
+        # InfoNCE loss: -log(sum(pos_sim) / sum(all_sim))
+        loss = -torch.log(pos_exp_sim / all_exp_sim)
+        
+        # Only use anchors that have positive pairs
+        has_positives = (positives_mask.sum(dim=1) > 0).float()
+        loss = loss * has_positives
+        
+        # Return mean loss over valid anchors
+        num_valid = has_positives.sum()
+        if num_valid > 0:
+            return loss.sum() / num_valid
+        else:
+            return torch.tensor(0.0, device=embeddings.device, requires_grad=True)
+
+
+class RobustFewShotLoss(nn.Module):
+    """Robust loss function specifically designed for few-shot learning scenarios"""
+    def __init__(self, temperature: float = 0.1, label_smoothing: float = 0.05):
+        super().__init__()
+        self.temperature = temperature
+        self.label_smoothing = label_smoothing
+        self.ce_loss = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
+        
+    def forward(self, logits, targets, embeddings=None):
+        # Primary cross-entropy loss with label smoothing
+        ce_loss = self.ce_loss(logits, targets)
+        
+        # Confidence penalty to prevent overconfident predictions in few-shot
+        softmax_probs = F.softmax(logits, dim=1)
+        max_probs = torch.max(softmax_probs, dim=1)[0]
+        confidence_penalty = torch.mean(max_probs)  # Penalize high confidence
+        
+        # Entropy regularization to encourage diverse predictions
+        entropy = -torch.sum(softmax_probs * torch.log(softmax_probs + 1e-8), dim=1)
+        entropy_reg = -torch.mean(entropy)  # Negative because we want to maximize entropy
+        
+        # Combine losses with careful weighting for few-shot
+        total_loss = ce_loss + 0.1 * confidence_penalty + 0.05 * entropy_reg
+        
+        return total_loss
+
+
+class EnhancedLoss(nn.Module):
+    """Enhanced loss combining multiple loss functions for few-shot learning"""
+    def __init__(self, loss_type: str = "enhanced", focal_gamma: float = 1.5, label_smoothing: float = 0.1):
+        super().__init__()
+        self.loss_type = loss_type
+        
+        if loss_type == "ce":
+            self.primary_loss = nn.CrossEntropyLoss()
+        elif loss_type == "ce_smooth":
+            self.primary_loss = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
+        elif loss_type == "focal":
+            self.primary_loss = FocalLoss(gamma=focal_gamma)
+        elif loss_type == "robust":
+            self.primary_loss = RobustFewShotLoss(label_smoothing=label_smoothing)
+        elif loss_type == "enhanced":
+            # Better hyperparameters for few-shot learning
+            self.ce_loss = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
+            self.focal_loss = FocalLoss(alpha=0.75, gamma=focal_gamma)  # Less aggressive focal loss
+            self.contrastive_loss = ContrastiveLoss(temperature=0.07)  # Lower temperature for sharper similarities
+            
+            # Adaptive weights that change during training
+            self.register_buffer('training_step', torch.tensor(0))
+            
+            # Better loss weights for few-shot scenarios
+            self.ce_weight = 0.70      # Primary classification loss
+            self.focal_weight = 0.20   # Reduced focal weight
+            self.contrastive_weight = 0.10  # Contrastive for representation
+        else:
+            raise ValueError(f"Unknown loss type: {loss_type}")
+    
+    def forward(self, logits, targets, embeddings=None):
+        if self.loss_type == "enhanced":
+            # Increment training step for adaptive weighting
+            if self.training:
+                self.training_step += 1
+            
+            # Compute individual losses
+            ce_loss = self.ce_loss(logits, targets)
+            focal_loss = self.focal_loss(logits, targets)
+            
+            # Base loss combination
+            total_loss = self.ce_weight * ce_loss + self.focal_weight * focal_loss
+            
+            # Add contrastive loss if embeddings provided
+            if embeddings is not None and embeddings.size(0) > 1:
+                cont_loss = self.contrastive_loss(embeddings, targets)
+                
+                # Adaptive contrastive weight (reduce over time for stability)
+                adaptive_cont_weight = self.contrastive_weight
+                if self.training_step > 50:  # After warmup period
+                    adaptive_cont_weight *= 0.5
+                
+                total_loss += adaptive_cont_weight * cont_loss
+            
+            return total_loss
+        else:
+            return self.primary_loss(logits, targets)
+
 # --- Model Definitions ---
 class HGTModel(nn.Module):
     """Heterogeneous Graph Transformer (HGT) Model with Residual and LayerNorm"""
@@ -103,27 +285,46 @@ class HGTModel(nn.Module):
 
 
 class HANModel(nn.Module):
-    """Heterogeneous Attentional Network (HAN) Model"""
+    """Heterogeneous Attentional Network (HAN) Model with Configurable Layers"""
     def __init__(self, data: HeteroData, hidden_channels: int, out_channels: int,
-                 heads: int, target_node_type: str, dropout_rate: float):
+                 heads: int, target_node_type: str, dropout_rate: float, num_layers: int = 1):
         super().__init__()
         self.target_node_type = target_node_type
         self.dropout_rate = dropout_rate
+        self.num_layers = num_layers
 
-        # HANConv can infer in_channels if set to -1
-        self.conv1 = HANConv(in_channels=-1, out_channels=hidden_channels, metadata=data.metadata(), heads=heads, dropout=dropout_rate)
+        # Multiple HAN layers for 1-hop vs 2-hop research
+        self.convs = nn.ModuleList()
+        for i in range(num_layers):
+            if i == 0:
+                # First layer can infer input channels
+                conv = HANConv(in_channels=-1, out_channels=hidden_channels, 
+                             metadata=data.metadata(), heads=heads, dropout=dropout_rate)
+            else:
+                # Subsequent layers need explicit input channels
+                conv = HANConv(in_channels=hidden_channels, out_channels=hidden_channels, 
+                             metadata=data.metadata(), heads=heads, dropout=dropout_rate)
+            self.convs.append(conv)
         
         # Output linear layer for the target node type
         self.out_lin = Linear(hidden_channels, out_channels)
 
     def forward(self, x_dict, edge_index_dict):
-        x_dict = self.conv1(x_dict, edge_index_dict) # x_dict contains embeddings for all node types
+        # Apply multiple HAN layers
+        for i, conv in enumerate(self.convs):
+            x_dict = conv(x_dict, edge_index_dict)
+            
+            # Apply activation and dropout after each layer (except the last)
+            if i < len(self.convs) - 1:
+                for node_type in x_dict:
+                    x_dict[node_type] = F.elu(x_dict[node_type])
+                    x_dict[node_type] = F.dropout(x_dict[node_type], p=self.dropout_rate, training=self.training)
 
         # Get features for the target node type
         target_node_features = x_dict[self.target_node_type]
         
-        # Apply activation and dropout
-        target_node_features = F.elu(target_node_features) # Using ELU as an example activation
+        # Apply final activation and dropout
+        target_node_features = F.elu(target_node_features)
         target_node_features = F.dropout(target_node_features, p=self.dropout_rate, training=self.training)
         
         return self.out_lin(target_node_features)
@@ -293,14 +494,15 @@ def get_model(model_name: str, data: HeteroData, args: ArgumentParser) -> nn.Mod
             dropout_rate=args.dropout_rate
         )
     elif model_name == "HAN":
-        print("Using HAN (no residual, meta-path attention)")
+        print(f"Using HAN (meta-path attention, {args.han_layers} layers)")
         model = HANModel(
             data=data,
             hidden_channels=args.hidden_channels,
             out_channels=num_classes,
             heads=args.heads,
             target_node_type=args.target_node_type,
-            dropout_rate=args.dropout_rate
+            dropout_rate=args.dropout_rate,
+            num_layers=args.han_layers
         )
     elif model_name == "HANv2":
         print("Using HANv2 (enhanced HAN with multiple layers, residual connections, and normalization)")
@@ -327,7 +529,15 @@ def train_epoch(model: nn.Module, data: HeteroData, optimizer: torch.optim.Optim
         out_target = out[target_node_type]
     else:
         out_target = out
-    loss = criterion(out_target[mask], data[target_node_type].y[mask])
+    
+    # Handle enhanced loss with embeddings if available
+    if isinstance(criterion, EnhancedLoss) and criterion.loss_type == "enhanced":
+        # For contrastive loss, we need the embeddings (features before final classification)
+        embeddings = out_target[mask]  # Use the pre-classification features
+        loss = criterion(out_target[mask], data[target_node_type].y[mask], embeddings)
+    else:
+        loss = criterion(out_target[mask], data[target_node_type].y[mask])
+    
     loss.backward()
     optimizer.step()
     pred = out_target[mask].argmax(dim=1)
@@ -541,7 +751,7 @@ def parse_arguments() -> ArgumentParser:
     parser = ArgumentParser(description="Train Heterogeneous Graph Neural Networks for Fake News Detection")
     parser.add_argument("--graph_path", type=str, required=True, help="Path to the preprocessed HeteroData graph (.pt file)")
     parser.add_argument("--model", type=str, default=DEFAULT_MODEL, choices=["HGT", "HAN", "HANv2", "RGCN", "HeteroGAT"], help="Heterogeneous GNN model type")
-    parser.add_argument("--loss_fn", type=str, default=DEFAULT_LOSS_FN, choices=["ce", "focal"], help="Loss function")
+    parser.add_argument("--loss_fn", type=str, default=DEFAULT_LOSS_FN, choices=["ce", "focal", "enhanced", "ce_smooth", "robust"], help="Loss function")
     parser.add_argument("--target_node_type", type=str, default=DEFAULT_TARGET_NODE_TYPE, help="Target node type for classification")
     parser.add_argument("--dropout_rate", type=float, default=DEFAULT_DROPOUT, help="Dropout rate")
     parser.add_argument("--hidden_channels", type=int, default=DEFAULT_HIDDEN_CHANNELS, help="Number of hidden units in GNN layers")
@@ -623,9 +833,21 @@ def main() -> None:
     if args.loss_fn == "ce":
         criterion = nn.CrossEntropyLoss(label_smoothing=0.1)  # Prevents overconfident predictions
         print(f"Using CrossEntropyLoss with label_smoothing=0.1 for few-shot robustness")
-    else:
+    elif args.loss_fn == "focal":
         criterion = FocalLoss()
         print(f"Using FocalLoss for imbalanced data handling")
+    elif args.loss_fn == "enhanced":
+        criterion = EnhancedLoss(loss_type="enhanced", focal_gamma=1.5, label_smoothing=0.1)
+        print(f"Using Enhanced Loss (CE + Focal + Contrastive) with improved hyperparameters")
+    elif args.loss_fn == "ce_smooth":
+        criterion = EnhancedLoss(loss_type="ce_smooth", label_smoothing=0.1)
+        print(f"Using CrossEntropyLoss with enhanced label smoothing")
+    elif args.loss_fn == "robust":
+        criterion = EnhancedLoss(loss_type="robust", label_smoothing=0.05)
+        print(f"Using Robust Few-Shot Loss with confidence penalty and entropy regularization")
+    else:
+        criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
+        print(f"Unknown loss function '{args.loss_fn}', defaulting to CrossEntropyLoss with label smoothing")
 
     print("\n--- Model Architecture ---")
     print(model)

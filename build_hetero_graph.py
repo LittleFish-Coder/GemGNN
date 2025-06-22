@@ -352,63 +352,8 @@ class HeteroGraphBuilder:
                 data['news', 'similar_to', 'news'].edge_attr = sim_edge_attr
             print(f"    - Created {sim_edge_index.shape[1]} 'news <-> news' similar edges.")
         elif self.edge_policy == "knn_test_isolated":
-            # Get masks
-            train_labeled_mask = data['news'].train_labeled_mask.cpu().numpy()
-            train_unlabeled_mask = data['news'].train_unlabeled_mask.cpu().numpy()
-            test_mask = data['news'].test_mask.cpu().numpy()
-            
-            # Get local indices for each group
-            train_labeled_idx = np.where(train_labeled_mask)[0]
-            train_unlabeled_idx = np.where(train_unlabeled_mask)[0]
-            test_idx = np.where(test_mask)[0]
-            
-            # Initialize edge lists
-            edge_src = []
-            edge_dst = []
-            edge_attr = []
-            
-            # 1. Train labeled nodes can connect to any node
-            train_labeled_emb = news_embeddings[train_labeled_idx]
-            train_labeled_sim_idx, train_labeled_sim_attr, _, _ = self._build_knn_edges(train_labeled_emb, self.k_neighbors)
-            if train_labeled_sim_idx.shape[1] > 0:
-                # Map back to original indices
-                edge_src.extend(train_labeled_idx[train_labeled_sim_idx[0]])
-                edge_dst.extend(train_labeled_idx[train_labeled_sim_idx[1]])
-                if train_labeled_sim_attr is not None:
-                    edge_attr.extend(train_labeled_sim_attr.squeeze().tolist())
-            
-            # 2. Train unlabeled nodes can connect to any node
-            train_unlabeled_emb = news_embeddings[train_unlabeled_idx]
-            train_unlabeled_sim_idx, train_unlabeled_sim_attr, _, _ = self._build_knn_edges(train_unlabeled_emb, self.k_neighbors)
-            if train_unlabeled_sim_idx.shape[1] > 0:
-                # Map back to original indices
-                edge_src.extend(train_unlabeled_idx[train_unlabeled_sim_idx[0]])
-                edge_dst.extend(train_unlabeled_idx[train_unlabeled_sim_idx[1]])
-                if train_unlabeled_sim_attr is not None:
-                    edge_attr.extend(train_unlabeled_sim_attr.squeeze().tolist())
-            
-            # 3. Test nodes can only connect to train nodes
-            test_emb = news_embeddings[test_idx]
-            train_emb = news_embeddings[train_labeled_mask | train_unlabeled_mask]
-            test_sim_idx, test_sim_attr, _, _ = self._build_knn_edges(test_emb, self.k_neighbors, target_embeddings=train_emb, is_test=True)
-            if test_sim_idx.shape[1] > 0:
-                # Map back to original indices
-                edge_src.extend(test_idx[test_sim_idx[0]])
-                # Map target indices back to original indices
-                train_indices = np.concatenate([train_labeled_idx, train_unlabeled_idx])
-                edge_dst.extend(train_indices[test_sim_idx[1]])
-                if test_sim_attr is not None:
-                    edge_attr.extend(test_sim_attr.squeeze().tolist())
-            
-            # Create edge tensors
-            edge_index = torch.tensor([edge_src, edge_dst], dtype=torch.long)
-            edge_attr = torch.tensor(edge_attr, dtype=torch.float).unsqueeze(1) if edge_attr else None
-            
-            # Assign to graph
-            data['news', 'similar_to', 'news'].edge_index = edge_index
-            if edge_attr is not None:
-                data['news', 'similar_to', 'news'].edge_attr = edge_attr
-            print(f"    - Created {edge_index.shape[1]} 'news <-> news' similar edges (test nodes isolated).")
+            # Use test isolation with mutual KNN for high-quality connections
+            self._build_safe_test_isolated_edges(data, news_embeddings)
         elif self.edge_policy == "label_aware_knn":
             # Use the pre-sampled pseudo_selected_indices, labels, and confidences for label-aware KNN
             pseudo_indices = getattr(self, 'pseudo_selected_indices', np.array([]))
@@ -595,17 +540,35 @@ class HeteroGraphBuilder:
             emb = data['news'].x
             dim = emb.shape[1]
             sub_dim = dim // self.multi_view
+            
             for v in range(self.multi_view):
                 sub_emb = emb[:, v*sub_dim:(v+1)*sub_dim].cpu().numpy()
-                _, _, dis_idx, dis_attr = self._build_knn_edges(sub_emb, self.k_neighbors)
-                dis_idx = torch.cat([dis_idx, dis_idx[[1,0],:]], dim=1)
-                if dis_attr is not None:
-                    dis_attr = torch.cat([dis_attr, dis_attr], dim=0)
-                dis_type = ("news", f"dissimilar_to_sub{v+1}", "news")
-                data[dis_type].edge_index = dis_idx
-                if dis_attr is not None:
-                    data[dis_type].edge_attr = dis_attr
-                print(f"    - Created {dis_idx.shape[1]} 'news <-> news' dissimilar_sub{v+1} edges.")
+                
+                if self.edge_policy == "knn_test_isolated":
+                    # Build multi-view dissimilar edges respecting test isolation
+                    self._build_safe_multiview_dissimilar_edges(data, sub_emb, v+1)
+                else:
+                    # Use _build_mutual_knn_edges to get proper dissimilar edges
+                    _, _, dis_idx, dis_attr = self._build_mutual_knn_edges(sub_emb, self.k_neighbors)
+                    
+                    if dis_idx is not None and dis_idx.shape[1] > 0:
+                        # Make dissimilar edges undirected if not already
+                        reverse_edges = dis_idx[[1, 0], :]
+                        existing_edges = set(map(tuple, dis_idx.T.tolist()))
+                        reverse_edge_tuples = set(map(tuple, reverse_edges.T.tolist()))
+                        
+                        if not reverse_edge_tuples.issubset(existing_edges):
+                            dis_idx = torch.cat([dis_idx, reverse_edges], dim=1)
+                            if dis_attr is not None:
+                                dis_attr = torch.cat([dis_attr, dis_attr], dim=0)
+                        
+                        dis_type = ("news", f"dissimilar_to_sub{v+1}", "news")
+                        data[dis_type].edge_index = dis_idx
+                        if dis_attr is not None:
+                            data[dis_type].edge_attr = dis_attr
+                        print(f"    - Created {dis_idx.shape[1]} 'news <-> news' dissimilar_sub{v+1} edges.")
+                    else:
+                        print(f"    - Warning: No dissimilar edges created for sub-view {v+1}")
 
         # --- Final symmetrize and unique ---
         ## Get edge_index and edge_attr from 'news' - 'similar_to' - 'news' edge type
@@ -699,6 +662,79 @@ class HeteroGraphBuilder:
         print(f"    - Created {sim_edge_index.shape[1]} similar edges.")
         return sim_edge_index, sim_edge_attr, None, None
 
+    def _build_safe_test_isolated_edges(self, data: HeteroData, news_embeddings: np.ndarray) -> None:
+        """
+        Build edges with test isolation but ensuring no test nodes become isolated.
+        Strategy:
+        1. Train nodes: use mutual KNN (high quality)
+        2. Test nodes: use one-way KNN to train nodes (guaranteed connection)
+        3. No test-test connections (test isolated)
+        """
+        print(f"    Building safe test-isolated edges...")
+        
+        train_labeled_mask = data['news'].train_labeled_mask.cpu().numpy()
+        train_unlabeled_mask = data['news'].train_unlabeled_mask.cpu().numpy()
+        test_mask = data['news'].test_mask.cpu().numpy()
+        
+        # Get indices for each set
+        train_labeled_indices = np.where(train_labeled_mask)[0]
+        train_unlabeled_indices = np.where(train_unlabeled_mask)[0] 
+        test_indices = np.where(test_mask)[0]
+        train_all_indices = np.concatenate([train_labeled_indices, train_unlabeled_indices])
+        
+        all_sim_rows, all_sim_cols, all_sim_data = [], [], []
+        
+        # 1. Train-Train connections: Use mutual KNN (bidirectional, high quality)
+        if len(train_all_indices) > 1:
+            train_embeddings = news_embeddings[train_all_indices]
+            train_sim_idx, train_sim_attr, _, _ = self._build_mutual_knn_edges(train_embeddings, self.k_neighbors)
+            
+            if train_sim_idx is not None and train_sim_idx.shape[1] > 0:
+                # Map local indices back to global indices
+                global_sim_idx = train_all_indices[train_sim_idx.cpu().numpy()]
+                all_sim_rows.extend(global_sim_idx[0])
+                all_sim_cols.extend(global_sim_idx[1])
+                all_sim_data.extend([1.0] * len(global_sim_idx[0]))
+                print(f"      - Created {train_sim_idx.shape[1]} train-train mutual KNN edges")
+        
+        # 2. Test-Train connections: Use one-way KNN (guaranteed connections)
+        if len(test_indices) > 0 and len(train_all_indices) > 0:
+            test_embeddings = news_embeddings[test_indices]
+            train_embeddings = news_embeddings[train_all_indices]
+            
+            # Calculate test-to-train distances
+            from sklearn.metrics.pairwise import pairwise_distances
+            distances = pairwise_distances(test_embeddings, train_embeddings, metric="cosine", n_jobs=-1)
+            
+            # For each test node, connect to K nearest train nodes
+            k_actual = min(self.k_neighbors, len(train_all_indices))
+            for i, test_idx in enumerate(test_indices):
+                nearest_train_indices = np.argpartition(distances[i], k_actual)[:k_actual]
+                for j in nearest_train_indices:
+                    train_idx = train_all_indices[j]
+                    # Add bidirectional edges (test<->train)
+                    all_sim_rows.extend([test_idx, train_idx])
+                    all_sim_cols.extend([train_idx, test_idx])
+                    all_sim_data.extend([distances[i, j], distances[i, j]])
+            
+            print(f"      - Created {len(test_indices) * k_actual * 2} test-train bidirectional edges")
+        
+        # Create final edge tensors
+        if all_sim_rows:
+            sim_edge_index = torch.tensor(np.vstack((all_sim_rows, all_sim_cols)), dtype=torch.long)
+            sim_edge_attr = torch.tensor(all_sim_data, dtype=torch.float).unsqueeze(1)
+        else:
+            sim_edge_index = torch.zeros((2, 0), dtype=torch.long)
+            sim_edge_attr = None
+        
+        # Assign to graph
+        data['news', 'similar_to', 'news'].edge_index = sim_edge_index
+        if sim_edge_attr is not None:
+            data['news', 'similar_to', 'news'].edge_attr = sim_edge_attr
+        
+        print(f"    - Total similar edges created: {sim_edge_index.shape[1]}")
+        return
+
     def _build_mutual_knn_edges(self, embeddings: np.ndarray, k: int):
         """
         Build mutual KNN (similar) and mutual farthest (dissimilar) edges for the given embeddings.
@@ -774,27 +810,178 @@ class HeteroGraphBuilder:
     def _add_dissimilar_edges_universal(self, data: HeteroData, news_embeddings: np.ndarray) -> None:
         """
         Universal method to add dissimilar edges for any edge policy.
-        This method uses standard KNN dissimilar logic regardless of the primary edge policy.
+        This method creates K-farthest neighbor edges (dissimilar edges).
+        Respects test isolation if the edge policy requires it.
         """
         print(f"    Building universal dissimilar edges (k={self.k_neighbors})...")
         
-        # Use the existing _build_knn_edges method to get dissimilar edges
-        _, _, dis_edge_index, dis_edge_attr = self._build_knn_edges(news_embeddings, self.k_neighbors)
-        
-        if dis_edge_index.shape[1] > 0:
-            # Make dissimilar edges undirected
-            dis_edge_index = torch.cat([dis_edge_index, dis_edge_index[[1, 0], :]], dim=1)
-            if dis_edge_attr is not None:
-                dis_edge_attr = torch.cat([dis_edge_attr, dis_edge_attr], dim=0)
-            
-            # Assign to graph
-            data['news', 'dissimilar_to', 'news'].edge_index = dis_edge_index
-            if dis_edge_attr is not None:
-                data['news', 'dissimilar_to', 'news'].edge_attr = dis_edge_attr
-            
-            print(f"    - Created {dis_edge_index.shape[1]} 'news <-> news' universal dissimilar edges.")
+        if self.edge_policy == "knn_test_isolated":
+            # Build dissimilar edges with test isolation
+            self._build_safe_dissimilar_edges(data, news_embeddings)
         else:
-            print(f"    - Warning: No dissimilar edges created (empty edge set).")
+            # Use _build_mutual_knn_edges to get both similar and dissimilar edges
+            # We only need the dissimilar edges here
+            _, _, dis_edge_index, dis_edge_attr = self._build_mutual_knn_edges(news_embeddings, self.k_neighbors)
+            
+            if dis_edge_index is not None and dis_edge_index.shape[1] > 0:
+                # Make dissimilar edges undirected (if not already)
+                if dis_edge_index.shape[1] > 0:
+                    # Check if edges are already undirected by looking for reverse edges
+                    reverse_edges = dis_edge_index[[1, 0], :]  # Swap src and dst
+                    # Convert to set of tuples for efficient lookup
+                    existing_edges = set(map(tuple, dis_edge_index.T.tolist()))
+                    reverse_edge_tuples = set(map(tuple, reverse_edges.T.tolist()))
+                    
+                    # If not all reverse edges exist, make it undirected
+                    if not reverse_edge_tuples.issubset(existing_edges):
+                        dis_edge_index = torch.cat([dis_edge_index, reverse_edges], dim=1)
+                        if dis_edge_attr is not None:
+                            dis_edge_attr = torch.cat([dis_edge_attr, dis_edge_attr], dim=0)
+                
+                # Assign to graph
+                data['news', 'dissimilar_to', 'news'].edge_index = dis_edge_index
+                if dis_edge_attr is not None:
+                    data['news', 'dissimilar_to', 'news'].edge_attr = dis_edge_attr
+                
+                print(f"    - Created {dis_edge_index.shape[1]} 'news <-> news' universal dissimilar edges.")
+            else:
+                print(f"    - Warning: No dissimilar edges created (empty edge set).")
+
+    def _build_safe_dissimilar_edges(self, data: HeteroData, news_embeddings: np.ndarray) -> None:
+        """
+        Build dissimilar edges while respecting test isolation.
+        Strategy:
+        1. Train-Train dissimilar: use mutual farthest neighbors
+        2. Test-Train dissimilar: use one-way farthest neighbors 
+        3. No Test-Test dissimilar edges (respects test isolation)
+        """
+        print(f"    Building safe dissimilar edges (respecting test isolation)...")
+        
+        train_labeled_mask = data['news'].train_labeled_mask.cpu().numpy()
+        train_unlabeled_mask = data['news'].train_unlabeled_mask.cpu().numpy()
+        test_mask = data['news'].test_mask.cpu().numpy()
+        
+        # Get indices for each set
+        train_labeled_indices = np.where(train_labeled_mask)[0]
+        train_unlabeled_indices = np.where(train_unlabeled_mask)[0] 
+        test_indices = np.where(test_mask)[0]
+        train_all_indices = np.concatenate([train_labeled_indices, train_unlabeled_indices])
+        
+        all_dis_rows, all_dis_cols, all_dis_data = [], [], []
+        
+        # 1. Train-Train dissimilar connections: Use mutual farthest neighbors
+        if len(train_all_indices) > 1:
+            train_embeddings = news_embeddings[train_all_indices]
+            _, _, train_dis_idx, train_dis_attr = self._build_mutual_knn_edges(train_embeddings, self.k_neighbors)
+            
+            if train_dis_idx is not None and train_dis_idx.shape[1] > 0:
+                # Map local indices back to global indices
+                global_dis_idx = train_all_indices[train_dis_idx.cpu().numpy()]
+                all_dis_rows.extend(global_dis_idx[0])
+                all_dis_cols.extend(global_dis_idx[1])
+                all_dis_data.extend([1.0] * len(global_dis_idx[0]))
+                print(f"      - Created {train_dis_idx.shape[1]} train-train mutual dissimilar edges")
+        
+        # 2. Test-Train dissimilar connections: Use one-way farthest neighbors
+        if len(test_indices) > 0 and len(train_all_indices) > 0:
+            test_embeddings = news_embeddings[test_indices]
+            train_embeddings = news_embeddings[train_all_indices]
+            
+            # Calculate test-to-train distances
+            from sklearn.metrics.pairwise import pairwise_distances
+            distances = pairwise_distances(test_embeddings, train_embeddings, metric="cosine", n_jobs=-1)
+            
+            # For each test node, connect to K farthest train nodes
+            k_actual = min(self.k_neighbors, len(train_all_indices))
+            for i, test_idx in enumerate(test_indices):
+                farthest_train_indices = np.argpartition(-distances[i], k_actual)[:k_actual]  # K farthest
+                for j in farthest_train_indices:
+                    train_idx = train_all_indices[j]
+                    # Add bidirectional dissimilar edges (test<->train)
+                    all_dis_rows.extend([test_idx, train_idx])
+                    all_dis_cols.extend([train_idx, test_idx])
+                    all_dis_data.extend([distances[i, j], distances[i, j]])
+            
+            print(f"      - Created {len(test_indices) * k_actual * 2} test-train bidirectional dissimilar edges")
+        
+        # Create final dissimilar edge tensors
+        if all_dis_rows:
+            dis_edge_index = torch.tensor(np.vstack((all_dis_rows, all_dis_cols)), dtype=torch.long)
+            dis_edge_attr = torch.tensor(all_dis_data, dtype=torch.float).unsqueeze(1)
+        else:
+            dis_edge_index = torch.zeros((2, 0), dtype=torch.long)
+            dis_edge_attr = None
+        
+        # Assign to graph
+        data['news', 'dissimilar_to', 'news'].edge_index = dis_edge_index
+        if dis_edge_attr is not None:
+            data['news', 'dissimilar_to', 'news'].edge_attr = dis_edge_attr
+        
+        print(f"    - Total dissimilar edges created: {dis_edge_index.shape[1]}")
+
+    def _build_safe_multiview_dissimilar_edges(self, data: HeteroData, sub_embeddings: np.ndarray, view_id: int) -> None:
+        """
+        Build multi-view dissimilar edges while respecting test isolation.
+        """
+        train_labeled_mask = data['news'].train_labeled_mask.cpu().numpy()
+        train_unlabeled_mask = data['news'].train_unlabeled_mask.cpu().numpy()
+        test_mask = data['news'].test_mask.cpu().numpy()
+        
+        # Get indices for each set
+        train_labeled_indices = np.where(train_labeled_mask)[0]
+        train_unlabeled_indices = np.where(train_unlabeled_mask)[0] 
+        test_indices = np.where(test_mask)[0]
+        train_all_indices = np.concatenate([train_labeled_indices, train_unlabeled_indices])
+        
+        all_dis_rows, all_dis_cols, all_dis_data = [], [], []
+        
+        # 1. Train-Train dissimilar connections: Use mutual farthest neighbors
+        if len(train_all_indices) > 1:
+            train_sub_emb = sub_embeddings[train_all_indices]
+            _, _, train_dis_idx, train_dis_attr = self._build_mutual_knn_edges(train_sub_emb, self.k_neighbors)
+            
+            if train_dis_idx is not None and train_dis_idx.shape[1] > 0:
+                # Map local indices back to global indices
+                global_dis_idx = train_all_indices[train_dis_idx.cpu().numpy()]
+                all_dis_rows.extend(global_dis_idx[0])
+                all_dis_cols.extend(global_dis_idx[1])
+                all_dis_data.extend([1.0] * len(global_dis_idx[0]))
+        
+        # 2. Test-Train dissimilar connections: Use one-way farthest neighbors
+        if len(test_indices) > 0 and len(train_all_indices) > 0:
+            test_sub_emb = sub_embeddings[test_indices]
+            train_sub_emb = sub_embeddings[train_all_indices]
+            
+            # Calculate test-to-train distances
+            from sklearn.metrics.pairwise import pairwise_distances
+            distances = pairwise_distances(test_sub_emb, train_sub_emb, metric="cosine", n_jobs=-1)
+            
+            # For each test node, connect to K farthest train nodes
+            k_actual = min(self.k_neighbors, len(train_all_indices))
+            for i, test_idx in enumerate(test_indices):
+                farthest_train_indices = np.argpartition(-distances[i], k_actual)[:k_actual]  # K farthest
+                for j in farthest_train_indices:
+                    train_idx = train_all_indices[j]
+                    # Add bidirectional dissimilar edges (test<->train)
+                    all_dis_rows.extend([test_idx, train_idx])
+                    all_dis_cols.extend([train_idx, test_idx])
+                    all_dis_data.extend([distances[i, j], distances[i, j]])
+        
+        # Create final dissimilar edge tensors
+        if all_dis_rows:
+            dis_idx = torch.tensor(np.vstack((all_dis_rows, all_dis_cols)), dtype=torch.long)
+            dis_attr = torch.tensor(all_dis_data, dtype=torch.float).unsqueeze(1)
+        else:
+            dis_idx = torch.zeros((2, 0), dtype=torch.long)
+            dis_attr = None
+        
+        # Assign to graph
+        dis_type = ("news", f"dissimilar_to_sub{view_id}", "news")
+        data[dis_type].edge_index = dis_idx
+        if dis_attr is not None:
+            data[dis_type].edge_attr = dis_attr
+        
+        print(f"    - Created {dis_idx.shape[1]} 'news <-> news' safe dissimilar_sub{view_id} edges.")
 
     def _add_interaction_edges_by_type(self, data, train_labeled_indices, train_unlabeled_indices, test_indices, num_nodes, num_interactions_per_news, num_interaction_nodes):
         all_interaction_embeddings = []
@@ -1096,7 +1283,6 @@ class HeteroGraphBuilder:
         print("      End of Heterogeneous Graph Analysis")
         print("=" * 60 + "\n")
 
-
     def save_graph(self, hetero_graph: HeteroData, batch_id=None) -> Optional[str]:
         """Save the HeteroData graph and analysis results."""
 
@@ -1210,7 +1396,6 @@ class HeteroGraphBuilder:
         print(f"  - Graph saved to {graph_path}")
 
         return graph_path
-
 
     def run_pipeline(self) -> Optional[HeteroData]:
         """Run the complete graph building pipeline."""
