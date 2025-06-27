@@ -1,0 +1,91 @@
+{
+  "node_type_info": {
+    "news": {
+      "num_nodes": 186,
+      "feature_dim": 768,
+      "label_dist": {
+        "0": 129,
+        "1": 57
+      },
+      "train_labeled_mask": 14,
+      "train_unlabeled_mask": 70,
+      "test_mask": 102
+    },
+    "interaction": {
+      "num_nodes": 3720,
+      "feature_dim": 768
+    }
+  },
+  "nodes_total": 3906,
+  "edge_type_info": {
+    "news -> has_interaction -> interaction": {
+      "num_edges": 3720,
+      "attr_dim": 3720
+    },
+    "interaction -> rev_has_interaction -> news": {
+      "num_edges": 3720,
+      "attr_dim": 3720
+    },
+    "news -> similar_to -> news": {
+      "num_edges": 1860,
+      "attr_dim": 1
+    },
+    "news -> similar_to_sub1 -> news": {
+      "num_edges": 1860,
+      "attr_dim": 1
+    },
+    "news -> similar_to_sub2 -> news": {
+      "num_edges": 1860,
+      "attr_dim": 1
+    },
+    "news -> similar_to_sub3 -> news": {
+      "num_edges": 1860,
+      "attr_dim": 1
+    },
+    "news -> similar_to_sub4 -> news": {
+      "num_edges": 1860,
+      "attr_dim": 1
+    },
+    "news -> similar_to_sub5 -> news": {
+      "num_edges": 1860,
+      "attr_dim": 1
+    },
+    "news -> similar_to_sub6 -> news": {
+      "num_edges": 1860,
+      "attr_dim": 1
+    },
+    "news -> dissimilar_to -> news": {
+      "num_edges": 48,
+      "attr_dim": 1
+    },
+    "news -> dissimilar_to_sub1 -> news": {
+      "num_edges": 54,
+      "attr_dim": 1
+    },
+    "news -> dissimilar_to_sub2 -> news": {
+      "num_edges": 56,
+      "attr_dim": 1
+    },
+    "news -> dissimilar_to_sub3 -> news": {
+      "num_edges": 54,
+      "attr_dim": 1
+    },
+    "news -> dissimilar_to_sub4 -> news": {
+      "num_edges": 56,
+      "attr_dim": 1
+    },
+    "news -> dissimilar_to_sub5 -> news": {
+      "num_edges": 54,
+      "attr_dim": 1
+    },
+    "news -> dissimilar_to_sub6 -> news": {
+      "num_edges": 50,
+      "attr_dim": 1
+    }
+  },
+  "edges_total": 20832,
+  "avg_degree_news_similar_to": 10.0,
+  "news_similar_isolated": 0,
+  "avg_degree_news_dissimilar_to": 0.25806450843811035,
+  "news_dissimilar_isolated": 173
+}

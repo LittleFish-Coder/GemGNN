@@ -4,7 +4,7 @@
         "model": "HAN",
         "loss_fn": "ce",
         "target_node_type": "news",
-        "dropout_rate": 0.0,
+        "dropout_rate": 0.3,
         "hidden_channels": 64,
         "heads": 4,
         "hgt_layers": 1,
@@ -14,34 +14,39 @@
         "n_epochs": 300,
         "patience": 30,
         "seed": 42,
-        "output_dir_base": "results_hetero"
+        "output_dir_base": "results_hetero",
+        "compare_methods": false,
+        "comprehensive_evaluation": false,
+        "bootstrap_only": false,
+        "bootstrap_n_bootstraps": 15,
+        "analyze_confidence": false
     },
     "model_name": "HAN_politifact_12_shot_deberta_hetero_knn_test_isolated_5_partial_sample_unlabeled_factor_5_multiview_3",
     "training_history": {
-        "final_train_loss": 0.35102322697639465,
+        "final_train_loss": 0.30896633863449097,
         "final_train_acc": 1.0,
         "final_train_f1": 1.0,
-        "final_val_loss": 0.34702733159065247,
+        "final_val_loss": 0.2984204888343811,
         "final_val_acc": 1.0,
         "final_val_f1": 1.0,
         "best_val_f1": 1.0,
-        "best_epoch": 84,
-        "total_epochs_run": 84,
-        "training_time_seconds": 4.666722774505615
+        "best_epoch": 118,
+        "total_epochs_run": 118,
+        "training_time_seconds": 7.113144397735596
     },
     "final_test_metrics_on_target_node": {
-        "accuracy": 0.8431372549019608,
-        "precision": 0.805542935029532,
-        "recall": 0.8176665092111478,
-        "f1_score": 0.8111111111111111,
+        "accuracy": 0.8529411764705882,
+        "precision": 0.8209459459459459,
+        "recall": 0.8141237600377893,
+        "f1_score": 0.8174006444683136,
         "confusion_matrix": [
             [
-                64,
-                9
+                66,
+                7
             ],
             [
-                7,
-                22
+                8,
+                21
             ]
         ]
     }

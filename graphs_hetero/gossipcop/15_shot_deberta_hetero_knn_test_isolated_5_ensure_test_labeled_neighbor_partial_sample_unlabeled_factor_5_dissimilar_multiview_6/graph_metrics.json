@@ -1,0 +1,91 @@
+{
+  "node_type_info": {
+    "news": {
+      "num_nodes": 2852,
+      "feature_dim": 768,
+      "label_dist": {
+        "0": 2299,
+        "1": 553
+      },
+      "train_labeled_mask": 30,
+      "train_unlabeled_mask": 150,
+      "test_mask": 2672
+    },
+    "interaction": {
+      "num_nodes": 57040,
+      "feature_dim": 768
+    }
+  },
+  "nodes_total": 59892,
+  "edge_type_info": {
+    "news -> has_interaction -> interaction": {
+      "num_edges": 57040,
+      "attr_dim": 57040
+    },
+    "interaction -> rev_has_interaction -> news": {
+      "num_edges": 57040,
+      "attr_dim": 57040
+    },
+    "news -> similar_to -> news": {
+      "num_edges": 56304,
+      "attr_dim": 1
+    },
+    "news -> similar_to_sub1 -> news": {
+      "num_edges": 28520,
+      "attr_dim": 1
+    },
+    "news -> similar_to_sub2 -> news": {
+      "num_edges": 28520,
+      "attr_dim": 1
+    },
+    "news -> similar_to_sub3 -> news": {
+      "num_edges": 28520,
+      "attr_dim": 1
+    },
+    "news -> similar_to_sub4 -> news": {
+      "num_edges": 28520,
+      "attr_dim": 1
+    },
+    "news -> similar_to_sub5 -> news": {
+      "num_edges": 28520,
+      "attr_dim": 1
+    },
+    "news -> similar_to_sub6 -> news": {
+      "num_edges": 28520,
+      "attr_dim": 1
+    },
+    "news -> dissimilar_to -> news": {
+      "num_edges": 26770,
+      "attr_dim": 1
+    },
+    "news -> dissimilar_to_sub1 -> news": {
+      "num_edges": 26782,
+      "attr_dim": 1
+    },
+    "news -> dissimilar_to_sub2 -> news": {
+      "num_edges": 26772,
+      "attr_dim": 1
+    },
+    "news -> dissimilar_to_sub3 -> news": {
+      "num_edges": 26786,
+      "attr_dim": 1
+    },
+    "news -> dissimilar_to_sub4 -> news": {
+      "num_edges": 26788,
+      "attr_dim": 1
+    },
+    "news -> dissimilar_to_sub5 -> news": {
+      "num_edges": 26770,
+      "attr_dim": 1
+    },
+    "news -> dissimilar_to_sub6 -> news": {
+      "num_edges": 26770,
+      "attr_dim": 1
+    }
+  },
+  "edges_total": 528942,
+  "avg_degree_news_similar_to": 19.74193572998047,
+  "news_similar_isolated": 7,
+  "avg_degree_news_dissimilar_to": 9.386395454406738,
+  "news_dissimilar_isolated": 141
+}

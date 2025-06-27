@@ -11,7 +11,7 @@
         "han_layers": 1,
         "lr": 0.0005,
         "weight_decay": 0.001,
-        "n_epochs": 100,
+        "n_epochs": 300,
         "patience": 30,
         "seed": 42,
         "output_dir_base": "results_hetero",
@@ -32,7 +32,7 @@
         "best_val_f1": 1.0,
         "best_epoch": 98,
         "total_epochs_run": 98,
-        "training_time_seconds": 6.956002235412598
+        "training_time_seconds": 8.022512674331665
     },
     "final_test_metrics_on_target_node": {
         "accuracy": 0.696078431372549,

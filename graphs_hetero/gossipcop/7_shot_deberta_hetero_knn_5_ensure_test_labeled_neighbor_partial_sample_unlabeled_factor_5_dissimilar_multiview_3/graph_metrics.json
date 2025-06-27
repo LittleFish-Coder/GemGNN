@@ -24,10 +24,10 @@
     },
     "interaction -> rev_has_interaction -> news": {
       "num_edges": 55120,
-      "attr_dim": null
+      "attr_dim": 55120
     },
     "news -> similar_to -> news": {
-      "num_edges": 32604,
+      "num_edges": 32652,
       "attr_dim": 1
     },
     "news -> similar_to_sub1 -> news": {
@@ -43,25 +43,25 @@
       "attr_dim": 1
     },
     "news -> dissimilar_to -> news": {
-      "num_edges": 27560,
+      "num_edges": 50,
       "attr_dim": 1
     },
     "news -> dissimilar_to_sub1 -> news": {
-      "num_edges": 27560,
+      "num_edges": 42,
       "attr_dim": 1
     },
     "news -> dissimilar_to_sub2 -> news": {
-      "num_edges": 27560,
+      "num_edges": 44,
       "attr_dim": 1
     },
     "news -> dissimilar_to_sub3 -> news": {
-      "num_edges": 27560,
+      "num_edges": 50,
       "attr_dim": 1
     }
   },
-  "edges_total": 335764,
-  "avg_degree_news_similar_to": 11.830188751220703,
+  "edges_total": 225758,
+  "avg_degree_news_similar_to": 11.847604751586914,
   "news_similar_isolated": 0,
-  "avg_degree_news_dissimilar_to": 10.0,
-  "news_dissimilar_isolated": 0
+  "avg_degree_news_dissimilar_to": 0.018142234534025192,
+  "news_dissimilar_isolated": 2742
 }

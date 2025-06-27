@@ -1,0 +1,53 @@
+{
+    "args": {
+        "graph_path": "graphs_hetero/gossipcop/14_shot_deberta_hetero_knn_7_partial_sample_unlabeled_factor_5_dissimilar_multiview_3/graph.pt",
+        "model": "HAN",
+        "loss_fn": "ce",
+        "target_node_type": "news",
+        "dropout_rate": 0.3,
+        "hidden_channels": 64,
+        "heads": 4,
+        "hgt_layers": 1,
+        "han_layers": 1,
+        "lr": 0.0005,
+        "weight_decay": 0.001,
+        "n_epochs": 300,
+        "patience": 30,
+        "seed": 42,
+        "output_dir_base": "results_hetero",
+        "compare_methods": false,
+        "comprehensive_evaluation": false,
+        "bootstrap_only": false,
+        "bootstrap_n_bootstraps": 15,
+        "analyze_confidence": false
+    },
+    "model_name": "HAN_gossipcop_14_shot_deberta_hetero_knn_7_partial_sample_unlabeled_factor_5_dissimilar_multiview_3",
+    "training_history": {
+        "final_train_loss": 0.30391180515289307,
+        "final_train_acc": 1.0,
+        "final_train_f1": 1.0,
+        "final_val_loss": 0.2985653281211853,
+        "final_val_acc": 1.0,
+        "final_val_f1": 1.0,
+        "best_val_f1": 1.0,
+        "best_epoch": 125,
+        "total_epochs_run": 125,
+        "training_time_seconds": 11.36686897277832
+    },
+    "final_test_metrics_on_target_node": {
+        "accuracy": 0.6762724550898204,
+        "precision": 0.5812551230154226,
+        "recall": 0.6181193154581044,
+        "f1_score": 0.5800530657045578,
+        "confusion_matrix": [
+            [
+                1543,
+                626
+            ],
+            [
+                239,
+                264
+            ]
+        ]
+    }
+}

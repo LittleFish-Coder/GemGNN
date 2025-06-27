@@ -24,20 +24,20 @@
     },
     "interaction -> rev_has_interaction -> news": {
       "num_edges": 54160,
-      "attr_dim": null
+      "attr_dim": 54160
     },
     "news -> similar_to -> news": {
-      "num_edges": 32300,
+      "num_edges": 32322,
       "attr_dim": 1
     },
     "news -> dissimilar_to -> news": {
-      "num_edges": 27080,
+      "num_edges": 50,
       "attr_dim": 1
     }
   },
-  "edges_total": 167700,
-  "avg_degree_news_similar_to": 11.927621841430664,
+  "edges_total": 140692,
+  "avg_degree_news_similar_to": 11.935746192932129,
   "news_similar_isolated": 0,
-  "avg_degree_news_dissimilar_to": 10.0,
-  "news_dissimilar_isolated": 0
+  "avg_degree_news_dissimilar_to": 0.01846381090581417,
+  "news_dissimilar_isolated": 2694
 }
