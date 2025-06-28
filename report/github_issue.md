@@ -11,7 +11,7 @@ We have conducted extensive ablation studies using the `script/comprehensive_exp
 - **Few-shot learning scenarios**: 3-16 shot learning
 - **Graph construction parameters**: Different k-neighbors (3, 5, 7), edge policies (knn, knn_test_isolated), multiview settings (0, 3, 6)
 - **Feature engineering**: Dissimilar sampling, test labeled neighbor enforcement, partial unlabeled sampling
-- **Model architecture**: HAN (Hierarchical Attention Network) as the primary GNN model
+- **Model architecture**: HAN (Heterogeneous Graph Attention Network) as the primary GNN model
 - **Embeddings**: DeBERTa-based text embeddings for news content
 
 ## Required Deliverables

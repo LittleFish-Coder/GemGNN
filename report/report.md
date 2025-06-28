@@ -32,7 +32,7 @@ The heterogeneous graph construction pipeline implements a sophisticated approac
 
 ### Training Pipeline (`train_hetero_graph.py`)
 
-The training pipeline employs HAN (Hierarchical Attention Network) architecture optimized for few-shot learning:
+The training pipeline employs HAN (Heterogeneous Graph Attention Network) architecture optimized for few-shot learning:
 
 **Model Architecture:**
 - **Base Model**: HAN with 64 hidden channels
@@ -108,7 +108,7 @@ The experimental framework systematically explores the parameter space:
 2. **Few-shot Learning**: Addresses practical scenarios with limited labeled data
 3. **Parameter Exploration**: Comprehensive grid search covers key design decisions
 4. **Data Leakage Prevention**: `knn_test_isolated` policy ensures proper evaluation
-5. **Attention Mechanisms**: HAN architecture captures hierarchical relationships
+5. **Attention Mechanisms**: HAN architecture captures heterogeneous relationships
 
 ### Areas for Improvement
 
