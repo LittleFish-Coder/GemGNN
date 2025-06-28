@@ -28,4 +28,8 @@ logs/
 *.pid
 *.out
 *.log
+*.lot
+*.lof
+*.aux
+*.toc
 
