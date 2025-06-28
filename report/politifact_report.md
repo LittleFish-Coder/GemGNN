@@ -1,210 +1,125 @@
 # Politifact Dataset Analysis Report
 
-**Generated on:** 2025-06-27 03:31:07
+**Generated on:** 2025-06-28 08:28:48
 
 ## Executive Summary
 
-This report provides a comprehensive analysis of heterogeneous graph neural network (HGN) performance on the Politifact dataset for fake news detection. The analysis covers 840 experiments across 60 different parameter configurations, focusing on 3-16 shot learning scenarios.
-
-## Dataset Overview
-
-- **Dataset**: Politifact
-- **Model Architecture**: HAN (Heterogeneous Graph Attention Network)
-- **Shot Range**: 3-16 shot learning
-- **Total Scenarios**: 60
-- **Total Experiments**: 840
+This report provides comprehensive analysis of HAN performance on Politifact dataset covering 61 parameter configurations across 3-16 shot learning scenarios.
 
 ## Performance Summary
 
-### Top 10 Best Performing Configurations
+- **Best Average F1 Score**: 0.7996
+- **Worst Average F1 Score**: 0.6033
+- **Performance Range**: 0.1963
 
-| Rank | Configuration | Avg F1 Score | K-Neighbors | Edge Policy | Multiview | Dissimilar | Test Labeled |
-|------|---------------|--------------|-------------|-------------|-----------|-----------|--------------|
-| 1 | deberta_hetero_knn_7_ensure_test_labeled_neighbor_... | 0.7930 | 7 | knn | 3 | False | True |
-| 2 | deberta_hetero_knn_5_ensure_test_labeled_neighbor_... | 0.7930 | 5 | knn | 3 | False | True |
-| 3 | deberta_hetero_knn_test_isolated_5_partial_sample_... | 0.7930 | None | knn_test_isolated | 3 | False | False |
-| 4 | deberta_hetero_knn_5_partial_sample_unlabeled_fact... | 0.7924 | 5 | knn | 3 | False | False |
-| 5 | deberta_hetero_knn_7_partial_sample_unlabeled_fact... | 0.7920 | 7 | knn | 3 | False | False |
-| 6 | deberta_hetero_knn_test_isolated_7_ensure_test_lab... | 0.7913 | None | knn_test_isolated | 3 | False | True |
-| 7 | deberta_hetero_knn_test_isolated_7_partial_sample_... | 0.7913 | None | knn_test_isolated | 3 | False | False |
-| 8 | deberta_hetero_knn_test_isolated_3_ensure_test_lab... | 0.7907 | None | knn_test_isolated | 3 | False | True |
-| 9 | deberta_hetero_knn_test_isolated_5_ensure_test_lab... | 0.7907 | None | knn_test_isolated | 3 | False | True |
-| 10 | deberta_hetero_knn_test_isolated_3_partial_sample_... | 0.7907 | None | knn_test_isolated | 3 | False | False |
+### Top 10 Configurations
 
+| Rank | Configuration | Avg F1 | K-Neighbors | Edge Policy | Multiview |
+|------|---------------|--------|-------------|-------------|-----------||
+| 1 | deberta_hetero_knn_7_ensure_te... | 0.7996 | 7 | knn | 3 |
+| 2 | deberta_hetero_knn_5_ensure_te... | 0.7996 | 5 | knn | 3 |
+| 3 | deberta_hetero_knn_5_partial_s... | 0.7996 | 5 | knn | 3 |
+| 4 | deberta_hetero_knn_test_isolat... | 0.7996 | None | knn_test_isolated | 3 |
+| 5 | deberta_hetero_knn_7_partial_s... | 0.7985 | 7 | knn | 3 |
+| 6 | deberta_hetero_knn_test_isolat... | 0.7977 | None | knn_test_isolated | 3 |
+| 7 | deberta_hetero_knn_test_isolat... | 0.7977 | None | knn_test_isolated | 3 |
+| 8 | deberta_hetero_knn_test_isolat... | 0.7971 | None | knn_test_isolated | 3 |
+| 9 | deberta_hetero_knn_test_isolat... | 0.7971 | None | knn_test_isolated | 3 |
+| 10 | deberta_hetero_knn_test_isolat... | 0.7971 | None | knn_test_isolated | 3 |
 
-### Overall Performance Statistics
+## K-Shot Performance Analysis
 
-- **Best Average F1 Score**: 0.7930
-- **Worst Average F1 Score**: 0.7717
-- **Overall Mean F1 Score**: 0.7810
+### Top Configurations Performance Across Shot Counts (3-16)
 
-## Parameter Impact Analysis
+| Configuration | Avg F1 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| deberta_hetero_knn_7_ensure_test_labeled... | 0.800 | - | 0.778 | 0.702 | 0.708 | 0.793 | 0.838 | 0.848 | 0.861 | 0.848 | 0.817 | 0.817 | 0.791 | 0.787 | 0.805 |
+| deberta_hetero_knn_5_ensure_test_labeled... | 0.800 | - | 0.778 | 0.702 | 0.708 | 0.793 | 0.838 | 0.848 | 0.861 | 0.848 | 0.817 | 0.817 | 0.791 | 0.787 | 0.805 |
+| deberta_hetero_knn_5_partial_sample_unla... | 0.800 | - | 0.778 | 0.702 | 0.708 | 0.793 | 0.838 | 0.848 | 0.861 | 0.848 | 0.817 | 0.817 | 0.791 | 0.787 | 0.805 |
+| deberta_hetero_knn_test_isolated_5_parti... | 0.800 | - | 0.778 | 0.702 | 0.708 | 0.793 | 0.838 | 0.848 | 0.861 | 0.848 | 0.817 | 0.817 | 0.791 | 0.787 | 0.805 |
+| deberta_hetero_knn_7_partial_sample_unla... | 0.799 | - | 0.778 | 0.702 | 0.708 | 0.793 | 0.838 | 0.835 | 0.861 | 0.848 | 0.817 | 0.817 | 0.791 | 0.787 | 0.805 |
+| deberta_hetero_knn_test_isolated_7_ensur... | 0.798 | - | 0.778 | 0.702 | 0.708 | 0.793 | 0.828 | 0.835 | 0.861 | 0.848 | 0.817 | 0.817 | 0.791 | 0.787 | 0.805 |
+| deberta_hetero_knn_test_isolated_7_parti... | 0.798 | - | 0.778 | 0.702 | 0.708 | 0.793 | 0.828 | 0.835 | 0.861 | 0.848 | 0.817 | 0.817 | 0.791 | 0.787 | 0.805 |
+| deberta_hetero_knn_test_isolated_3_ensur... | 0.797 | - | 0.759 | 0.702 | 0.708 | 0.793 | 0.838 | 0.835 | 0.861 | 0.848 | 0.817 | 0.817 | 0.791 | 0.787 | 0.805 |
+| deberta_hetero_knn_test_isolated_5_ensur... | 0.797 | - | 0.759 | 0.702 | 0.708 | 0.793 | 0.838 | 0.835 | 0.861 | 0.848 | 0.817 | 0.817 | 0.791 | 0.787 | 0.805 |
+| deberta_hetero_knn_test_isolated_3_parti... | 0.797 | - | 0.759 | 0.702 | 0.708 | 0.793 | 0.838 | 0.835 | 0.861 | 0.848 | 0.817 | 0.817 | 0.791 | 0.787 | 0.805 |
 
-### K-Neighbors Impact
-- **K=5**: Average F1 = 0.7819
-- **K=7**: Average F1 = 0.7812
+## Ablation Study
 
-### Edge Policy Impact
-- **knn**: Average F1 = 0.7815
-- **knn_test_isolated**: Average F1 = 0.7806
+### Component Impact Analysis
 
-### Multiview Impact
-- **Multiview=0**: Average F1 = 0.7806
-- **Multiview=3**: Average F1 = 0.7880
-- **Multiview=6**: Average F1 = 0.7744
+#### K-Neighbors Impact
 
-### Feature Engineering Impact
-- **Dissimilar Sampling Disabled**: Average F1 = 0.7822
-- **Dissimilar Sampling Enabled**: Average F1 = 0.7798
-- **Test Labeled Neighbor Enabled**: Average F1 = 0.7808
-- **Test Labeled Neighbor Disabled**: Average F1 = 0.7812
+- **K=5**: Average F1 = 0.7902
+- **K=7**: Average F1 = 0.7903
 
+#### Edge Policy Impact
 
-## Detailed Configuration Analysis
+- **knn**: Average F1 = 0.7903
+- **knn_test_isolated**: Average F1 = 0.7839
 
-### Shot Learning Performance Trends
+#### Multiview Settings Impact
 
-The following section analyzes how performance varies across different shot counts for the top configurations:
+- **Multiview=0**: Average F1 = 0.7888
+- **Multiview=3**: Average F1 = 0.7866
+- **Multiview=6**: Average F1 = 0.7839
 
-#### Configuration 1: deberta_hetero_knn_7_ensure_test_labeled_neighbor_partial_sample_unlabeled_factor_5_multiview_3
+#### Feature Engineering Impact
 
-- **Average F1**: 0.7930
-- **Standard Deviation**: 0.0515
-- **Range**: 0.7019 - 0.8610
-- **Shot-wise Performance**:
-  - 3-shot: 0.7077
-  - 4-shot: 0.7778
-  - 5-shot: 0.7019
-  - 6-shot: 0.7077
-  - 7-shot: 0.7931
-  - 8-shot: 0.8382
-  - 9-shot: 0.8480
-  - 10-shot: 0.8610
-  - 11-shot: 0.8480
-  - 12-shot: 0.8174
-  - 13-shot: 0.8174
-  - 14-shot: 0.7915
-  - 15-shot: 0.7875
-  - 16-shot: 0.8048
+- **Dissimilar Sampling**: +0.0045 impact
+  - With dissimilar: 0.7887
+  - Without dissimilar: 0.7842
 
-#### Configuration 2: deberta_hetero_knn_5_ensure_test_labeled_neighbor_partial_sample_unlabeled_factor_5_multiview_3
+- **Test Labeled Neighbor**: +0.0056 impact
+  - With test labeled: 0.7893
+  - Without test labeled: 0.7837
 
-- **Average F1**: 0.7930
-- **Standard Deviation**: 0.0515
-- **Range**: 0.7019 - 0.8610
-- **Shot-wise Performance**:
-  - 3-shot: 0.7077
-  - 4-shot: 0.7778
-  - 5-shot: 0.7019
-  - 6-shot: 0.7077
-  - 7-shot: 0.7931
-  - 8-shot: 0.8382
-  - 9-shot: 0.8480
-  - 10-shot: 0.8610
-  - 11-shot: 0.8480
-  - 12-shot: 0.8174
-  - 13-shot: 0.8174
-  - 14-shot: 0.7915
-  - 15-shot: 0.7875
-  - 16-shot: 0.8048
+### Best Parameter Combinations
 
-#### Configuration 3: deberta_hetero_knn_test_isolated_5_partial_sample_unlabeled_factor_5_multiview_3
+Top performing combinations across all k-shot settings:
 
-- **Average F1**: 0.7930
-- **Standard Deviation**: 0.0515
-- **Range**: 0.7019 - 0.8610
-- **Shot-wise Performance**:
-  - 3-shot: 0.7077
-  - 4-shot: 0.7778
-  - 5-shot: 0.7019
-  - 6-shot: 0.7077
-  - 7-shot: 0.7931
-  - 8-shot: 0.8382
-  - 9-shot: 0.8480
-  - 10-shot: 0.8610
-  - 11-shot: 0.8480
-  - 12-shot: 0.8174
-  - 13-shot: 0.8174
-  - 14-shot: 0.7915
-  - 15-shot: 0.7875
-  - 16-shot: 0.8048
+**1. Configuration (F1: 0.7996)**
+- K-Neighbors: 7
+- Edge Policy: knn
+- Multiview: 3
+- Dissimilar Sampling: False
+- Test Labeled Neighbor: True
 
-#### Configuration 4: deberta_hetero_knn_5_partial_sample_unlabeled_factor_5_multiview_3
+**2. Configuration (F1: 0.7996)**
+- K-Neighbors: 5
+- Edge Policy: knn
+- Multiview: 3
+- Dissimilar Sampling: False
+- Test Labeled Neighbor: True
 
-- **Average F1**: 0.7924
-- **Standard Deviation**: 0.0526
-- **Range**: 0.6988 - 0.8610
-- **Shot-wise Performance**:
-  - 3-shot: 0.6988
-  - 4-shot: 0.7778
-  - 5-shot: 0.7019
-  - 6-shot: 0.7077
-  - 7-shot: 0.7931
-  - 8-shot: 0.8382
-  - 9-shot: 0.8480
-  - 10-shot: 0.8610
-  - 11-shot: 0.8480
-  - 12-shot: 0.8174
-  - 13-shot: 0.8174
-  - 14-shot: 0.7915
-  - 15-shot: 0.7875
-  - 16-shot: 0.8048
+**3. Configuration (F1: 0.7996)**
+- K-Neighbors: 5
+- Edge Policy: knn
+- Multiview: 3
+- Dissimilar Sampling: False
+- Test Labeled Neighbor: False
 
-#### Configuration 5: deberta_hetero_knn_7_partial_sample_unlabeled_factor_5_multiview_3
+**4. Configuration (F1: 0.7996)**
+- K-Neighbors: None
+- Edge Policy: knn_test_isolated
+- Multiview: 3
+- Dissimilar Sampling: False
+- Test Labeled Neighbor: False
 
-- **Average F1**: 0.7920
-- **Standard Deviation**: 0.0506
-- **Range**: 0.7019 - 0.8610
-- **Shot-wise Performance**:
-  - 3-shot: 0.7077
-  - 4-shot: 0.7778
-  - 5-shot: 0.7019
-  - 6-shot: 0.7077
-  - 7-shot: 0.7931
-  - 8-shot: 0.8382
-  - 9-shot: 0.8347
-  - 10-shot: 0.8610
-  - 11-shot: 0.8480
-  - 12-shot: 0.8174
-  - 13-shot: 0.8174
-  - 14-shot: 0.7915
-  - 15-shot: 0.7875
-  - 16-shot: 0.8048
+**5. Configuration (F1: 0.7985)**
+- K-Neighbors: 7
+- Edge Policy: knn
+- Multiview: 3
+- Dissimilar Sampling: False
+- Test Labeled Neighbor: False
 
 
+## Key Insights
 
-## Recommendations
-
-### Optimal Configuration for Politifact
-
-Based on the analysis, the optimal configuration for Politifact dataset is:
-
-- **Configuration**: deberta_hetero_knn_7_ensure_test_labeled_neighbor_partial_sample_unlabeled_factor_5_multiview_3
-- **Average F1 Score**: 0.7930
-- **Parameters**:
-  - K-Neighbors: 7
-  - Edge Policy: knn
-  - Multiview: 3
-  - Dissimilar Sampling: Disabled
-  - Test Labeled Neighbor: Enabled
-
-### Parameter Selection Guidelines
-
-1. **K-Neighbors**: Based on the analysis, k=7 shows the best performance
-2. **Edge Policy**: knn performs better than alternatives
-3. **Multiview**: Multiview setting of 3 shows optimal results
-4. **Feature Engineering**: Standard sampling is sufficient
-
-## Statistical Significance
-
-The analysis includes 840 experiments across 14 different shot counts, providing robust statistical evidence for the reported trends.
-
-## Limitations and Future Work
-
-1. **Parameter Space**: Current analysis covers the implemented parameter combinations; additional hyperparameter exploration might yield better results
-2. **Cross-validation**: Results are based on single train/test splits; cross-validation would provide more robust estimates
-3. **Statistical Testing**: Formal statistical significance tests between configurations would strengthen conclusions
+- **Optimal K-neighbors**: 7
+- **Best Edge Policy**: knn
+- **Optimal Multiview**: 0
 
 ---
 
-*This report was generated automatically using the comprehensive analysis pipeline.*
+*Report generated automatically by the comprehensive analysis pipeline.*

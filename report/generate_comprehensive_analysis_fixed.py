@@ -567,3 +567,9 @@ The analysis reveals key parameter preferences:
 if __name__ == "__main__":
     analyzer = ComprehensiveAnalyzer()
     analyzer.run_analysis()
+        """Generate comprehensive pipeline analysis report."""
+        
+        # Cross-dataset analysis
+        gc_best = self.find_best_configurations(gossipcop_results, top_k=1)[0] if gossipcop_results else None
+        pf_best = self.find_best_configurations(politifact_results, top_k=1)[0] if politifact_results else None
+        
