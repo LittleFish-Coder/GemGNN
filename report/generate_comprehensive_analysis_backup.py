@@ -474,54 +474,260 @@ The analysis includes {total_experiments} experiments across {len(self.shot_rang
         gc_best = self.find_best_configurations(gossipcop_results, top_k=1)[0] if gossipcop_results else None
         pf_best = self.find_best_configurations(politifact_results, top_k=1)[0] if politifact_results else None
         
-        report = "# Comprehensive Pipeline Analysis and Validation Report\n\n"
-        report += f"**Generated on:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-        
-        report += """## Executive Summary
+        report = f"""# Comprehensive Pipeline Analysis and Validation Report
 
-This report provides comprehensive analysis of heterogeneous graph neural network performance across GossipCop and PolitiFact datasets for fake news detection.
+**Generated on:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
-## Key Findings
+## Executive Summary
 
-### Cross-Dataset Performance
+This report provides a comprehensive analysis of the heterogeneous graph neural network (HGN) pipeline for fake news detection, evaluating performance across both GossipCop and PolitiFact datasets. The analysis covers pipeline architecture, experimental design, cross-dataset performance, and provides actionable recommendations for future research directions.
+
+## Pipeline Architecture Overview
+
+### Graph Construction Pipeline (`build_hetero_graph.py`)
+
+The heterogeneous graph construction pipeline implements a sophisticated approach to modeling news articles and their interactions:
+
+**Core Components:**
+- **Node Types**: 
+  - `news` nodes: Represent news articles with DeBERTa-based embeddings
+  - `interaction` nodes: Represent user interactions and engagement patterns
+- **Edge Construction**: Multiple policies for connecting related articles
+  - `knn`: K-nearest neighbor connections based on content similarity
+  - `knn_test_isolated`: KNN with test set isolation to prevent data leakage
+- **Feature Engineering**:
+  - Dissimilar sampling for diverse training examples
+  - Test labeled neighbor enforcement for improved generalization
+  - Partial unlabeled sampling with configurable factors
+
+**Key Parameters:**
+- K-neighbors: {3, 5, 7} for content-based connections
+- Multiview settings: {0, 3, 6} for incorporating multiple perspectives
+- Edge policies: Ensuring proper train/test separation
+- Sampling strategies: Balancing labeled and unlabeled data
+
+### Training Pipeline (`train_hetero_graph.py`)
+
+The training pipeline employs HAN (Hierarchical Attention Network) architecture optimized for few-shot learning:
+
+**Model Architecture:**
+- **Base Model**: HAN with 64 hidden channels
+- **Attention Mechanism**: 4 attention heads for capturing diverse relationships
+- **Dropout**: 0.3 for regularization
+- **Loss Function**: Cross-entropy with early stopping (patience=30)
+
+**Optimization Strategy:**
+- **Learning Rate**: 5e-4 with Adam optimizer
+- **Weight Decay**: 1e-3 for L2 regularization
+- **Training Duration**: Up to 300 epochs with early stopping
+- **Few-shot Learning**: 3-16 shot scenarios for practical applicability
+
+### Experimental Design (`script/comprehensive_experiments.sh`)
+
+The experimental framework systematically explores the parameter space:
+
+**Parameter Combinations:**
+- **Datasets**: GossipCop, PolitiFact
+- **Shot Counts**: 3-16 for comprehensive few-shot analysis
+- **K-neighbors**: 3, 5, 7 for different connectivity levels
+- **Edge Policies**: knn, knn_test_isolated for data leakage prevention
+- **Multiview**: 0, 3, 6 for multi-perspective modeling
+- **Feature Engineering**: With/without dissimilar sampling and test neighbor enforcement
+
+**Total Experiments**: {len(gossipcop_results) + len(politifact_results)} configurations across both datasets
+
+## Cross-Dataset Performance Analysis
+
+### Dataset-Specific Optimal Configurations
+
+**GossipCop Best Configuration:**
 """
         
-        if gc_best and pf_best:
-            report += f"- **GossipCop Best F1**: {gc_best[1]:.4f}\n"
-            report += f"- **PolitiFact Best F1**: {pf_best[1]:.4f}\n"
-            report += f"- **Performance Gap**: {abs(gc_best[1] - pf_best[1]):.4f}\n\n"
+        if gc_best:
+            gc_config, gc_score, gc_params = gc_best
+            report += f"- **Configuration**: {gc_config}\n"
+            report += f"- **Average F1 Score**: {gc_score:.4f}\n" 
+            report += f"- **Parameters**: K-neighbors={gc_params['k_neighbors']}, Edge={gc_params['edge_policy']}, Multiview={gc_params['multiview']}\n\n"
         
-        report += """### Parameter Effectiveness
+        report += """
+**PolitiFact Best Configuration:**
+"""
+        
+        if pf_best:
+            pf_config, pf_score, pf_params = pf_best
+            report += f"- **Configuration**: {pf_config}\n"
+            report += f"- **Average F1 Score**: {pf_score:.4f}\n"
+            report += f"- **Parameters**: K-neighbors={pf_params['k_neighbors']}, Edge={pf_params['edge_policy']}, Multiview={pf_params['multiview']}\n\n"
+        
+        # Calculate cross-dataset parameter effectiveness
+        gc_param_impact = self.analyze_parameter_impact(gossipcop_results)
+        pf_param_impact = self.analyze_parameter_impact(politifact_results)
+        
+        report += """
 
-The analysis reveals key parameter preferences:
-1. **K-neighbors**: 5-7 optimal for both datasets
-2. **Edge Policy**: knn performs consistently well
-3. **Multiview**: Setting of 3 shows best results
-4. **Test Isolation**: Prevents data leakage effectively
+### Generalizability Analysis
 
-## Technical Evaluation
+**Parameter Consistency Across Datasets:**
 
-### Strengths
-- Heterogeneous graph modeling captures content and interactions
-- Few-shot learning addresses practical scenarios
-- Comprehensive parameter exploration
-- Data leakage prevention
+| Parameter | GossipCop Best | PolitiFact Best | Consistency |
+|-----------|----------------|-----------------|-------------|
+"""
+        
+        # Compare parameter effectiveness across datasets
+        for param in ['k_neighbors', 'edge_policy', 'multiview']:
+            gc_best_param = max(gc_param_impact.get(param, {}), key=gc_param_impact.get(param, {}).get) if gc_param_impact.get(param) else 'N/A'
+            pf_best_param = max(pf_param_impact.get(param, {}), key=pf_param_impact.get(param, {}).get) if pf_param_impact.get(param) else 'N/A'
+            consistency = "✓" if gc_best_param == pf_best_param else "✗"
+            report += f"| {param} | {gc_best_param} | {pf_best_param} | {consistency} |\n"
+        
+        # Simplify parameter extraction to avoid complex f-string expressions
+        gc_best_k = 'N/A'
+        gc_best_edge = 'N/A'
+        pf_best_k = 'N/A'
+        pf_best_edge = 'N/A'
+        
+        if gc_param_impact.get('k_neighbors'):
+            gc_best_k = max(gc_param_impact['k_neighbors'], key=gc_param_impact['k_neighbors'].get)
+        if gc_param_impact.get('edge_policy'):
+            gc_best_edge = max(gc_param_impact['edge_policy'], key=gc_param_impact['edge_policy'].get)
+        if pf_param_impact.get('k_neighbors'):
+            pf_best_k = max(pf_param_impact['k_neighbors'], key=pf_param_impact['k_neighbors'].get)
+        if pf_param_impact.get('edge_policy'):
+            pf_best_edge = max(pf_param_impact['edge_policy'], key=pf_param_impact['edge_policy'].get)
+        
+        report += """
+
+### Dataset-Specific Characteristics
+
+**GossipCop Characteristics:**
+- **Domain**: Celebrity and entertainment news
+"""
+        report += f"- **Optimal K-neighbors**: {gc_best_k}\n"
+        report += f"- **Preferred Edge Policy**: {gc_best_edge}\n"
+        report += """- **Performance Range**: Varies based on parameter selection
+
+**PolitiFact Characteristics:**
+- **Domain**: Political news and fact-checking
+"""
+        report += f"- **Optimal K-neighbors**: {pf_best_k}\n"
+        report += f"- **Preferred Edge Policy**: {pf_best_edge}\n"
+        report += """- **Performance Range**: Shows different sensitivity to parameters
+
+## Technical Pipeline Evaluation
+
+### Strengths of Current Approach
+
+1. **Heterogeneous Graph Modeling**: Effectively captures both content and interaction patterns
+2. **Few-shot Learning**: Addresses practical scenarios with limited labeled data
+3. **Parameter Exploration**: Comprehensive grid search covers key design decisions
+4. **Data Leakage Prevention**: `knn_test_isolated` policy ensures proper evaluation
+5. **Attention Mechanisms**: HAN architecture captures hierarchical relationships
 
 ### Areas for Improvement
-- Graph construction could use semantic similarity
-- Architecture depth could be increased
-- Temporal dynamics missing
 
-## Recommendations
+1. **Graph Construction**: 
+   - Current KNN approach might miss semantic relationships
+   - Consider transformer-based similarity metrics
+   - Explore dynamic graph construction during training
 
-1. Use identified optimal configurations as baseline
-2. Implement cross-validation for robust evaluation
-3. Add statistical significance testing
-4. Enhance documentation and reproducibility
+2. **Model Architecture**:
+   - Single HAN layer might limit representation capacity
+   - Consider deeper architectures or residual connections
+   - Explore other heterogeneous GNN variants (HGT, RGCN)
+
+3. **Feature Engineering**:
+   - Limited interaction node features
+   - Missing temporal dynamics in graph evolution
+   - Potential for incorporating external knowledge graphs
+
+## Future Research Directions
+
+### Short-term Improvements (1-3 months)
+
+1. **Enhanced Graph Construction**:
+   - Implement semantic similarity using sentence transformers
+   - Add temporal edges for modeling information propagation
+   - Experiment with graph augmentation techniques
+
+2. **Model Architecture Enhancements**:
+   - Compare HAN with HGT and RGCN architectures
+   - Implement graph-level attention pooling
+   - Add residual connections for deeper networks
+
+3. **Training Optimizations**:
+   - Implement curriculum learning for shot progression
+   - Add focal loss for handling class imbalance
+   - Experiment with meta-learning approaches
+
+### Medium-term Research (3-6 months)
+
+1. **Cross-Domain Generalization**:
+   - Develop domain adaptation techniques
+   - Implement few-shot domain transfer learning
+   - Create unified models for multiple news domains
+
+2. **Explainable AI Integration**:
+   - Add attention visualization for model interpretability
+   - Implement graph-based explanation techniques
+   - Develop confidence estimation mechanisms
+
+3. **Real-time Deployment**:
+   - Optimize inference speed for production use
+   - Implement incremental learning for new data
+   - Add online graph construction capabilities
+
+### Long-term Vision (6-12 months)
+
+1. **Multimodal Integration**:
+   - Incorporate image and video content analysis
+   - Add social network topology features
+   - Implement cross-modal attention mechanisms
+
+2. **Large-scale Deployment**:
+   - Scale to millions of news articles
+   - Implement distributed graph processing
+   - Add real-time fact-checking capabilities
+
+3. **Advanced AI Techniques**:
+   - Integrate large language models for content understanding
+   - Implement reinforcement learning for dynamic graph construction
+   - Add causal inference for understanding misinformation spread
+
+## Implementation Recommendations
+
+### Immediate Actions
+
+1. **Parameter Optimization**: Use identified optimal configurations as baseline
+2. **Cross-validation**: Implement k-fold validation for robust evaluation
+3. **Statistical Testing**: Add significance tests for configuration comparisons
+4. **Documentation**: Enhance code documentation and reproducibility guides
+
+### Resource Requirements
+
+1. **Computational**: GPU cluster for extensive hyperparameter search
+2. **Data**: Larger datasets for robust cross-domain evaluation
+3. **Personnel**: Expertise in graph neural networks and NLP
+4. **Infrastructure**: MLOps pipeline for experiment tracking and deployment
+
+## Conclusion
+
+The heterogeneous graph neural network pipeline demonstrates strong performance across both GossipCop and PolitiFact datasets, with clear parameter preferences emerging from comprehensive experimentation. The systematic evaluation reveals both strengths and opportunities for improvement, providing a solid foundation for future research directions.
+
+**Key Takeaways:**
+1. Parameter selection significantly impacts performance across datasets
+2. Cross-dataset generalization requires careful consideration of domain characteristics
+3. The current pipeline provides a strong baseline for future enhancements
+4. Systematic experimentation reveals clear optimization opportunities
+
+**Impact for Research Community:**
+- Provides benchmark results for heterogeneous graph approaches
+- Identifies key parameter sensitivities for future work
+- Establishes evaluation methodology for few-shot fake news detection
+- Offers concrete directions for model improvements
 
 ---
 
-*Report generated automatically by the comprehensive analysis pipeline.*
+*This report was generated automatically using the comprehensive analysis pipeline.*
 """
         
         return report
@@ -545,18 +751,18 @@ The analysis reveals key parameter preferences:
         # Generate dataset-specific reports
         print("Generating GossipCop report...")
         gossipcop_report = self.generate_dataset_report("gossipcop", gossipcop_results)
-        with open(os.path.join(self.base_dir, "report", "gossipcop_report.md"), "w") as f:
+        with open(os.path.join(self.base_dir, "gossipcop_report.md"), "w") as f:
             f.write(gossipcop_report)
         
         print("Generating PolitiFact report...")
         politifact_report = self.generate_dataset_report("politifact", politifact_results)
-        with open(os.path.join(self.base_dir, "report", "politifact_report.md"), "w") as f:
+        with open(os.path.join(self.base_dir, "politifact_report.md"), "w") as f:
             f.write(politifact_report)
         
         # Generate comprehensive pipeline report
         print("Generating comprehensive pipeline report...")
         pipeline_report = self.generate_pipeline_report(gossipcop_results, politifact_results)
-        with open(os.path.join(self.base_dir, "report", "report.md"), "w") as f:
+        with open(os.path.join(self.base_dir, "report.md"), "w") as f:
             f.write(pipeline_report)
         
         print("Analysis complete! Generated reports:")
