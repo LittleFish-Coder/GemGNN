@@ -1,20 +1,43 @@
-# LESS4FD: Learning with Entity-aware Self-Supervised Framework for Fake News Detection
+# LESS4FD: Simplified Implementation
 
-This repository implements the LESS4FD (Learning with Entity-aware Self-Supervised Framework for Fake News Detection) architecture for few-shot fake news detection. The implementation follows the research paper and integrates with the existing heterogeneous graph framework.
+**⚠️ Note: This is a simplified rewrite of LESS4FD without meta-learning components.**
 
-## ✅ Few-Shot Ready
+For the simplified LESS4FD implementation that follows the main repository patterns, see:
 
-**Status**: FULLY IMPLEMENTED AND TESTED
-- ✅ All imports working correctly
-- ✅ Entity-aware graph construction
-- ✅ Two-stage training pipeline (pre-training + fine-tuning)
-- ✅ Few-shot evaluation with proper train/test isolation
-- ✅ Comprehensive test suite passing
-- ✅ Ready for k-shot experiments (3-16 shots)
+- **Main Documentation**: `README_simple.md`
+- **Graph Builder**: `build_less4fd_graph_simple.py`
+- **Training Script**: `train_less4fd_simple.py`
+- **Model**: `models/simple_less4fd_model.py`
+- **Demo**: `demo_less4fd_simple.py`
 
-## Overview
+## Quick Start (Simplified)
 
-LESS4FD extends traditional fake news detection approaches by incorporating:
+```bash
+# Run the complete demo
+python demo_less4fd_simple.py
+
+# Or step by step:
+# 1. Build graph
+python build_less4fd_graph_simple.py --dataset_name politifact --k_shot 8 --enable_entities
+
+# 2. Train model
+python train_less4fd_simple.py --graph_path graphs_less4fd_simple/demo_graph.pt --model HGT
+```
+
+## Key Changes
+
+- ❌ **Removed**: Meta-learning, complex entity extraction, two-phase training
+- ✅ **Retained**: Entity-aware features, heterogeneous graphs, few-shot learning
+- ✅ **Added**: Consistency with main repository patterns
+
+The simplified implementation provides the core LESS4FD functionality while being much easier to use and maintain.
+
+---
+
+# Original LESS4FD Documentation (Complex Version)
+
+> The content below is the original complex implementation. For the simplified version following the issue requirements, use the files mentioned above.
+
 
 - **Entity-aware Graph Construction**: Heterogeneous graphs with news, entity, and interaction nodes
 - **Self-supervised Learning**: Contrastive learning and entity-aware pretext tasks
