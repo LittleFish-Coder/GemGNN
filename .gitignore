@@ -2,7 +2,6 @@
 dataset*/
 checkpoints/
 *indices.json
-script/
 cache_dataset
 
 # language model weights
