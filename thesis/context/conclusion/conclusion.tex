@@ -6,17 +6,27 @@ This thesis presents GemGNN (Generative Multi-view Interaction Graph Neural Netw
 
 \section{Summary of Contributions}
 
-Our work establishes several key contributions that advance the state-of-the-art in few-shot fake news detection:
+Our work establishes several key methodological and technical contributions that collectively advance the state-of-the-art in few-shot fake news detection and establish new paradigms for content-based misinformation detection:
 
-\textbf{Generative User Interaction Simulation:} We introduce the first approach to synthesize realistic user interactions using Large Language Models (LLMs) for fake news detection. By leveraging Gemini to generate diverse user responses with multiple emotional tones (neutral, affirmative, skeptical), our method eliminates the dependency on real user propagation data while maintaining the benefits of interaction-based modeling. This innovation enables deployment in privacy-constrained scenarios where social data is unavailable.
+% TODO: Add Table X - Quantitative summary of performance improvements across different experimental settings
 
-\textbf{Test-Isolated KNN Edge Construction:} We develop a novel graph construction strategy that prevents information leakage between test nodes through strict isolation constraints. This approach ensures more realistic evaluation by prohibiting test nodes from connecting to each other, addressing a critical flaw in existing graph-based few-shot learning methods that leads to overly optimistic performance estimates.
+\textbf{Heterogeneous Graph Framework for Fake News Detection:} We introduce the first systematic application of heterogeneous graph neural networks to few-shot fake news detection, creating a framework that models both content similarity and synthetic social interactions within a unified graph structure. This innovation represents a paradigm shift from homogeneous content-based graphs to rich heterogeneous structures that capture multiple facets of the misinformation ecosystem without requiring real user data.
 
-\textbf{Multi-View Graph Architecture:} We propose a multi-view learning framework that partitions news embeddings into multiple semantic perspectives, enabling the model to capture diverse aspects of news content. Each view constructs its own graph structure, and multiple graphs are trained simultaneously to provide comprehensive data augmentation at the graph level.
+\textbf{Generative User Interaction Simulation:} We develop the first approach to systematically synthesize realistic user interactions using Large Language Models (LLMs) for enhancing fake news detection. Our method leverages state-of-the-art LLMs to generate diverse user responses across multiple semantic tones (neutral, affirmative, skeptical), creating controllable synthetic social signals that enhance content-based detection while maintaining complete privacy protection. This contribution demonstrates how generative AI can augment rather than replace traditional machine learning approaches.
 
-\textbf{Enhanced Heterogeneous Graph Neural Networks:} We design a specialized HAN-based architecture that effectively models complex relationships between news articles and generated user interactions through type-specific attention mechanisms and hierarchical aggregation strategies. Our transductive learning approach maximizes the utility of unlabeled data in few-shot scenarios.
+% Comment: This addresses the fundamental privacy vs. performance trade-off in current fake news detection systems
 
-\textbf{Comprehensive Evaluation Framework:} We establish rigorous experimental protocols that ensure fair comparison with existing methods while maintaining realistic few-shot learning constraints. Our evaluation spans multiple datasets, baseline categories, and statistical significance testing to provide reliable performance assessments.
+\textbf{Test-Isolated KNN Edge Construction:} We develop a novel graph construction methodology that prevents information leakage between test nodes through strict isolation constraints while preserving the benefits of transductive learning. Our approach ensures that test nodes can only connect to training nodes during graph construction, addressing a critical methodological flaw in existing graph-based few-shot learning methods that leads to unrealistic performance estimates. This contribution establishes new standards for rigorous evaluation in graph-based few-shot learning.
+
+\textbf{Multi-View Graph Architecture:} We propose a multi-view learning framework that partitions news embeddings into multiple semantic perspectives, enabling the capture of diverse content aspects through parallel graph structures. Each view constructs its own similarity-based graph, and multiple graphs are trained simultaneously to provide comprehensive data augmentation at the graph level. This approach enhances representation learning by encouraging the model to discover multiple complementary semantic patterns within the same content.
+
+\textbf{Enhanced Heterogeneous Graph Neural Networks:} We design a specialized Heterogeneous Graph Attention Network (HAN) architecture optimized for few-shot fake news detection, incorporating type-specific attention mechanisms and hierarchical aggregation strategies. Our architecture effectively models complex relationships between news articles and generated user interactions while implementing transductive learning that maximizes the utility of unlabeled data in few-shot scenarios.
+
+% TODO: Add Figure X - Architecture comparison showing the evolution from homogeneous to heterogeneous graph approaches
+
+\textbf{Comprehensive Few-Shot Evaluation Framework:} We establish the most rigorous experimental evaluation framework to date for few-shot fake news detection, including systematic parameter grid searches across 2,688 different configurations, comprehensive ablation studies, and comparison with diverse baseline approaches ranging from traditional machine learning to large language models. Our evaluation protocols prevent common sources of bias and provide statistically robust performance assessments.
+
+\textbf{Methodological Innovations:} Beyond individual technical components, our work introduces several important methodological innovations: (1) systematic integration of generative AI with specialized graph neural networks, (2) rigorous few-shot evaluation protocols that prevent information leakage while maintaining transductive benefits, (3) comprehensive analysis of heterogeneous graph architectures in data-scarce scenarios, and (4) novel approaches to synthetic data generation that complement rather than replace human-labeled training data.
 
 \section{Key Findings and Insights}
 
@@ -64,19 +74,55 @@ Despite the significant advances presented in this work, several limitations and
 
 \section{Future Research Directions}
 
-Our work opens several promising avenues for future research in few-shot fake news detection and related areas:
+Our work opens several promising avenues for future research that could further advance few-shot fake news detection and establish new paradigms for misinformation detection in general:
 
-\textbf{Advanced LLM Integration:} Future work could explore more sophisticated integration of large language models, including fine-tuning specialized LLMs for interaction generation, exploring different LLM architectures, and investigating multi-modal LLMs for comprehensive content analysis.
+\subsection{Advanced Generative Enhancement}
 
-\textbf{Dynamic Graph Construction:} Developing dynamic graph construction methods that can adapt as new information becomes available, including online learning algorithms, temporal modeling, and adaptive similarity measures.
+\textbf{Multi-Modal LLM Integration:} Future work could explore integrating multi-modal large language models that can process both textual content and associated images, videos, or metadata to generate more comprehensive synthetic interactions. This could include generating visual-aware comments, analyzing image-text consistency, and creating multi-modal synthetic social signals.
 
-\textbf{Improved Few-Shot Learning:} Advancing few-shot learning capabilities through meta-learning approaches, contrastive learning methods, and active learning strategies for optimal example selection.
+% TODO: Add Figure X - Proposed multi-modal extension architecture
 
-\textbf{Multi-Modal Extensions:} Extending our approach to handle multi-modal content by incorporating visual features, developing cross-modal attention mechanisms, and creating unified representations for text and visual information.
+\textbf{Sophisticated Interaction Generation:} Advancing beyond simple tone-based generation to create more nuanced synthetic interactions that consider temporal dynamics, user persona modeling, and contextual conversation threads. This could involve developing specialized LLMs trained on social media interaction patterns or implementing persona-consistent generation strategies.
 
-\textbf{Robustness and Security:} Enhancing robustness against adversarial attacks through adversarial training, AI-generated text detection, and ensemble methods for improved reliability.
+\textbf{Cross-Lingual Synthetic Data:} Exploring the generation of synthetic interactions in multiple languages to enable cross-lingual fake news detection and improve generalization across different linguistic contexts and cultural patterns of misinformation.
 
-\textbf{Real-World Deployment:} Addressing practical deployment challenges including efficient inference algorithms, interpretable explanations, and evaluation frameworks that reflect real-world scenarios.
+\subsection{Advanced Graph Architectures}
+
+\textbf{Dynamic and Temporal Graphs:} Developing dynamic graph construction methods that can model the temporal evolution of news stories and user reactions, including online learning algorithms that update graph structure as new information becomes available and temporal attention mechanisms that weight recent interactions more heavily.
+
+\textbf{Hierarchical Heterogeneous Graphs:} Extending the heterogeneous graph structure to include additional entity types such as publishers, topics, named entities, and fact-check sources, creating more comprehensive representations of the misinformation ecosystem while maintaining computational efficiency.
+
+% Comment: This could capture richer semantic relationships but would require careful design to avoid overfitting
+
+\textbf{Adaptive Edge Construction:} Investigating learned edge construction strategies that can adapt connectivity patterns based on content type, domain, or time, potentially using reinforcement learning or neural architecture search to optimize graph topology for specific detection tasks.
+
+\subsection{Enhanced Few-Shot Learning}
+
+\textbf{Meta-Learning Integration:} Exploring meta-learning approaches specifically designed for heterogeneous graphs, including model-agnostic meta-learning (MAML) variants that can quickly adapt to new misinformation domains or topics with minimal examples.
+
+\textbf{Active Learning for Graph Construction:} Developing active learning strategies that can identify the most informative examples for labeling while considering graph structure, potentially improving few-shot performance by intelligently selecting support set examples that maximize information propagation.
+
+\textbf{Continual Learning Capabilities:} Implementing continual learning mechanisms that can adapt to emerging misinformation patterns without forgetting previously learned detection capabilities, addressing the challenge of rapidly evolving misinformation tactics.
+
+\subsection{Robustness and Security}
+
+\textbf{Adversarial Robustness:} Enhancing robustness against adversarial attacks specifically designed to fool graph-based detection systems, including graph structure attacks, node feature perturbations, and coordinated manipulation attempts that could exploit the synthetic interaction generation process.
+
+\textbf{AI-Generated Content Detection:} Developing specialized detection capabilities for AI-generated fake news, which may require different modeling approaches than human-created misinformation and could interact in complex ways with our LLM-generated interaction simulation component.
+
+\textbf{Ensemble and Uncertainty Quantification:} Implementing ensemble methods that combine multiple graph views or model architectures with principled uncertainty quantification to provide reliable confidence estimates for real-world deployment scenarios.
+
+\subsection{Real-World Deployment and Scalability}
+
+\textbf{Efficient Inference and Deployment:} Developing more efficient inference algorithms for large-scale deployment, including graph pruning strategies, approximate attention computation, and distributed processing approaches that can handle millions of news articles in real-time.
+
+\textbf{Interpretability and Explainability:} Advancing interpretability mechanisms beyond attention visualization to provide actionable explanations for fact-checkers and users, potentially including natural language explanation generation and counterfactual analysis capabilities.
+
+% TODO: Add Table X - Comparison of computational requirements for different future directions
+
+\textbf{Cross-Platform Generalization:} Investigating how models trained on one platform or domain can generalize to other contexts, including transfer learning strategies and domain adaptation techniques specifically designed for misinformation detection across different social media platforms and news ecosystems.
+
+\textbf{Human-AI Collaboration:} Exploring frameworks for effective human-AI collaboration in fake news detection, including interactive fact-checking systems, uncertainty-aware recommendation systems, and approaches for incorporating human feedback to improve model performance over time.
 
 In conclusion, this thesis presents a significant advancement in few-shot fake news detection through the novel GemGNN framework. By addressing fundamental limitations of existing approaches and establishing new paradigms for content-based detection, our work provides a foundation for more effective and practical misinformation detection systems. The insights and methodologies developed here not only advance the current state-of-the-art but also open numerous directions for future research that can further enhance our ability to combat the growing threat of misinformation in digital media.
 

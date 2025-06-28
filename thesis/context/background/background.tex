@@ -62,6 +62,78 @@ Graph Neural Networks have emerged as a powerful paradigm for modeling structure
 
 \textbf{Multi-Layer Architecture:} Multiple message passing layers enable nodes to receive information from increasingly distant neighbors, allowing the model to capture both local patterns and global graph structure.
 
+\subsection{Heterogeneous Graph Neural Networks}
+
+Real-world data often exhibits heterogeneous structure with multiple node types and edge types, requiring specialized architectures beyond homogeneous graph neural networks. Heterogeneous graphs provide richer modeling capabilities for complex domains like fake news detection where multiple entity types interact.
+
+\textbf{Heterogeneous Graph Definition:} A heterogeneous graph $G = (V, E, \mathcal{A}, \mathcal{R})$ consists of:
+\begin{itemize}
+\item Node set $V$ with node type mapping $\phi: V \rightarrow \mathcal{A}$
+\item Edge set $E$ with edge type mapping $\psi: E \rightarrow \mathcal{R}$  
+\item Node type set $\mathcal{A}$ with $|\mathcal{A}| > 1$
+\item Edge type set $\mathcal{R}$ with $|\mathcal{R}| > 1$
+\end{itemize}
+
+where nodes and edges of the same type share similar properties and semantic meanings.
+
+\textbf{Meta-Path Concept:} A meta-path $P$ is a path defined on the graph schema and describes a composite relation between node types. For example, in a fake news detection graph, a meta-path "News $\rightarrow$ Interaction $\rightarrow$ News" captures how news articles relate through shared interaction patterns.
+
+% TODO: Add Figure X - Example heterogeneous graph schema for fake news detection showing node types and meta-paths
+
+\textbf{Challenges in Heterogeneous GNNs:} Standard homogeneous GNN architectures face several challenges when applied to heterogeneous graphs:
+\begin{enumerate}
+\item \textbf{Type-Specific Transformations:} Different node types require different feature transformations due to varying dimensionalities and semantic meanings
+\item \textbf{Relationship Heterogeneity:} Different edge types represent distinct semantic relationships requiring specialized aggregation mechanisms
+\item \textbf{Imbalanced Type Distribution:} Some node or edge types may be much more frequent than others, leading to biased learning
+\item \textbf{Complex Attention Mechanisms:} Attention computation must account for both node-level and type-level importance
+\end{enumerate}
+
+\subsection{Heterogeneous Graph Attention Networks}
+
+% Comment: HAN provides a systematic solution to heterogeneous graph modeling through hierarchical attention
+
+Heterogeneous Graph Attention Networks (HAN) address the challenges of modeling heterogeneous graphs through a hierarchical attention mechanism that operates at both node and semantic levels \cite{wang2019heterogeneous}.
+
+\textbf{Node-Level Attention:} For each meta-path $\Phi_i$, HAN computes attention weights between connected nodes to identify important neighbors:
+\begin{equation}
+e_{ij}^{\Phi_i} = \text{att}_{\text{node}}(Wh_i, Wh_j)
+\end{equation}
+\begin{equation}
+\alpha_{ij}^{\Phi_i} = \text{softmax}_j(e_{ij}^{\Phi_i}) = \frac{\exp(e_{ij}^{\Phi_i})}{\sum_{k \in \mathcal{N}_i^{\Phi_i}} \exp(e_{ik}^{\Phi_i})}
+\end{equation}
+
+where $W$ is a type-specific transformation matrix, and $\mathcal{N}_i^{\Phi_i}$ represents the neighbors of node $i$ under meta-path $\Phi_i$.
+
+\textbf{Node Embedding Aggregation:} The node-level representation for meta-path $\Phi_i$ is computed as:
+\begin{equation}
+\mathbf{z}_i^{\Phi_i} = \sigma\left(\sum_{j \in \mathcal{N}_i^{\Phi_i}} \alpha_{ij}^{\Phi_i} W \mathbf{h}_j\right)
+\end{equation}
+
+\textbf{Semantic-Level Attention:} HAN then applies semantic-level attention to combine information across different meta-paths:
+\begin{equation}
+w_i^{\Phi_i} = \frac{1}{|\mathcal{V}|} \sum_{i \in \mathcal{V}} q^T \tanh(W_s \mathbf{z}_i^{\Phi_i} + b_s)
+\end{equation}
+\begin{equation}
+\beta^{\Phi_i} = \text{softmax}(w^{\Phi_i}) = \frac{\exp(w^{\Phi_i})}{\sum_{j=1}^P \exp(w^{\Phi_j})}
+\end{equation}
+
+where $W_s$ and $q$ are learnable parameters, and $P$ is the number of meta-paths.
+
+\textbf{Final Node Representation:} The complete node representation combines information from all meta-paths:
+\begin{equation}
+\mathbf{z}_i = \sum_{j=1}^P \beta^{\Phi_j} \mathbf{z}_i^{\Phi_j}
+\end{equation}
+
+% Comment: This hierarchical approach enables effective modeling of both local neighbor importance and global semantic relationship importance
+
+\textbf{Advantages of HAN Architecture:} The hierarchical attention mechanism provides several key advantages for fake news detection:
+\begin{enumerate}
+\item \textbf{Flexible Relationship Modeling:} Can capture different types of relationships (content similarity, social interactions, temporal patterns) through appropriate meta-path design
+\item \textbf{Interpretability:} Attention weights provide insights into which neighbors and relationship types are most important for classification decisions  
+\item \textbf{Scalability:} The architecture can efficiently handle large heterogeneous graphs with many node and edge types
+\item \textbf{Adaptability:} The framework can be easily extended to incorporate new node types or relationship types as they become available
+\end{enumerate}
+
 \subsection{Graph Construction for Text}
 
 \textbf{Document Graphs:} For text classification, documents are typically represented as nodes in a graph, with edges indicating various types of relationships such as semantic similarity, citation links, or co-occurrence patterns.

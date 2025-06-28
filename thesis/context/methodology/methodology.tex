@@ -4,11 +4,17 @@
 
 \section{Framework Overview}
 
-The GemGNN (Generative Multi-view Interaction Graph Neural Networks) framework addresses the fundamental challenges of few-shot fake news detection through a novel content-based approach that eliminates dependency on user propagation data. Figure~\ref{fig:methodology:overview} illustrates the complete architecture, which consists of five interconnected components: (1) Generative User Interaction Simulation, (2) Test-Isolated KNN Graph Construction, (3) Multi-View Graph Construction, (4) Heterogeneous Graph Architecture, and (5) Enhanced Loss Function Design.
+The GemGNN (Generative Multi-view Interaction Graph Neural Networks) framework addresses the fundamental challenges of few-shot fake news detection through a novel heterogeneous graph-based approach that eliminates dependency on user propagation data while maintaining the benefits of social context modeling. The complete architecture consists of four interconnected components that work synergistically to achieve robust few-shot performance: (1) Generative User Interaction Simulation, (2) Test-Isolated KNN Graph Construction, (3) Multi-View Graph Architecture, and (4) Heterogeneous Graph Neural Network with Enhanced Training.
 
-The framework operates under a transductive learning paradigm where all nodes (labeled, unlabeled, and test) participate in message passing, but only labeled nodes contribute to loss computation. This approach maximizes the utility of limited supervision by leveraging the graph structure to propagate information from labeled nodes to unlabeled and test nodes through learned attention mechanisms.
+% TODO: Add Figure X - Complete GemGNN pipeline showing data flow from news articles through heterogeneous graph construction to final classification
 
-Our approach begins with pre-trained DeBERTa embeddings for news articles, which provide rich semantic representations that capture contextual relationships and linguistic patterns indicative of misinformation. These embeddings serve as the foundation for both graph construction and node feature initialization in our heterogeneous graph neural network.
+The framework operates under a transductive learning paradigm where all nodes (labeled, unlabeled, and test) participate in heterogeneous message passing, but only labeled nodes contribute to loss computation. This approach maximizes the utility of limited supervision by leveraging the heterogeneous graph structure to propagate information from labeled news nodes to unlabeled and test nodes through learned type-specific attention mechanisms, while maintaining strict evaluation integrity through test isolation constraints.
+
+% Comment: The transductive approach is particularly important for few-shot scenarios where every piece of information must be maximally utilized
+
+Our approach begins with pre-trained DeBERTa embeddings for news articles, which provide rich semantic representations (768-dimensional vectors) that capture contextual relationships and linguistic patterns indicative of misinformation. These embeddings serve as the foundation for both similarity-based graph construction and node feature initialization in our heterogeneous graph neural network, ensuring that the model can leverage state-of-the-art natural language understanding capabilities.
+
+The key innovation lies in creating a heterogeneous graph structure that includes both news nodes (representing articles) and interaction nodes (representing synthetic user responses), connected through multiple edge types that capture different semantic relationships. This heterogeneous structure enables the model to learn from both content similarity patterns and social interaction patterns without requiring real user data, addressing privacy constraints while maintaining modeling flexibility.
 
 \section{Generative User Interaction Simulation}
 

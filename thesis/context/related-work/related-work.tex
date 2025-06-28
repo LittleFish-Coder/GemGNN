@@ -80,13 +80,51 @@ While temporal modeling provides additional signal for misinformation detection,
 
 \subsection{Heterogeneous Graph Neural Networks}
 
-\textbf{HAN and HGT Applications:} Recent work has applied Heterogeneous Graph Attention Networks (HAN) and Heterogeneous Graph Transformers (HGT) to fake news detection by modeling multiple entity types such as users, news articles, topics, and sources \cite{dou2021user, lu2020gcan}. These approaches capture complex relationships between different entity types through specialized attention mechanisms.
+\textbf{Heterogeneous Graph Attention Networks (HAN):} HAN introduces a hierarchical attention mechanism specifically designed for heterogeneous graphs with multiple node and edge types \cite{wang2019heterogeneous}. The architecture employs node-level attention to aggregate information from neighbors of the same type, and semantic-level attention to combine information across different meta-paths, enabling effective modeling of complex entity relationships.
 
-Heterogeneous approaches show promise for capturing the multi-faceted nature of misinformation ecosystems. However, existing methods still rely heavily on user behavior data and social network structures, limiting their applicability in privacy-constrained scenarios.
+% TODO: Add comparison table of different heterogeneous GNN architectures (HAN, HGT, HetGNN, etc.)
 
-\textbf{Less4FD and HeteroSGT:} More recent graph-based approaches like Less4FD and HeteroSGT attempt to reduce dependency on social features while maintaining graph-based modeling advantages \cite{less4fd2023, heterosgt2023}. These methods focus more on content-based graph construction while incorporating limited social signals.
+\textbf{Heterogeneous Graph Transformers (HGT):} HGT extends the transformer architecture to heterogeneous graphs by introducing type-dependent parameters and multi-head attention mechanisms \cite{hu2020heterogeneous}. Each attention head is parameterized by node and edge types, allowing the model to learn specialized attention patterns for different relationship types in the heterogeneous structure.
+
+\textbf{Applications to Fake News Detection:} Recent work has applied heterogeneous graph methods to fake news detection by modeling multiple entity types such as users, news articles, topics, publishers, and social interactions \cite{dou2021user, lu2020gcan, silva2021embracing}. These approaches construct heterogeneous graphs where different node types represent distinct aspects of the misinformation ecosystem, enabling more comprehensive modeling of fake news propagation and characteristics.
+
+% Comment: Current heterogeneous approaches show significant promise but remain limited by their dependency on social network data
+
+However, existing heterogeneous approaches face several limitations: (1) they still fundamentally rely on user behavior data and social network structures, limiting applicability in privacy-constrained scenarios; (2) they assume availability of rich multi-modal metadata that may not exist for emerging misinformation; and (3) they have not been systematically evaluated in few-shot learning scenarios where labeled social interaction data is particularly scarce.
+
+\textbf{Content-Focused Heterogeneous Methods:} More recent approaches like Less4FD and HeteroSGT attempt to reduce dependency on social features while maintaining heterogeneous modeling advantages \cite{zhang2023less4fd, wang2023heterosgt}. Less4FD constructs heterogeneous graphs using primarily content-based features with minimal social signals, while HeteroSGT introduces subgraph-level attention for better scalability and reduced social dependency.
+
+% Comment: These represent promising directions but still have not fully eliminated social dependency or addressed few-shot scenarios comprehensively
+
+\textbf{Generative Enhancement for Graph Construction:} An emerging direction involves using large language models to generate auxiliary data for graph construction. Recent work explores using LLMs to generate synthetic news articles, user comments, or social interactions that can augment limited training data \cite{yang2023let, zhang2023enhancing}. However, these approaches have not been systematically integrated with heterogeneous graph architectures or rigorously evaluated in few-shot learning scenarios.
 
 While these approaches represent progress toward content-centric fake news detection, they still suffer from limitations in graph construction strategies and evaluation protocols that allow information leakage between training and test sets.
+
+\section{Large Language Models and Graph Enhancement}
+
+The emergence of large language models (LLMs) has opened new possibilities for enhancing graph-based fake news detection through synthetic data generation and improved semantic understanding.
+
+\subsection{LLM-Enhanced Graph Construction}
+
+\textbf{Synthetic Interaction Generation:} Recent approaches leverage LLMs to generate synthetic user interactions, comments, and social signals that can augment limited real-world data \cite{yang2023let, zhang2023on}. These methods prompt LLMs with news articles and specific instructions to generate diverse user responses with controlled sentiment and tone characteristics.
+
+% TODO: Add Figure X - Examples of LLM-generated interactions with different tones (neutral, affirmative, skeptical)
+
+The advantage of LLM-generated interactions lies in their controllability and diversity. Unlike real social media data, synthetic interactions can be generated with specific characteristics (e.g., skeptical tone, neutral stance, affirmative support) and do not suffer from privacy constraints or platform access limitations. However, the challenge lies in ensuring that generated interactions capture realistic patterns and do not introduce systematic biases that could mislead the detection model.
+
+\textbf{Semantic Edge Enhancement:} LLMs can also be used to improve edge construction in graph-based methods by providing richer semantic similarity measures beyond simple embedding cosine similarity \cite{liu2023large, chen2023llm}. These approaches use LLMs to assess semantic relationships between news articles, potentially identifying subtle connections that traditional similarity metrics might miss.
+
+\subsection{LLM Direct Detection Approaches}
+
+\textbf{Prompt-Based Detection:} Several studies explore using LLMs directly for fake news detection through carefully designed prompts \cite{chen2023chatgpt, bang2023multitask}. These approaches typically present news articles to LLMs along with instructions to classify them as real or fake, sometimes including few-shot examples in the prompt context.
+
+However, recent evaluations show that even state-of-the-art LLMs like GPT-4 and Claude struggle with fake news detection, often performing worse than specialized smaller models, particularly in few-shot scenarios \cite{huang2023chatgpt, zhang2023can}. LLMs tend to be overconfident in their predictions and may rely on superficial textual patterns rather than deep semantic understanding of misinformation characteristics.
+
+% Comment: This motivates our approach of using LLMs for auxiliary data generation rather than direct detection
+
+\textbf{Limitations of Direct LLM Approaches:} Despite extensive prompt engineering efforts, LLMs continue to underperform compared to specialized graph-based approaches in few-shot fake news detection scenarios. Key limitations include: (1) tendency to focus on surface-level linguistic features rather than deeper semantic relationships, (2) lack of systematic training on misinformation detection tasks, (3) difficulty in leveraging structural relationships between related news articles, and (4) inconsistent performance across different types of misinformation.
+
+These limitations highlight the potential of using LLMs as auxiliary components for data generation and graph enhancement rather than as primary detection models, motivating our approach of integrating LLM-generated interactions within specialized graph neural network architectures.
 
 \section{Few-Shot Learning in NLP}
 
