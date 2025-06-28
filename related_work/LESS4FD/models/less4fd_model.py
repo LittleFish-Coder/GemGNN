@@ -12,9 +12,9 @@ from torch_geometric.data import HeteroData
 from typing import Dict, Tuple, Optional, Any
 import logging
 
-from .entity_encoder import EntityEncoder
-from .contrastive_module import ContrastiveModule
-from ..utils.pretext_tasks import PretextTaskManager
+from models.entity_encoder import EntityEncoder
+from models.contrastive_module import ContrastiveModule
+from utils.pretext_tasks import PretextTaskManager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -56,10 +56,22 @@ TRAINING_CONFIG = {
 
 # Few-shot Learning Configuration
 FEWSHOT_CONFIG = {
-    "k_shot_range": [3, 4, 5, 8, 16],  # Supported k-shot values
+    "k_shot_range": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],  # Supported k-shot values
     "meta_learning": True,             # Enable meta-learning
     "support_query_ratio": 0.5,       # Ratio of support to query samples
     "num_meta_tasks": 100,             # Number of meta-learning tasks
+    "regularization": {
+        "label_smoothing": 0.1,        # Label smoothing for few-shot
+        "dropout": 0.3,                # Increased dropout for few-shot
+        "weight_decay": 1e-4,          # Weight decay
+        "gradient_clip": 1.0           # Gradient clipping
+    },
+    "early_stopping": {
+        "patience": 20,                # Early stopping patience
+        "monitor": "val_accuracy",     # Metric to monitor
+        "min_delta": 0.001,           # Minimum change to qualify as improvement
+        "mode": "max"                 # Maximize accuracy
+    }
 }
 
 # Data Configuration

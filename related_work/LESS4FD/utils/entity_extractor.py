@@ -5,6 +5,14 @@ This module provides functionality for extracting named entities from news text
 using transformer-based NER models and generating entity embeddings.
 """
 
+import sys
+import os
+from pathlib import Path
+
+# Add necessary paths for imports
+current_dir = Path(__file__).parent
+sys.path.insert(0, str(current_dir.parent.parent.parent))  # Main project directory
+
 import torch
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Set

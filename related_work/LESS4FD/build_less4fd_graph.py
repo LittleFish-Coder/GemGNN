@@ -20,14 +20,14 @@ import logging
 
 # Import existing utilities
 import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 from build_hetero_graph import HeteroGraphBuilder
 from utils.sample_k_shot import sample_k_shot
 
 # Import LESS4FD utilities
-from .utils.entity_extractor import EntityExtractor
-from .utils.sampling import LESS4FDSampler
-from .config.less4fd_config import LESS4FD_CONFIG, DATA_CONFIG
+from utils.entity_extractor import EntityExtractor
+from utils.sampling import LESS4FDSampler
+from config.less4fd_config import LESS4FD_CONFIG, DATA_CONFIG
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -282,7 +282,7 @@ class LESS4FDGraphBuilder:
         
         return edge_index, edge_attr
     
-    def build_hetero_graph(self, test_batch_indices: Optional[List[int]] = None) -> HeteroData:
+    def build_graph(self, test_batch_indices: Optional[List[int]] = None) -> HeteroData:
         """
         Build the complete LESS4FD heterogeneous graph.
         
@@ -295,7 +295,7 @@ class LESS4FDGraphBuilder:
         logger.info("Building LESS4FD heterogeneous graph...")
         
         # First build the base heterogeneous graph (news + interactions)
-        base_hetero_data = self.base_builder.build_hetero_graph(test_batch_indices)
+        base_hetero_data = self.base_builder.build_graph(test_batch_indices)
         
         if base_hetero_data is None:
             logger.error("Failed to build base heterogeneous graph")
@@ -343,8 +343,8 @@ class LESS4FDGraphBuilder:
             if hasattr(base_hetero_data[node_type], 'y'):
                 hetero_data[node_type].y = base_hetero_data[node_type].y
             
-            # Copy masks if they exist
-            for mask_name in ['train_mask', 'val_mask', 'test_mask']:
+            # Copy masks if they exist (including few-shot specific masks)
+            for mask_name in ['train_labeled_mask', 'train_unlabeled_mask', 'val_mask', 'test_mask', 'train_mask']:
                 if hasattr(base_hetero_data[node_type], mask_name):
                     setattr(hetero_data[node_type], mask_name, 
                            getattr(base_hetero_data[node_type], mask_name))

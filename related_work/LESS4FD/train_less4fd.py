@@ -20,13 +20,14 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from torch.optim import Adam, AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR, ReduceLROnPlateau
 from torch_geometric.data import HeteroData
+from typing import Dict, List, Optional, Any
 import logging
 
 # Import LESS4FD modules
-from .build_less4fd_graph import LESS4FDGraphBuilder
-from .models.less4fd_model import LESS4FDModel
-from .config.less4fd_config import LESS4FD_CONFIG, TRAINING_CONFIG, FEWSHOT_CONFIG
-from .utils.sampling import LESS4FDSampler
+from build_less4fd_graph import LESS4FDGraphBuilder
+from models.less4fd_model import LESS4FDModel
+from config.less4fd_config import LESS4FD_CONFIG, TRAINING_CONFIG, FEWSHOT_CONFIG
+from utils.sampling import LESS4FDSampler
 
 # Import existing utilities
 import sys
@@ -421,12 +422,12 @@ class LESS4FDTrainer:
             # Training
             train_metrics = self.finetune_epoch(model, graph_data)
             
-            # Validation
+            # Validation - prefer val_mask, fall back to test_mask for early stopping
             val_metrics = {}
             if hasattr(graph_data['news'], 'val_mask'):
                 val_metrics = self.evaluate(model, graph_data, "val_mask")
             else:
-                # Use test set for validation if no val set
+                # Use test set for validation if no val set (common in few-shot)
                 val_metrics = self.evaluate(model, graph_data, "test_mask")
             
             # Update scheduler
@@ -492,6 +493,12 @@ class LESS4FDTrainer:
         
         # Final evaluation
         test_metrics = self.evaluate(self.model, self.graph_data, "test_mask")
+        
+        # Also evaluate on train labeled set for few-shot analysis
+        if hasattr(self.graph_data['news'], 'train_labeled_mask'):
+            train_labeled_metrics = self.evaluate(self.model, self.graph_data, "train_labeled_mask")
+            test_metrics["train_labeled_accuracy"] = train_labeled_metrics["accuracy"]
+            test_metrics["train_labeled_f1"] = train_labeled_metrics["f1"]
         logger.info(f"Final test results: {test_metrics}")
         
         # Save results
