@@ -1,0 +1,95 @@
+% ------------------------------------------------
+\StartChapter{Problem Statement}{chapter:problem-statement}
+% ------------------------------------------------
+
+This chapter formally defines the few-shot fake news detection problem addressed in this thesis and establishes the mathematical notation used throughout our methodology. We present the fundamental challenges that motivate our research and provide a rigorous problem formulation.
+
+\section{Basic Concepts and Notations}
+
+\textbf{Fake News Definition:} We define fake news as deliberately false or misleading information presented as legitimate news content. This encompasses fabricated articles, misleading headlines, manipulated facts, and content designed to deceive readers about real events or issues.
+
+\textbf{Few-Shot Learning Context:} Our problem operates in the few-shot learning paradigm where only a small number of labeled examples per class are available for training. Specifically, we focus on K-shot scenarios where $K \in \{3, 4, 8, 16\}$ labeled examples per class (real/fake) are provided.
+
+\textbf{Graph Representation:} We formulate fake news detection as a node classification problem on a heterogeneous graph $G = (V, E, \mathcal{R})$ where:
+\begin{itemize}
+\item $V$ represents the set of all nodes, including news articles and user interactions
+\item $E$ denotes the set of edges connecting related nodes  
+\item $\mathcal{R}$ represents the set of edge types in the heterogeneous graph
+\end{itemize}
+
+\textbf{Node Types:} Our graph contains two primary node types:
+\begin{itemize}
+\item News nodes $V_n = \{n_1, n_2, \ldots, n_{|N|}\}$ representing news articles
+\item Interaction nodes $V_i = \{i_1, i_2, \ldots, i_{|I|}\}$ representing generated user interactions
+\end{itemize}
+
+\textbf{Node Features:} Each node $v \in V$ has an associated feature vector $\mathbf{x}_v \in \mathbb{R}^d$ where $d = 768$ for DeBERTa embeddings. News nodes additionally have binary labels $y_v \in \{0, 1\}$ indicating real (0) or fake (1) news.
+
+\section{Formal Problem Definition}
+
+\textbf{Problem Definition:} Given a small set of labeled news articles $\mathcal{L} = \{(x_i, y_i)\}_{i=1}^{K \times C}$ where $K$ represents the number of examples per class and $C$ denotes the number of classes (real/fake), and a larger set of unlabeled news articles $\mathcal{U} = \{x_j\}_{j=1}^{M}$, the objective is to learn a classifier $f: \mathcal{X} \rightarrow \mathcal{Y}$ that can accurately predict labels for test instances $\mathcal{T} = \{x_k\}_{k=1}^{N}$ where $K \ll M$ and $K \ll N$.
+
+\textbf{Formal Framework as Node Classification:} We formulate this as a node classification problem on a heterogeneous graph where news articles and synthetic user interactions form a connected graph structure that enables effective information propagation in few-shot scenarios.
+
+\textbf{Edge Types:} The heterogeneous graph includes multiple edge types:
+\begin{itemize}
+\item News-to-news edges: $(n_i, n_j) \in E_{nn}$ based on semantic similarity
+\item News-to-interaction edges: $(n_i, i_j) \in E_{ni}$ connecting articles to their generated interactions  
+\item Interaction-to-news edges: $(i_j, n_i) \in E_{in}$ enabling bidirectional information flow
+\end{itemize}
+
+\textbf{Data Partitioning:} The complete dataset is partitioned into three disjoint sets:
+\begin{itemize}
+\item Training set: $\mathcal{D}_{train} = \mathcal{D}_{labeled} \cup \mathcal{D}_{unlabeled}$
+\item Validation set: $\mathcal{D}_{val}$ for hyperparameter tuning and early stopping
+\item Test set: $\mathcal{D}_{test}$ for final evaluation
+\end{itemize}
+
+\textbf{K-Shot Sampling:} For each few-shot experiment, we sample $K$ labeled examples per class from $\mathcal{D}_{train}$ to form the support set $\mathcal{S} = \{(n_i, y_i)\}_{i=1}^{2K}$. The remaining training instances form the unlabeled set $\mathcal{U}$.
+
+\textbf{Transductive Setting:} During training, all nodes (labeled, unlabeled, and test) participate in message passing, but only labeled nodes contribute to loss computation. This transductive approach maximizes information utilization in few-shot scenarios.
+
+\section{Key Challenges and Constraints}
+
+The core challenges that motivate this research include:
+
+\textbf{Limited Labeled Data:} Few-shot scenarios typically provide only 3-16 labeled examples per class, insufficient for training robust deep learning models using conventional approaches. This data scarcity leads to overfitting, poor generalization, and unstable performance across different domains.
+
+\textbf{Absence of Propagation Information:} Real-world deployment often lacks access to user interaction data due to privacy constraints, platform limitations, or the time-sensitive nature of misinformation detection. Existing propagation-based methods become inapplicable in such contexts.
+
+\textbf{Semantic Complexity:} Fake news articles often exhibit sophisticated linguistic patterns and may contain accurate factual information presented in misleading contexts. Simple content-based features fail to capture these nuanced semantic relationships.
+
+\textbf{Domain Generalization:} Models trained on specific topics or domains often fail to generalize to emerging misinformation patterns or novel subject areas, limiting their practical applicability.
+
+\textbf{Evaluation Realism:} Many existing few-shot learning approaches suffer from information leakage between training and test sets, leading to overly optimistic performance estimates that do not reflect real-world deployment scenarios.
+
+\textbf{High Variance:} The limited sample size leads to high variance in performance estimates. Small changes in the support set can dramatically affect model performance, making robust evaluation protocols crucial for reliable results.
+
+\textbf{Learning Objective:} Given the heterogeneous graph $G$ and support set $\mathcal{S}$, learn a function $f_{\theta}: G \rightarrow [0,1]^{|V_n|}$ that predicts the probability of each news node being fake.
+
+\textbf{Loss Function:} The training objective combines multiple loss components to address few-shot learning challenges:
+\begin{equation}
+\mathcal{L}_{total} = \mathcal{L}_{CE}(f_{\theta}(G), \mathcal{S}) + \lambda_{focal} \mathcal{L}_{focal}(f_{\theta}(G), \mathcal{S}) + \lambda_{reg} \mathcal{L}_{reg}(\theta)
+\end{equation}
+
+where:
+\begin{itemize}
+\item $\mathcal{L}_{CE}$ is the cross-entropy loss with label smoothing
+\item $\mathcal{L}_{focal}$ is the focal loss for handling class imbalance
+\item $\mathcal{L}_{reg}$ provides regularization to prevent overfitting
+\item $\lambda_{focal}$ and $\lambda_{reg}$ are hyperparameters balancing loss components
+\end{itemize}
+
+\textbf{Evaluation Metrics:} Model performance is evaluated using:
+\begin{itemize}
+\item F1-score: $F1 = 2 \cdot \frac{\text{Precision} \cdot \text{Recall}}{\text{Precision} + \text{Recall}}$
+\item Accuracy: $\text{Acc} = \frac{\text{Correct Predictions}}{\text{Total Predictions}}$
+\item Precision: $\text{Prec} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Positives}}$
+\item Recall: $\text{Rec} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Negatives}}$
+\end{itemize}
+
+This formal framework provides the mathematical foundation for understanding our GemGNN approach, which addresses these challenges through novel graph construction strategies, generative data augmentation, and specialized training procedures detailed in the methodology chapter.
+
+% ------------------------------------------------
+\EndChapter
+% ------------------------------------------------
