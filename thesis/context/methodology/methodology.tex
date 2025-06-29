@@ -4,9 +4,14 @@
 
 \section{Framework Overview}
 
-The GemGNN (Generative Multi-view Interaction Graph Neural Networks) framework addresses the fundamental challenges of few-shot fake news detection through a novel heterogeneous graph-based approach that eliminates dependency on user propagation data while maintaining the benefits of social context modeling. The complete architecture consists of four interconnected components that work synergistically to achieve robust few-shot performance: (1) Generative User Interaction Simulation, (2) Adaptive Graph Construction (KNN vs Test-Isolated KNN), (3) Multi-View Graph Architecture, and (4) Heterogeneous Graph Neural Network with Enhanced Training.
+The GemGNN (Generative Multi-view Interaction Graph Neural Networks) framework addresses the fundamental challenges of few-shot fake news detection through a novel heterogeneous graph-based approach that eliminates dependency on user propagation data while maintaining the benefits of social context modeling. The complete architecture consists of four interconnected components that work synergistically to achieve robust few-shot performance (see Figure~\ref{fig:pipeline}): (1) Generative User Interaction Simulation, (2) Adaptive Graph Construction (KNN vs Test-Isolated KNN), (3) Multi-View Graph Architecture, and (4) Heterogeneous Graph Neural Network with Enhanced Training.
 
-% TODO: Add Figure X - Complete GemGNN pipeline showing data flow from news articles through heterogeneous graph construction to final classification
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{context/methodology/fig/pipeline.png}
+    \caption{Complete GemGNN pipeline showing data flow from news articles through heterogeneous graph construction to final classification}
+    \label{fig:pipeline}
+\end{figure}
 
 The framework operates under a transductive learning paradigm where all nodes (labeled, unlabeled, and test) participate in heterogeneous message passing, but only labeled nodes contribute to loss computation. This approach maximizes the utility of limited supervision by leveraging the heterogeneous graph structure to propagate information from labeled news nodes to unlabeled and test nodes through learned type-specific attention mechanisms. The choice between traditional KNN and test-isolated KNN allows for flexible adaptation to different deployment scenarios while maintaining consistent architectural principles.
 
@@ -24,11 +29,25 @@ Traditional propagation-based fake news detection methods rely on real user inte
 
 We employ Google's Gemini LLM to generate diverse user interactions for each news article. The generation process is designed to simulate authentic user responses that would naturally occur in social media environments. For each news article $n_i$, we generate a set of user interactions $I_i = \{i_1, i_2, \ldots, i_{20}\}$ where each interaction represents a potential user response to the news content.
 
-The prompt engineering strategy ensures that generated interactions reflect realistic user behavior patterns observed in social media platforms. We incorporate the complete news content, including headlines and article body, to generate contextually appropriate responses that capture various user perspectives and emotional reactions.
+The prompt engineering strategy (see Figure~\ref{fig:prompt}) ensures that generated interactions reflect realistic user behavior patterns observed in social media platforms. We incorporate the complete news content, including headlines and article body, to generate contextually appropriate responses that capture various user perspectives and emotional reactions.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\textwidth]{context/methodology/fig/prompt.png}
+    \caption{Prompt engineering strategy}
+    \label{fig:prompt}
+\end{figure}
 
 \subsection{Multi-tone Interaction Design}
 
-To capture the diversity of user reactions to news content, we implement a structured multi-tone generation strategy that produces interactions across three distinct emotional categories:
+To capture the diversity of user reactions to news content, we implement a structured multi-tone generation strategy (see Figure~\ref{fig:interaction-generation}) with 20 interactions per article that produces interactions across three distinct emotional categories:
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{context/methodology/fig/user_interaction_generation.png}
+    \caption{Multi-tone interaction generation strategy}
+    \label{fig:interaction-generation}
+\end{figure}
 
 \textbf{Neutral Interactions (8 per article):} These represent objective, factual responses that focus on information sharing without emotional bias. Neutral interactions typically include questions for clarification, requests for additional sources, or straightforward restatements of key facts.
 
@@ -40,13 +59,27 @@ This distribution (8:7:5) reflects observed patterns in real social media intera
 
 \subsection{Interaction-News Edge Construction}
 
-Each generated interaction is embedded using the same DeBERTa model employed for news articles, ensuring semantic consistency across the heterogeneous graph. The interactions are connected to their corresponding news articles through directed edges that carry tone information as edge attributes.
+Each generated interaction is embedded using the VertexAI text-embedding-005 model. The interactions are connected to their corresponding news articles through directed edges that carry tone information as edge attributes (see Figure~\ref{fig:news_interaction_node}).
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\textwidth]{context/methodology/fig/news_interaction_node.png}
+    \caption{Interaction-News edge construction}
+    \label{fig:news_interaction_node}
+\end{figure}
 
 Formally, for each news article $n_i$ and its generated interactions $I_i$, we create edges $(n_i, i_j)$ where the edge attribute $a_{ij}$ encodes the interaction tone: $a_{ij} \in \{0, 1, 2\}$ representing neutral, affirmative, and skeptical tones respectively. This encoding allows the heterogeneous graph attention network to learn tone-specific importance weights during message aggregation.
 
 \section{Graph Construction Methodologies: KNN vs Test-Isolated KNN}
 
-Graph edge construction is a fundamental design choice that significantly impacts both model performance and evaluation realism in few-shot fake news detection. We explore two complementary approaches: traditional KNN and Test-Isolated KNN, each suited to different real-world deployment scenarios and research objectives. Our experimental analysis reveals that these approaches offer distinct trade-offs between performance optimization and evaluation integrity, necessitating careful consideration of the intended application context.
+Graph edge construction is a fundamental design choice that significantly impacts both model performance and evaluation realism in few-shot fake news detection. We explore two complementary approaches: traditional KNN and Test-Isolated KNN (see Figure~\ref{fig:edge_construction}), each suited to different real-world deployment scenarios and research objectives. Our experimental analysis reveals that these approaches offer distinct trade-offs between performance optimization and evaluation integrity, necessitating careful consideration of the intended application context.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\textwidth]{context/methodology/fig/edge_construction.png}
+    \caption{Traditional KNN vs Test-Isolated KNN}
+    \label{fig:edge_construction}
+\end{figure}
 
 \subsection{Traditional KNN: Performance-Optimized Graph Construction}
 
@@ -183,7 +216,14 @@ This encoder selection provides the foundation for effective multi-view graph co
 
 \section{Multi-View Graph Construction}
 
-To capture diverse semantic perspectives within news content, we implement a multi-view learning framework that partitions embeddings into complementary views and constructs separate graph structures for each perspective.
+To capture diverse semantic perspectives within news content, we implement a multi-view learning framework (see Figure~\ref{fig:multi_view}) that partitions embeddings into complementary views and constructs separate graph structures for each perspective.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\textwidth]{context/methodology/fig/multi_view.png}
+    \caption{Utilizing DeBERTa's disentangled attention architecture to partition embeddings into complementary views}
+    \label{fig:multi_view}
+\end{figure}
 
 \subsection{Embedding Dimension Splitting Strategy}
 
