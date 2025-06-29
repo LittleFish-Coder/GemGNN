@@ -34,7 +34,7 @@ The advent of deep learning revolutionized fake news detection by enabling more 
 
 \subsection{Transformer-based Models}
 
-\textbf{BERT and RoBERTa:} The introduction of transformer architectures, particularly BERT (Bidirectional Encoder Representations from Transformers) and its variants like RoBERTa, marked a significant advancement in content-based fake news detection \cite{kula2021survey, kaliyar2021fakebert}. These models provide rich contextual representations that capture bidirectional dependencies and complex semantic relationships within text.
+\textbf{BERT and RoBERTa:} The introduction of transformer architectures, particularly BERT (Bidirectional Encoder Representations from Transformers)~\cite{devlin2018bert} and its variants like RoBERTa~\cite{liu2019roberta}, marked a significant advancement in content-based fake news detection \cite{kula2021survey, kaliyar2021fakebert}. These models provide rich contextual representations that capture bidirectional dependencies and complex semantic relationships within text.
 
 BERT-based approaches typically fine-tune pre-trained language models on fake news classification tasks, achieving strong performance on standard benchmarks. The bidirectional nature of BERT enables better understanding of context compared to sequential models, while the pre-training on large corpora provides general linguistic knowledge applicable to misinformation detection.
 
@@ -46,7 +46,7 @@ While domain adaptation shows promise, these methods still require significant a
 
 \subsection{Large Language Models for Fake News Detection}
 
-\textbf{In-Context Learning Approaches:} Recent work has explored using large language models (LLMs) such as GPT-3, LLaMA, and Gemma for fake news detection through in-context learning \cite{chen2023combating, openai2023gpt4}. These approaches provide few examples of fake and real news within the prompt and ask the model to classify new instances.
+\textbf{In-Context Learning Approaches:} Recent work has explored using large language models (LLMs) such as GPT-3~\cite{openai2023gpt4}, LLaMA~\cite{touvron2023llama}, and Gemma for fake news detection through in-context learning \cite{chen2023combating}. These approaches provide few examples of fake and real news within the prompt and ask the model to classify new instances.
 
 While LLMs demonstrate impressive general language understanding capabilities, their performance on fake news detection is surprisingly poor in few-shot scenarios. This limitation stems from several factors: (1) potential data contamination where models may have seen test instances during training, (2) lack of task-specific optimization for misinformation patterns, and (3) difficulty in handling domain-specific knowledge required for fact verification.
 
@@ -66,7 +66,7 @@ While Text-GCN approaches capture some structural relationships, they primarily 
 
 \textbf{BertGCN Integration:} More recent work combines BERT embeddings with graph convolutional networks to leverage both rich semantic representations and structural information \cite{lin2021bertgcn}. These hybrid approaches use BERT to initialize node features and GCNs to refine representations through graph structure.
 
-BertGCN approaches show improvement over pure BERT methods by incorporating some structural information, but they still construct relatively simple graphs based on keyword similarity rather than capturing complex semantic relationships between news articles.
+BertGCN approaches~\cite{lin2021bertgcn} show improvement over pure BERT methods by incorporating some structural information, but they still construct relatively simple graphs based on keyword similarity rather than capturing complex semantic relationships between news articles.
 
 \subsection{User Propagation-based Methods}
 
@@ -80,7 +80,7 @@ While temporal modeling provides additional signal for misinformation detection,
 
 \subsection{Heterogeneous Graph Neural Networks}
 
-\textbf{Heterogeneous Graph Attention Networks (HAN):} HAN introduces a hierarchical attention mechanism specifically designed for heterogeneous graphs with multiple node and edge types \cite{wang2019heterogeneous}. The architecture employs node-level attention to aggregate information from neighbors of the same type, and semantic-level attention to combine information across different meta-paths, enabling effective modeling of complex entity relationships.
+\textbf{Heterogeneous Graph Attention Networks (HAN):} HAN introduces a hierarchical attention mechanism specifically designed for heterogeneous graphs with multiple node and edge types \cite{wang2019han}. The architecture employs node-level attention to aggregate information from neighbors of the same type, and semantic-level attention to combine information across different meta-paths, enabling effective modeling of complex entity relationships.
 
 % TODO: Add comparison table of different heterogeneous GNN architectures (HAN, HGT, HetGNN, etc.)
 
@@ -201,7 +201,7 @@ where nodes and edges of the same type share similar properties and semantic mea
 
 \subsection{Heterogeneous Graph Attention Networks}
 
-Heterogeneous Graph Attention Networks (HAN) address the challenges of modeling heterogeneous graphs through a hierarchical attention mechanism that operates at both node and semantic levels \cite{wang2019heterogeneous}.
+Heterogeneous Graph Attention Networks (HAN) address the challenges of modeling heterogeneous graphs through a hierarchical attention mechanism that operates at both node and semantic levels \cite{wang2019han}.
 
 \textbf{Node-Level Attention:} For each meta-path $\Phi_i$, HAN computes attention weights between connected nodes to identify important neighbors:
 \begin{equation}

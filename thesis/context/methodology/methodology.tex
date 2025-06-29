@@ -17,7 +17,7 @@ The framework operates under a transductive learning paradigm where all nodes (l
 
 % Comment: The transductive approach is particularly important for few-shot scenarios where every piece of information must be maximally utilized
 
-Our approach begins with pre-trained DeBERTa embeddings for news articles, which provide rich semantic representations (768-dimensional vectors) that capture contextual relationships and linguistic patterns indicative of misinformation. These embeddings serve as the foundation for both similarity-based graph construction and node feature initialization in our heterogeneous graph neural network, ensuring that the model can leverage state-of-the-art natural language understanding capabilities.
+Our approach begins with pre-trained DeBERTa embeddings~\cite{he2021deberta} for news articles, which provide rich semantic representations (768-dimensional vectors) that capture contextual relationships and linguistic patterns indicative of misinformation. These embeddings serve as the foundation for both similarity-based graph construction and node feature initialization in our heterogeneous graph neural network, ensuring that the model can leverage state-of-the-art natural language understanding capabilities.
 
 The key innovation lies in creating a heterogeneous graph structure that includes both news nodes (representing articles) and interaction nodes (representing synthetic user responses), connected through multiple edge types that capture different semantic relationships. This heterogeneous structure enables the model to learn from both content similarity patterns and social interaction patterns without requiring real user data, addressing privacy constraints while maintaining modeling flexibility.
 
@@ -27,7 +27,7 @@ A critical aspect of our methodology is the systematic approach to sampling trai
 
 \subsection{Labeled Node Sampling}
 
-For k-shot learning scenarios, we sample exactly k labeled examples per class from the training set. Specifically:
+For k-shot learning scenarios, we sample exactly k labeled examples per class from the training set, following established few-shot learning protocols~\cite{wang2020fewshot, finn2017model}. Specifically:
 \begin{itemize}
     \item \textbf{k real news articles}: Selected randomly from authentic news samples
     \item \textbf{k fake news articles}: Selected randomly from misinformation samples  
@@ -71,7 +71,7 @@ Traditional propagation-based fake news detection methods rely on real user inte
 
 \subsection{LLM-based Interaction Generation}
 
-We employ Google's Gemini LLM to generate diverse user interactions for each news article. The generation process is designed to simulate authentic user responses that would naturally occur in social media environments. For each news article $n_i$, we generate a set of user interactions $I_i = \{i_1, i_2, \ldots, i_{20}\}$ where each interaction represents a potential user response to the news content.
+We employ Google's Gemini LLM to generate diverse user interactions for each news article. This approach addresses the limitations of traditional propagation-based methods~\cite{ma2016detecting, shu2017fake} that require real user interaction data. The generation process is designed to simulate authentic user responses that would naturally occur in social media environments. For each news article $n_i$, we generate a set of user interactions $I_i = \{i_1, i_2, \ldots, i_{20}\}$ where each interaction represents a potential user response to the news content.
 
 The prompt engineering strategy (see Figure~\ref{fig:prompt}) ensures that generated interactions reflect realistic user behavior patterns observed in social media platforms. We incorporate the complete news content, including headlines and article body, to generate contextually appropriate responses that capture various user perspectives and emotional reactions.
 
@@ -127,7 +127,7 @@ Graph edge construction is a fundamental design choice that significantly impact
 
 \subsection{Traditional KNN: Performance-Optimized Graph Construction}
 
-Traditional K-Nearest Neighbor (KNN) graph construction allows all nodes, including test instances, to connect to their most similar neighbors regardless of their dataset partition. This approach maximizes information flow throughout the graph, enabling comprehensive message passing that can improve classification performance.
+Traditional K-Nearest Neighbor (KNN) graph construction allows all nodes, including test instances, to connect to their most similar neighbors regardless of their dataset partition. This approach maximizes information flow throughout the graph, enabling comprehensive message passing that can improve classification performance. KNN-based graph construction has been widely used in graph neural networks for various tasks~\cite{kipf2017semi, hamilton2017inductive}.
 
 \textbf{Methodology:} For each node $n_i$ in the dataset (training, validation, or test), we compute pairwise cosine similarities with all other nodes using DeBERTa embeddings and establish edges to the top-$k$ most similar instances. This creates a densely connected graph where test nodes can potentially connect to other test nodes, labeled training samples, and unlabeled instances.
 
@@ -201,7 +201,7 @@ The choice of connectivity strategy directly impacts both the information availa
 
 \section{DeBERTa vs RoBERTa: Text Encoder Selection Rationale}
 
-The choice of text encoder fundamentally impacts both the quality of initial node representations and the effectiveness of multi-view graph construction. We adopt DeBERTa (Decoding-enhanced BERT with Disentangled Attention) over RoBERTa based on its superior characteristics for embedding partitioning and multi-view learning.
+The choice of text encoder fundamentally impacts both the quality of initial node representations and the effectiveness of multi-view graph construction. We adopt DeBERTa (Decoding-enhanced BERT with Disentangled Attention)~\cite{he2021deberta} over RoBERTa~\cite{liu2019roberta} based on its superior characteristics for embedding partitioning and multi-view learning.
 
 \subsection{Disentangled Attention and Embedding Structure}
 
@@ -299,7 +299,7 @@ The heterogeneous graph incorporates multiple edge types that capture different 
 
 \subsection{HAN-based Message Passing and Classification}
 
-We employ Heterogeneous Graph Attention Networks (HAN) as our base architecture due to their ability to handle multiple node and edge types through specialized attention mechanisms. The HAN architecture consists of two levels of attention: node-level attention and semantic-level attention.
+We employ Heterogeneous Graph Attention Networks (HAN)~\cite{wang2019han} as our base architecture due to their ability to handle multiple node and edge types through specialized attention mechanisms. HAN extends the graph attention mechanism~\cite{veličković2018graph} to heterogeneous graphs with multiple node and edge types. The HAN architecture consists of two levels of attention: node-level attention and semantic-level attention.
 
 \textbf{Node-level Attention:} For each edge type, we compute attention weights between connected nodes:
 \begin{equation}
@@ -324,7 +324,7 @@ The final node representation combines information from all edge types:
 
 \subsection{Cross-Entropy Loss for Few-Shot Learning}
 
-Based on extensive empirical evaluation, we found that a standard cross-entropy loss function provides optimal performance for few-shot fake news detection, eliminating the need for more complex loss combinations. This finding simplifies the training process while maintaining superior performance across all experimental settings.
+Based on extensive empirical evaluation, we found that a standard cross-entropy loss function provides optimal performance for few-shot fake news detection, eliminating the need for more complex loss combinations. This contrasts with recent work on contrastive learning~\cite{chen2020simple, gao2021simcse} and specialized few-shot learning losses~\cite{snell2017prototypical}. This finding simplifies the training process while maintaining superior performance across all experimental settings.
 
 \textbf{Cross-Entropy Loss:} We employ the standard cross-entropy loss function for binary classification:
 \begin{equation}
@@ -335,7 +335,7 @@ where $y_i(c)$ is the true label and $p_i(c)$ is the predicted probability for c
 
 \subsection{Transductive Learning Framework}
 
-Our training strategy follows a transductive learning paradigm where all nodes participate in message passing, but only labeled nodes contribute to the loss computation. This approach maximizes the utility of unlabeled data by allowing the model to learn better feature representations through graph structure exploration.
+Our training strategy follows a transductive learning paradigm where all nodes participate in message passing, but only labeled nodes contribute to the loss computation. This approach leverages the power of graph neural networks~\cite{wu2020comprehensive, bronstein2017geometric} for semi-supervised learning scenarios. This approach maximizes the utility of unlabeled data by allowing the model to learn better feature representations through graph structure exploration.
 
 Training proceeds for a maximum of 300 epochs with early stopping based on validation performance. We employ two stopping criteria: (1) patience-based early stopping when validation performance plateaus, and (2) validation loss threshold stopping when validation loss drops below 0.3, indicating sufficient model convergence. We employ the Adam optimizer with learning rate $5 \times 10^{-4}$ and weight decay $1 \times 10^{-3}$ to prevent overfitting in few-shot scenarios.
 
