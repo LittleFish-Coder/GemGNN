@@ -1,0 +1,5 @@
+# Simplified requirements for LESS4FD
+# These are minimal additional requirements on top of the base requirements.txt
+
+# No additional requirements needed - uses the same dependencies as main repository
+# The simplified LESS4FD implementation leverages existing functionality
