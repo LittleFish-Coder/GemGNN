@@ -322,36 +322,22 @@ The final node representation combines information from all edge types:
 
 \section{Loss Function Design and Training Strategy}
 
-\subsection{Enhanced Loss Functions for Few-Shot Learning}
+\subsection{Cross-Entropy Loss for Few-Shot Learning}
 
-To address the challenges of few-shot learning, we implement enhanced loss functions that incorporate label smoothing and focal loss components to improve model robustness and handle class imbalance effectively.
+Based on extensive empirical evaluation, we found that a standard cross-entropy loss function provides optimal performance for few-shot fake news detection, eliminating the need for more complex loss combinations. This finding simplifies the training process while maintaining superior performance across all experimental settings.
 
-\textbf{Label Smoothing Cross-Entropy:} We apply label smoothing with parameter $\epsilon = 0.1$ to prevent overconfident predictions on limited training data:
+\textbf{Cross-Entropy Loss:} We employ the standard cross-entropy loss function for binary classification:
 \begin{equation}
-\mathcal{L}_{smooth} = -\sum_{i=1}^{N} \sum_{c=1}^{C} y_i^{smooth}(c) \log p_i(c)
+\mathcal{L}_{ce} = -\sum_{i=1}^{N} \sum_{c=1}^{C} y_i(c) \log p_i(c)
 \end{equation}
 
-where $y_i^{smooth}(c) = (1-\epsilon)y_i(c) + \frac{\epsilon}{C}$ and $p_i(c)$ is the predicted probability for class $c$.
-
-\textbf{Focal Loss Component:} To address potential class imbalance, we incorporate a focal loss term that down-weights easy examples and focuses learning on difficult instances:
-\begin{equation}
-\mathcal{L}_{focal} = -\alpha \sum_{i=1}^{N} (1-p_i)^{\gamma} \log p_i
-\end{equation}
-
-where $\alpha = 0.25$ and $\gamma = 2.0$ are hyperparameters that control the focusing strength.
+where $y_i(c)$ is the true label and $p_i(c)$ is the predicted probability for class $c$. The simplicity of this approach proves advantageous in few-shot scenarios where model complexity can lead to overfitting on limited training data.
 
 \subsection{Transductive Learning Framework}
 
 Our training strategy follows a transductive learning paradigm where all nodes participate in message passing, but only labeled nodes contribute to the loss computation. This approach maximizes the utility of unlabeled data by allowing the model to learn better feature representations through graph structure exploration.
 
-The complete loss function combines the enhanced components:
-\begin{equation}
-\mathcal{L}_{total} = \mathcal{L}_{smooth} + \lambda \mathcal{L}_{focal}
-\end{equation}
-
-where $\lambda = 0.1$ balances the contribution of the focal loss component.
-
-Training proceeds for a maximum of 300 epochs with early stopping based on validation performance. We employ the Adam optimizer with learning rate $5 \times 10^{-4}$ and weight decay $1 \times 10^{-3}$ to prevent overfitting in few-shot scenarios.
+Training proceeds for a maximum of 300 epochs with early stopping based on validation performance. We employ two stopping criteria: (1) patience-based early stopping when validation performance plateaus, and (2) validation loss threshold stopping when validation loss drops below 0.3, indicating sufficient model convergence. We employ the Adam optimizer with learning rate $5 \times 10^{-4}$ and weight decay $1 \times 10^{-3}$ to prevent overfitting in few-shot scenarios.
 
 % ------------------------------------------------
 \EndChapter
