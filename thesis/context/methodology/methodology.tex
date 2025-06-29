@@ -189,7 +189,15 @@ To capture diverse semantic perspectives within news content, we implement a mul
 
 Given DeBERTa embeddings of dimension $d = 768$, we partition each embedding vector into three equal subsets: $\mathbf{h}_i^{(1)}, \mathbf{h}_i^{(2)}, \mathbf{h}_i^{(3)} \in \mathbb{R}^{256}$ where $\mathbf{h}_i = [\mathbf{h}_i^{(1)}; \mathbf{h}_i^{(2)}; \mathbf{h}_i^{(3)}]$.
 
-Each view captures different aspects of the semantic representation: the first view focuses on early embedding dimensions that typically encode syntactic and surface-level features, the middle view captures semantic relationships and contextual patterns, and the final view represents higher-level abstractions and discourse-level information.
+This partitioning strategy is fundamentally enabled by DeBERTa's disentangled attention architecture, which creates natural organization within embedding dimensions. Each view captures different aspects of the semantic representation:
+
+\textbf{View 1 (Dimensions 0-255):} Focuses on early embedding dimensions that typically encode syntactic patterns, surface-level linguistic features, and basic semantic relationships. These dimensions capture immediate lexical signals and structural patterns that are crucial for initial content assessment.
+
+\textbf{View 2 (Dimensions 256-511):} Captures semantic relationships, contextual dependencies, and mid-level discourse patterns. This middle partition leverages DeBERTa's enhanced position encoding to represent contextual relationships and thematic coherence.
+
+\textbf{View 3 (Dimensions 512-767):} Represents higher-level abstractions, discourse-level information, and pragmatic content understanding. These later dimensions encode sophisticated linguistic patterns and meta-textual features that are particularly important for detecting subtle misinformation cues.
+
+The effectiveness of this partitioning relies on DeBERTa's structured representation organization, where the disentangled attention mechanism ensures that different dimensional ranges capture complementary rather than redundant information aspects.
 
 \subsection{View-specific Edge Construction}
 
@@ -217,7 +225,7 @@ Our heterogeneous graph contains two primary node types:
 
 The heterogeneous graph incorporates multiple edge types that capture different relationship semantics:
 
-\textbf{News-to-News Edges:} Connect semantically similar news articles based on the test-isolated KNN strategy. These edges enable direct information flow between related news content and are the primary mechanism for few-shot learning.
+\textbf{News-to-News Edges:} Connect semantically similar news articles based on the chosen graph construction strategy (traditional KNN or test-isolated KNN). These edges enable direct information flow between related news content and are the primary mechanism for few-shot learning.
 
 \textbf{News-to-Interaction Edges:} Connect news articles to their generated user interactions, with edge attributes encoding interaction tones. These edges allow the model to incorporate user perspective information into news classification.
 
