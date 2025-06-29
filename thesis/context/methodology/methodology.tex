@@ -21,6 +21,50 @@ Our approach begins with pre-trained DeBERTa embeddings for news articles, which
 
 The key innovation lies in creating a heterogeneous graph structure that includes both news nodes (representing articles) and interaction nodes (representing synthetic user responses), connected through multiple edge types that capture different semantic relationships. This heterogeneous structure enables the model to learn from both content similarity patterns and social interaction patterns without requiring real user data, addressing privacy constraints while maintaining modeling flexibility.
 
+\section{Dataset Sampling Strategy}
+
+A critical aspect of our methodology is the systematic approach to sampling training data that ensures balanced and effective few-shot learning. Our sampling strategy is designed to maximize the utility of limited labeled data while providing sufficient unlabeled context for effective transductive learning.
+
+\subsection{Labeled Node Sampling}
+
+For k-shot learning scenarios, we sample exactly k labeled examples per class from the training set. Specifically:
+\begin{itemize}
+    \item \textbf{k real news articles}: Selected randomly from authentic news samples
+    \item \textbf{k fake news articles}: Selected randomly from misinformation samples  
+\end{itemize}
+
+This balanced sampling ensures that the model receives equal representation from both classes during training, which is crucial for effective few-shot learning where class imbalance can severely impact performance.
+
+\subsection{Unlabeled Node Sampling}
+
+To leverage the transductive learning paradigm effectively, we sample additional unlabeled training nodes that participate in message passing but do not contribute to loss computation. The number of unlabeled nodes is determined by:
+
+\begin{equation}
+N_{unlabeled} = \text{num\_classes} \times k \times \text{sample\_unlabeled\_factor}
+\end{equation}
+
+Where:
+\begin{itemize}
+    \item \textbf{num\_classes} = 2 (real and fake news)
+    \item \textbf{k} = number of shots per class  
+    \item \textbf{sample\_unlabeled\_factor} = 5 (default multiplier)
+\end{itemize}
+
+For example, in an 8-shot scenario: $N_{unlabeled} = 2 \times 8 \times 5 = 80$ unlabeled training nodes.
+
+This sampling strategy ensures that the model has access to substantial unlabeled context (typically 5× the labeled data) while maintaining computational efficiency. The unlabeled nodes provide crucial structural information for graph-based message passing and help the model learn better representations through the heterogeneous graph architecture.
+
+\subsection{Test Set Inclusion}
+
+All available test set instances are included in the graph construction process. This comprehensive inclusion ensures:
+\begin{itemize}
+    \item \textbf{Realistic evaluation}: Test nodes represent the complete range of evaluation scenarios
+    \item \textbf{Structural completeness}: The graph captures relationships between all relevant nodes
+    \item \textbf{Transductive learning}: Test nodes benefit from message passing without contributing to training loss
+\end{itemize}
+
+The test nodes are connected to training nodes through the chosen edge construction strategy (traditional KNN or test-isolated KNN) but remain isolated from loss computation during training, maintaining the integrity of the few-shot evaluation protocol.
+
 \section{Generative User Interaction Simulation}
 
 Traditional propagation-based fake news detection methods rely on real user interaction data, which is often unavailable due to privacy constraints or platform limitations. To address this fundamental limitation, we introduce a novel generative approach that synthesizes realistic user interactions using Large Language Models.
@@ -115,23 +159,9 @@ This approach ensures that performance estimates accurately reflect the model's 
 
 \subsection{Performance vs. Realism Trade-off Analysis}
 
-Our comprehensive experimental evaluation across GossipCop and PolitiFact datasets reveals consistent patterns in the performance trade-offs between these approaches:
+The choice between traditional KNN and test-isolated KNN involves important trade-offs between performance optimization and evaluation realism. Our experimental analysis reveals distinct patterns in how these approaches impact model effectiveness across different datasets and deployment scenarios.
 
-\textbf{GossipCop Results:}
-\begin{itemize}
-    \item Traditional KNN: Average F1 = 0.5849
-    \item Test-Isolated KNN: Average F1 = 0.5738
-    \item Performance difference: 1.9\% decrease with test isolation
-\end{itemize}
-
-\textbf{PolitiFact Results:}
-\begin{itemize}
-    \item Traditional KNN: Average F1 = 0.7815
-    \item Test-Isolated KNN: Average F1 = 0.7756
-    \item Performance difference: 0.8\% decrease with test isolation
-\end{itemize}
-
-These results demonstrate that test isolation imposes a modest but consistent performance penalty while providing more realistic evaluation conditions. The trade-off magnitude varies by dataset characteristics, with more complex datasets (GossipCop) showing larger performance gaps.
+Traditional KNN typically achieves higher performance by maximizing information flow through unrestricted connectivity, while test-isolated KNN provides more realistic evaluation conditions by enforcing stricter information boundaries. The magnitude of this performance trade-off varies by dataset characteristics and the complexity of the underlying classification task.
 
 \subsection{Deployment Context Decision Framework}
 
@@ -245,11 +275,7 @@ For each view $v \in \{1, 2, 3\}$, we apply the chosen graph construction strate
 
 The choice of edge construction strategy (KNN vs test-isolated KNN) is maintained consistently across all views to ensure methodological coherence. The diversity of edge connections across views ensures that the model learns to integrate multiple perspectives of similarity, forcing it to develop more robust and generalizable feature representations. Articles that appear similar in one semantic view may differ significantly in another, providing complementary information for classification.
 
-\subsection{Multi-Graph Training Strategy}
-
-During training, we process all three views simultaneously, computing separate message passing operations for each graph structure. The view-specific representations are combined through learned attention mechanisms that dynamically weight the importance of each perspective based on the classification task.
-
-This multi-graph approach serves as a form of data augmentation at the graph level, exposing the model to varied structural contexts that improve robustness and generalization. The diverse connectivity patterns help prevent overfitting to specific graph topologies and enhance the model's ability to handle different types of news content.
+During training, we process all three views simultaneously, computing separate message passing operations for each graph structure. The view-specific representations are combined through learned attention mechanisms that dynamically weight the importance of each perspective based on the classification task. This multi-view approach provides comprehensive semantic coverage while maintaining consistency across partitions.
 
 \section{Heterogeneous Graph Architecture}
 
