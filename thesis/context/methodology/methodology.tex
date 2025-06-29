@@ -252,7 +252,7 @@ This encoder selection provides the foundation for effective multi-view graph co
 
 \section{Multi-View Graph Construction}
 
-To capture diverse semantic perspectives within news content, we implement a multi-view learning framework (see Figure~\ref{fig:multi_view}) that partitions embeddings into complementary views and constructs separate graph structures for each perspective.
+To capture diverse semantic perspectives within news content, we implement a multi-view learning framework (see Figure~\ref{fig:multi_view}) that partitions embeddings into complementary views and constructs separate graph structures for each perspective. This approach addresses the limitation of single-view graph representations that may miss important semantic relationships captured in different embedding dimensions.
 
 \begin{figure}[h]
     \centering
@@ -261,27 +261,34 @@ To capture diverse semantic perspectives within news content, we implement a mul
     \label{fig:multi_view}
 \end{figure}
 
-\subsection{Embedding Dimension Splitting Strategy}
+\subsection{DeBERTa-Enabled Embedding Partitioning Strategy}
 
-Given DeBERTa embeddings of dimension $d = 768$, we partition each embedding vector into three equal subsets: $\mathbf{h}_i^{(1)}, \mathbf{h}_i^{(2)}, \mathbf{h}_i^{(3)} \in \mathbb{R}^{256}$ where $\mathbf{h}_i = [\mathbf{h}_i^{(1)}; \mathbf{h}_i^{(2)}; \mathbf{h}_i^{(3)}]$.
+Given DeBERTa embeddings of dimension $d = 768$, we partition each embedding vector into multiple equal subsets when multi-view construction is enabled (controlled by the \texttt{multi\_view} parameter in \texttt{HeteroGraphBuilder}). For three-view construction: $\mathbf{h}_i^{(1)}, \mathbf{h}_i^{(2)}, \mathbf{h}_i^{(3)} \in \mathbb{R}^{256}$ where $\mathbf{h}_i = [\mathbf{h}_i^{(1)}; \mathbf{h}_i^{(2)}; \mathbf{h}_i^{(3)}]$.
 
-This partitioning strategy is fundamentally enabled by DeBERTa's disentangled attention architecture, which creates natural organization within embedding dimensions. Each view captures different aspects of the semantic representation:
+This partitioning strategy is fundamentally enabled by DeBERTa's disentangled attention architecture, which creates natural organization within embedding dimensions. Unlike arbitrary dimensional splitting, DeBERTa's architectural design ensures that different dimensional ranges capture complementary semantic aspects:
 
-\textbf{View 1 (Dimensions 0-255):} Focuses on early embedding dimensions that typically encode syntactic patterns, surface-level linguistic features, and basic semantic relationships. These dimensions capture immediate lexical signals and structural patterns that are crucial for initial content assessment.
+\textbf{Early Dimensions (View 1):} Focus on syntactic patterns, surface-level linguistic features, and basic semantic relationships. These dimensions capture immediate lexical signals and structural patterns crucial for initial content assessment.
 
-\textbf{View 2 (Dimensions 256-511):} Captures semantic relationships, contextual dependencies, and mid-level discourse patterns. This middle partition leverages DeBERTa's enhanced position encoding to represent contextual relationships and thematic coherence.
+\textbf{Middle Dimensions (View 2):} Capture semantic relationships, contextual dependencies, and mid-level discourse patterns. This partition leverages DeBERTa's enhanced position encoding to represent contextual relationships and thematic coherence.
 
-\textbf{View 3 (Dimensions 512-767):} Represents higher-level abstractions, discourse-level information, and pragmatic content understanding. These later dimensions encode sophisticated linguistic patterns and meta-textual features that are particularly important for detecting subtle misinformation cues.
+\textbf{Later Dimensions (View 3):} Represent higher-level abstractions, discourse-level information, and pragmatic content understanding. These dimensions encode sophisticated linguistic patterns particularly important for detecting subtle misinformation cues.
 
-The effectiveness of this partitioning relies on DeBERTa's structured representation organization, where the disentangled attention mechanism ensures that different dimensional ranges capture complementary rather than redundant information aspects.
+\subsection{Implementation and Configuration Options}
 
-\subsection{View-specific Edge Construction}
+Our \texttt{HeteroGraphBuilder} implementation provides flexible multi-view configuration through the \texttt{multi\_view} parameter:
+\begin{itemize}
+\item \texttt{multi\_view = 0}: Single-view mode using complete 768-dimensional embeddings (default)
+\item \texttt{multi\_view = 3}: Three-view mode with 256-dimensional partitions
+\item \texttt{multi\_view = 2}: Two-view mode with 384-dimensional partitions
+\end{itemize}
 
-For each view $v \in \{1, 2, 3\}$, we apply the chosen graph construction strategy (traditional KNN or test-isolated KNN) using view-specific embeddings $\mathbf{h}_i^{(v)}$. This process generates three distinct graph structures $G^{(1)}, G^{(2)}, G^{(3)}$ where each graph emphasizes different semantic relationships between news articles.
+When multi-view mode is enabled, the graph construction process creates multiple edge sets based on view-specific similarity computations. Each view generates its own k-nearest neighbor connections, resulting in multiple graph structures that capture different semantic perspectives of the same news content.
 
-The choice of edge construction strategy (KNN vs test-isolated KNN) is maintained consistently across all views to ensure methodological coherence. The diversity of edge connections across views ensures that the model learns to integrate multiple perspectives of similarity, forcing it to develop more robust and generalizable feature representations. Articles that appear similar in one semantic view may differ significantly in another, providing complementary information for classification.
+\textbf{View-specific Edge Construction:} For each view $v \in \{1, 2, ..., V\}$, we apply the chosen graph construction strategy (traditional KNN or test-isolated KNN) using view-specific embeddings $\mathbf{h}_i^{(v)}$. This process generates distinct graph structures $G^{(1)}, G^{(2)}, ..., G^{(V)}$ where each graph emphasizes different semantic relationships between news articles.
 
-During training, we process all three views simultaneously, computing separate message passing operations for each graph structure. The view-specific representations are combined through learned attention mechanisms that dynamically weight the importance of each perspective based on the classification task. This multi-view approach provides comprehensive semantic coverage while maintaining consistency across partitions.
+The choice of edge construction strategy (KNN vs test-isolated KNN) is maintained consistently across all views to ensure methodological coherence. This consistency ensures that evaluation protocols remain valid across all semantic perspectives while enabling the model to learn complementary relationship patterns.
+
+\textbf{Multi-View Integration in Training:} During training, all views are processed simultaneously within the heterogeneous graph neural network architecture. The HAN attention mechanism learns to weight information from different views automatically, allowing the model to focus on the most informative semantic perspectives for the classification task. This approach provides comprehensive semantic coverage while maintaining the benefits of transductive learning across all view-specific graph structures.
 
 \section{Heterogeneous Graph Architecture}
 
@@ -328,22 +335,51 @@ The final node representation combines information from all edge types:
 
 \section{Loss Function Design and Training Strategy}
 
-\subsection{Cross-Entropy Loss for Few-Shot Learning}
+\subsection{Comprehensive Loss Function Framework}
 
-Based on extensive empirical evaluation, we found that a standard cross-entropy loss function provides optimal performance for few-shot fake news detection, eliminating the need for more complex loss combinations. This contrasts with recent work on contrastive learning~\cite{chen2020simple, gao2021simcse} and specialized few-shot learning losses~\cite{snell2017prototypical}. This finding simplifies the training process while maintaining superior performance across all experimental settings.
+Our training framework implements multiple loss function options to address different challenges in few-shot fake news detection. Rather than relying solely on standard cross-entropy loss, we provide a comprehensive set of loss functions specifically designed for few-shot learning scenarios, implemented through the \texttt{EnhancedLoss} class and specialized loss components.
 
-\textbf{Cross-Entropy Loss:} We employ the standard cross-entropy loss function for binary classification:
+\textbf{Cross-Entropy with Label Smoothing:} The default approach employs cross-entropy loss with label smoothing ($\alpha = 0.1$) to prevent overconfident predictions in few-shot scenarios:
 \begin{equation}
-\mathcal{L}_{ce} = -\sum_{i=1}^{N} \sum_{c=1}^{C} y_i(c) \log p_i(c)
+\mathcal{L}_{ce\_smooth} = -\sum_{i=1}^{N} \sum_{c=1}^{C} y_i^{smooth}(c) \log p_i(c)
+\end{equation}
+where $y_i^{smooth}(c) = (1-\alpha)y_i(c) + \alpha/C$ provides regularization that reduces overfitting to limited training examples.
+
+\textbf{Focal Loss for Class Imbalance:} To address potential class imbalance in few-shot scenarios, we implement Focal Loss with configurable $\gamma$ parameter:
+\begin{equation}
+\mathcal{L}_{focal} = -\alpha(1-p_t)^\gamma \log(p_t)
+\end{equation}
+where $p_t$ is the predicted probability for the true class, and $\gamma = 1.5$ focuses learning on hard examples.
+
+\textbf{Robust Few-Shot Loss:} Our custom \texttt{RobustFewShotLoss} combines multiple regularization strategies specifically for few-shot learning:
+\begin{equation}
+\mathcal{L}_{robust} = \mathcal{L}_{ce\_smooth} + \lambda_1 \mathcal{L}_{confidence} + \lambda_2 \mathcal{L}_{entropy}
 \end{equation}
 
-where $y_i(c)$ is the true label and $p_i(c)$ is the predicted probability for class $c$. The simplicity of this approach proves advantageous in few-shot scenarios where model complexity can lead to overfitting on limited training data.
+The confidence penalty $\mathcal{L}_{confidence} = \mathbb{E}[\max_c p_i(c)]$ discourages overconfident predictions, while entropy regularization $\mathcal{L}_{entropy} = -\mathbb{E}[\sum_c p_i(c) \log p_i(c)]$ encourages prediction diversity. The weights $\lambda_1 = 0.1$ and $\lambda_2 = 0.05$ are empirically tuned for few-shot scenarios.
 
-\subsection{Transductive Learning Framework}
+\textbf{Enhanced Multi-Component Loss:} The \texttt{enhanced} loss type combines cross-entropy, focal loss, and contrastive learning components:
+\begin{equation}
+\mathcal{L}_{enhanced} = \mathcal{L}_{ce\_smooth} + \lambda_{focal} \mathcal{L}_{focal} + \lambda_{contrastive} \mathcal{L}_{contrastive}
+\end{equation}
 
-Our training strategy follows a transductive learning paradigm where all nodes participate in message passing, but only labeled nodes contribute to the loss computation. This approach leverages the power of graph neural networks~\cite{wu2020comprehensive, bronstein2017geometric} for semi-supervised learning scenarios. This approach maximizes the utility of unlabeled data by allowing the model to learn better feature representations through graph structure exploration.
+The contrastive component uses InfoNCE loss to encourage similar representations for same-class instances while pushing apart different-class examples, implemented through our \texttt{ContrastiveLoss} class with temperature scaling and numerical stability enhancements.
 
-Training proceeds for a maximum of 300 epochs with early stopping based on validation performance. We employ two stopping criteria: (1) patience-based early stopping when validation performance plateaus, and (2) validation loss threshold stopping when validation loss drops below 0.3, indicating sufficient model convergence. We employ the Adam optimizer with learning rate $5 \times 10^{-4}$ and weight decay $1 \times 10^{-3}$ to prevent overfitting in few-shot scenarios.
+\subsection{Training Strategy and Optimization}
+
+Our training strategy follows a transductive learning paradigm specifically optimized for few-shot scenarios. The implementation in \texttt{train\_hetero\_graph.py} provides comprehensive early stopping mechanisms and adaptive learning strategies.
+
+\textbf{Transductive Learning Framework:} All nodes participate in message passing, but only labeled nodes contribute to loss computation. This approach maximizes the utility of unlabeled data by allowing the model to learn better feature representations through graph structure exploration, critical for few-shot performance where every piece of information must be utilized effectively.
+
+\textbf{Enhanced Early Stopping:} We implement dual early stopping criteria to prevent overfitting in few-shot scenarios:
+\begin{enumerate}
+\item \emph{Patience-based stopping}: Training halts when validation performance plateaus for 30 consecutive epochs, indicating convergence or overfitting onset.
+\item \emph{Validation loss threshold}: Training stops when validation loss drops below 0.3, indicating sufficient model convergence for the dataset complexity.
+\end{enumerate}
+
+Training proceeds for a maximum of 300 epochs with the Adam optimizer using learning rate $5 \times 10^{-4}$ and weight decay $1 \times 10^{-3}$. These hyperparameters are specifically tuned for few-shot learning scenarios where aggressive regularization is crucial to prevent overfitting to limited labeled examples.
+
+\textbf{Model Architecture Selection:} Our framework supports multiple heterogeneous graph neural network architectures (HAN, HGT, HeteroGAT) with configurable parameters. Based on empirical evaluation, Heterogeneous Attention Networks (HAN) with single-layer configuration provide optimal performance for few-shot fake news detection, balancing model capacity with overfitting prevention.
 
 % ------------------------------------------------
 \EndChapter
