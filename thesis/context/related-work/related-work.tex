@@ -128,19 +128,34 @@ These limitations highlight the potential of using LLMs as auxiliary components 
 
 \section{Few-Shot Learning in NLP}
 
-Few-shot learning has emerged as a critical research area in natural language processing, with several approaches showing promise for text classification tasks including fake news detection.
+Few-shot learning has emerged as a critical research area in natural language processing, representing a paradigm shift from traditional machine learning approaches that require extensive labeled datasets. In few-shot scenarios, models must achieve strong performance with minimal supervision, making them particularly relevant for real-world applications where labeling is expensive or impractical.
+
+\subsection{Few-Shot Learning Fundamentals}
+
+\textbf{Formal Definition:} Few-shot learning is a machine learning framework where an AI model learns to make accurate predictions by training on a very small number of labeled examples per class. Formally, given a support set $\mathcal{S} = \{(x_i, y_i)\}_{i=1}^{K \times N}$ containing $K$ labeled examples for each of $N$ classes, the objective is to learn a classifier $f: \mathcal{X} \rightarrow \mathcal{Y}$ that can accurately predict labels for a query set $\mathcal{Q} = \{x_j\}_{j=1}^{M}$.
+
+\textbf{N-way K-shot Classification:} The standard formulation for few-shot learning is N-way K-shot classification, where $N$ represents the number of classes and $K$ denotes the number of labeled examples per class. In fake news detection tasks, researchers typically focus on 2-way K-shot learning with $K \in \{3, 4, 8, 16\}$, where the two classes represent real and fake news respectively.
+
+\textbf{Core Challenges:} Few-shot learning presents several fundamental challenges that differentiate it from conventional machine learning:
+
+\begin{itemize}
+\item \textbf{Limited Training Data:} Traditional deep learning requires thousands of labeled examples per class to achieve good performance. In few-shot scenarios with only 3-16 examples per class, models are highly prone to overfitting and struggle to learn generalizable patterns.
+\item \textbf{High Variance:} The limited sample size leads to high variance in performance estimates. Small changes in the support set can dramatically affect model performance, making robust evaluation protocols crucial for reliable results.
+\item \textbf{Domain Shift:} Models trained on few examples from specific domains often fail to generalize to new domains or emerging patterns not represented in the limited training data.
+\item \textbf{Evaluation Challenges:} Proper evaluation of few-shot learning systems requires careful experimental design to avoid information leakage and ensure that performance estimates reflect real-world deployment scenarios.
+\end{itemize}
 
 \subsection{Meta-Learning Approaches}
 
 \textbf{Model-Agnostic Meta-Learning (MAML):} MAML and its variants learn initialization parameters that can be quickly adapted to new tasks with minimal data \cite{finn2017model, bansal2020self}. In the context of fake news detection, meta-learning approaches attempt to learn general misinformation detection capabilities that can transfer to new domains or topics with few examples.
 
-However, meta-learning approaches typically require extensive meta-training data from multiple related tasks, which may not be available for fake news detection. Additionally, these methods often struggle with the high variability in misinformation patterns across different domains and topics.
+The key insight is to learn how to learn rather than learning specific task solutions. However, meta-learning approaches typically require extensive meta-training data from multiple related tasks, which may not be available for fake news detection. Additionally, these methods often struggle with the high variability in misinformation patterns across different domains and topics.
 
 \textbf{Prototypical Networks:} Prototypical networks learn to classify examples based on their distance to class prototypes computed from support examples \cite{snell2017prototypical, gao2019fewrel}. These approaches show promise for few-shot text classification by learning meaningful embedding spaces where similar examples cluster together.
 
-While prototypical approaches avoid the need for extensive meta-training, they still struggle with the high dimensionality and semantic complexity of news articles, often failing to learn discriminative prototypes from few examples.
+Metric learning approaches learn embedding spaces where examples from the same class are close together and examples from different classes are far apart. Classification is performed by comparing query examples to support set prototypes. While prototypical approaches avoid the need for extensive meta-training, they still struggle with the high dimensionality and semantic complexity of news articles, often failing to learn discriminative prototypes from few examples.
 
-\subsection{Contrastive Learning Methods}
+\subsection{Contrastive Learning and Data Augmentation}
 
 \textbf{SimCLR and Variants:} Contrastive learning approaches learn representations by maximizing similarity between positive pairs and minimizing similarity between negative pairs \cite{chen2020simple, gao2021simcse}. In fake news detection, these methods attempt to learn representations where real news articles are similar to each other and different from fake news articles.
 
@@ -149,6 +164,87 @@ Contrastive approaches show promise for learning robust representations from lim
 \textbf{Data Augmentation Strategies:} Various data augmentation techniques have been explored for few-shot fake news detection, including back-translation, paraphrasing, and adversarial perturbations \cite{longpre2020effective, kumar2020data}. These approaches attempt to increase the effective size of the training set by generating synthetic examples.
 
 While data augmentation can help address data scarcity, synthetic examples may not capture the full complexity of real misinformation patterns and can sometimes introduce biases that hurt generalization performance.
+
+\section{Graph Neural Networks for Fake News Detection}
+
+Graph Neural Networks have emerged as a powerful paradigm for modeling structured data, with particular success in text classification tasks where relationships between documents provide valuable signal for classification. In the context of fake news detection, GNNs enable modeling of complex relationships between news articles, user interactions, and other entities.
+
+\subsection{Message Passing Framework}
+
+\textbf{Core Principle:} GNNs operate on the message passing framework where nodes iteratively update their representations by aggregating information from neighboring nodes. This process enables the model to capture both local neighborhood information and global graph structure through multiple iterations.
+
+\textbf{General Formulation:} The message passing framework can be described through three key operations:
+
+1. \textbf{Message Function:} $m_{ij}^{(l+1)} = M^{(l)}(h_i^{(l)}, h_j^{(l)}, e_{ij})$ computes messages between connected nodes, where $h_i^{(l)}$ represents the feature vector of node $i$ at layer $l$, and $e_{ij}$ represents edge features.
+
+2. \textbf{Aggregation Function:} $a_i^{(l+1)} = A^{(l)}(\{m_{ij}^{(l+1)} : j \in \mathcal{N}(i)\})$ aggregates messages from all neighbors $\mathcal{N}(i)$ of node $i$.
+
+3. \textbf{Update Function:} $h_i^{(l+1)} = U^{(l)}(h_i^{(l)}, a_i^{(l+1)})$ updates the node representation based on its current state and aggregated messages.
+
+\textbf{Multi-Layer Architecture:} Multiple message passing layers enable nodes to receive information from increasingly distant neighbors, allowing the model to capture both local patterns and global graph structure.
+
+\subsection{Heterogeneous Graph Neural Networks}
+
+Real-world data often exhibits heterogeneous structure with multiple node types and edge types, requiring specialized architectures beyond homogeneous graph neural networks. Heterogeneous graphs provide richer modeling capabilities for complex domains like fake news detection where multiple entity types interact.
+
+\textbf{Heterogeneous Graph Definition:} A heterogeneous graph $G = (V, E, \mathcal{A}, \mathcal{R})$ consists of:
+\begin{itemize}
+\item Node set $V$ with node type mapping $\phi: V \rightarrow \mathcal{A}$
+\item Edge set $E$ with edge type mapping $\psi: E \rightarrow \mathcal{R}$  
+\item Node type set $\mathcal{A}$ with $|\mathcal{A}| > 1$
+\item Edge type set $\mathcal{R}$ with $|\mathcal{R}| > 1$
+\end{itemize}
+
+where nodes and edges of the same type share similar properties and semantic meanings.
+
+\textbf{Meta-Path Concept:} A meta-path $P$ is a path defined on the graph schema and describes a composite relation between node types. For example, in a fake news detection graph, a meta-path "News $\rightarrow$ Interaction $\rightarrow$ News" captures how news articles relate through shared interaction patterns.
+
+\subsection{Heterogeneous Graph Attention Networks}
+
+Heterogeneous Graph Attention Networks (HAN) address the challenges of modeling heterogeneous graphs through a hierarchical attention mechanism that operates at both node and semantic levels \cite{wang2019heterogeneous}.
+
+\textbf{Node-Level Attention:} For each meta-path $\Phi_i$, HAN computes attention weights between connected nodes to identify important neighbors:
+\begin{equation}
+e_{ij}^{\Phi_i} = \text{att}_{\text{node}}(Wh_i, Wh_j)
+\end{equation}
+\begin{equation}
+\alpha_{ij}^{\Phi_i} = \text{softmax}_j(e_{ij}^{\Phi_i}) = \frac{\exp(e_{ij}^{\Phi_i})}{\sum_{k \in \mathcal{N}_i^{\Phi_i}} \exp(e_{ik}^{\Phi_i})}
+\end{equation}
+
+where $W$ is a type-specific transformation matrix, and $\mathcal{N}_i^{\Phi_i}$ represents the neighbors of node $i$ under meta-path $\Phi_i$.
+
+\textbf{Semantic-Level Attention:} HAN then applies semantic-level attention to combine information across different meta-paths:
+\begin{equation}
+w_i^{\Phi_i} = \frac{1}{|\mathcal{V}|} \sum_{i \in \mathcal{V}} q^T \tanh(W_s \mathbf{z}_i^{\Phi_i} + b_s)
+\end{equation}
+\begin{equation}
+\beta^{\Phi_i} = \text{softmax}(w^{\Phi_i}) = \frac{\exp(w^{\Phi_i})}{\sum_{j=1}^P \exp(w^{\Phi_j})}
+\end{equation}
+
+where $W_s$ and $q$ are learnable parameters, and $P$ is the number of meta-paths.
+
+\textbf{Final Node Representation:} The complete node representation combines information from all meta-paths:
+\begin{equation}
+\mathbf{z}_i = \sum_{j=1}^P \beta^{\Phi_j} \mathbf{z}_i^{\Phi_j}
+\end{equation}
+
+\textbf{Advantages of HAN Architecture:} The hierarchical attention mechanism provides several key advantages for fake news detection:
+\begin{enumerate}
+\item \textbf{Flexible Relationship Modeling:} Can capture different types of relationships (content similarity, social interactions, temporal patterns) through appropriate meta-path design
+\item \textbf{Interpretability:} Attention weights provide insights into which neighbors and relationship types are most important for classification decisions  
+\item \textbf{Scalability:} The architecture can efficiently handle large heterogeneous graphs with many node and edge types
+\item \textbf{Adaptability:} The framework can be easily extended to incorporate new node types or relationship types as they become available
+\end{enumerate}
+
+\subsection{Graph Construction Strategies}
+
+\textbf{Document Graphs:} For text classification, documents are typically represented as nodes in a graph, with edges indicating various types of relationships such as semantic similarity, citation links, or co-occurrence patterns.
+
+\textbf{Similarity-Based Construction:} The most common approach constructs edges between documents based on content similarity measures such as cosine similarity of embedding vectors. Documents with similarity above a threshold or among the top-k nearest neighbors are connected.
+
+\textbf{Heterogeneous Graphs:} More sophisticated approaches construct heterogeneous graphs that include multiple node types (documents, words, authors, topics) and edge types (document-document, document-word, word-word), enabling richer modeling of text relationships.
+
+\textbf{Dynamic Graph Construction:} Advanced methods adapt graph structure during training or inference, allowing the model to learn optimal connectivity patterns rather than relying on fixed similarity measures.
 
 \section{Limitations of Existing Methods}
 
