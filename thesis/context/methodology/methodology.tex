@@ -275,7 +275,7 @@ For each view $v \in \{1, 2, 3\}$, we apply the chosen graph construction strate
 
 The choice of edge construction strategy (KNN vs test-isolated KNN) is maintained consistently across all views to ensure methodological coherence. The diversity of edge connections across views ensures that the model learns to integrate multiple perspectives of similarity, forcing it to develop more robust and generalizable feature representations. Articles that appear similar in one semantic view may differ significantly in another, providing complementary information for classification.
 
-During training, we process all three views simultaneously, computing separate message passing operations for each graph structure. The view-specific representations are combined through learned attention mechanisms that dynamically weight the importance of each perspective based on the classification task. This multi-view approach provides comprehensive data augmentation at the graph level while maintaining semantic consistency across partitions.
+During training, we process all three views simultaneously, computing separate message passing operations for each graph structure. The view-specific representations are combined through learned attention mechanisms that dynamically weight the importance of each perspective based on the classification task. This multi-view approach provides comprehensive semantic coverage while maintaining consistency across partitions.
 
 \section{Heterogeneous Graph Architecture}
 
