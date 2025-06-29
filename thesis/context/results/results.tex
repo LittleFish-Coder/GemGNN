@@ -111,7 +111,6 @@ GemGNN (Full) & 0.83 & - \\
 w/o Generative Interactions & 0.78 & -0.05 \\
 w/o Test-Isolated KNN & 0.76 & -0.07 \\
 w/o Multi-View & 0.80 & -0.03 \\
-w/o Multi-Graph & 0.81 & -0.02 \\
 w/o Enhanced Loss & 0.79 & -0.04 \\
 \midrule
 Baseline (No components) & 0.71 & -0.12 \\
@@ -124,8 +123,6 @@ Baseline (No components) & 0.71 & -0.12 \\
 \textbf{Test-Isolated KNN:} The most significant performance drop (-0.07) occurs when removing the test isolation constraint, highlighting the critical importance of preventing information leakage between test nodes. Traditional KNN approaches overestimate performance by allowing unrealistic information sharing.
 
 \textbf{Multi-View Construction:} The multi-view approach contributes 0.03 F1-score improvement by capturing diverse semantic perspectives within news embeddings. This component helps the model learn more robust representations by considering multiple similarity views.
-
-\textbf{Multi-Graph Training:} Multi-graph training provides a 0.02 improvement through graph-level data augmentation. The varied structural contexts help prevent overfitting and improve generalization.
 
 \textbf{Enhanced Loss Functions:} The combination of label smoothing and focal loss contributes 0.04 improvement by addressing few-shot learning challenges and class imbalance issues.
 
