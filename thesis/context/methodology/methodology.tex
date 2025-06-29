@@ -4,7 +4,7 @@
 
 \section{Framework Overview}
 
-The GemGNN (Generative Multi-view Interaction Graph Neural Networks) framework addresses the fundamental challenges of few-shot fake news detection through a novel heterogeneous graph-based approach that eliminates dependency on user propagation data while maintaining the benefits of social context modeling. The complete architecture consists of four interconnected components that work synergistically to achieve robust few-shot performance (see Figure~\ref{fig:pipeline}): (1) Generative User Interaction Simulation, (2) Adaptive Graph Construction (KNN vs Test-Isolated KNN), (3) Multi-View Graph Architecture, and (4) Heterogeneous Graph Neural Network with Enhanced Training.
+The GemGNN (Generative Multi-view Interaction Graph Neural Networks) framework addresses the fundamental challenges of few-shot fake news detection through a novel heterogeneous graph-based approach that eliminates dependency on user propagation data while maintaining the benefits of social context modeling. Our architecture represents a systematic solution to three critical limitations in existing approaches: (1) the unavailability of real user interaction data due to privacy constraints, (2) the poor performance of existing methods in few-shot scenarios, and (3) the lack of rigorous evaluation protocols that prevent information leakage between training and test sets.
 
 \begin{figure}[h]
     \centering
@@ -13,46 +13,44 @@ The GemGNN (Generative Multi-view Interaction Graph Neural Networks) framework a
     \label{fig:pipeline}
 \end{figure}
 
-The framework operates under a transductive learning paradigm where all nodes (labeled, unlabeled, and test) participate in heterogeneous message passing, but only labeled nodes contribute to loss computation. This approach maximizes the utility of limited supervision by leveraging the heterogeneous graph structure to propagate information from labeled news nodes to unlabeled and test nodes through learned type-specific attention mechanisms. The choice between traditional KNN and test-isolated KNN allows for flexible adaptation to different deployment scenarios while maintaining consistent architectural principles.
+The complete architecture consists of four interconnected components that work synergistically to achieve robust few-shot performance (see Figure~\ref{fig:pipeline}): (1) \emph{Generative User Interaction Simulation} using Google's Gemini LLM to create realistic social context without privacy concerns, (2) \emph{Adaptive Graph Construction} with configurable edge policies (traditional KNN vs test-isolated KNN) to balance performance optimization with evaluation realism, (3) \emph{Multi-View Graph Architecture} that leverages DeBERTa's disentangled attention structure to capture complementary semantic perspectives, and (4) \emph{Heterogeneous Graph Neural Network} with enhanced training strategies specifically designed for few-shot learning scenarios.
 
-% Comment: The transductive approach is particularly important for few-shot scenarios where every piece of information must be maximally utilized
+\textbf{Core Design Philosophy:} Our approach operates under a transductive learning paradigm where all nodes (labeled, unlabeled, and test) participate in heterogeneous message passing, but only labeled nodes contribute to loss computation. This design philosophy maximizes the utility of limited supervision by leveraging the heterogeneous graph structure to propagate information from labeled news nodes to unlabeled and test nodes through learned type-specific attention mechanisms. The framework maintains strict separation between training and test data when required, while allowing flexible adaptation to different deployment scenarios through configurable graph construction policies.
 
-Our approach begins with pre-trained DeBERTa embeddings~\cite{he2021deberta} for news articles, which provide rich semantic representations (768-dimensional vectors) that capture contextual relationships and linguistic patterns indicative of misinformation. These embeddings serve as the foundation for both similarity-based graph construction and node feature initialization in our heterogeneous graph neural network, ensuring that the model can leverage state-of-the-art natural language understanding capabilities.
+\textbf{Implementation Architecture:} The framework is implemented through two primary components that reflect our systematic approach to heterogeneous graph construction and training. The \texttt{HeteroGraphBuilder} class (implemented in \texttt{build\_hetero\_graph.py}) handles the complete pipeline from news article processing through heterogeneous graph construction, while the training pipeline (implemented in \texttt{train\_hetero\_graph.py}) provides specialized few-shot learning strategies including enhanced loss functions, early stopping criteria, and comprehensive evaluation protocols.
 
-The key innovation lies in creating a heterogeneous graph structure that includes both news nodes (representing articles) and interaction nodes (representing synthetic user responses), connected through multiple edge types that capture different semantic relationships. This heterogeneous structure enables the model to learn from both content similarity patterns and social interaction patterns without requiring real user data, addressing privacy constraints while maintaining modeling flexibility.
+Our approach begins with pre-trained DeBERTa embeddings~\cite{he2021deberta} for news articles, which provide rich semantic representations (768-dimensional vectors) that capture contextual relationships and linguistic patterns indicative of misinformation. These embeddings serve as the foundation for both similarity-based graph construction and node feature initialization in our heterogeneous graph neural network, ensuring that the model can leverage state-of-the-art natural language understanding capabilities within the graph-based architecture.
 
 \section{Dataset Sampling Strategy}
 
-A critical aspect of our methodology is the systematic approach to sampling training data that ensures balanced and effective few-shot learning. Our sampling strategy is designed to maximize the utility of limited labeled data while providing sufficient unlabeled context for effective transductive learning.
+A critical aspect of our methodology is the systematic approach to sampling training data that ensures balanced and effective few-shot learning. Our sampling strategy is designed to maximize the utility of limited labeled data while providing sufficient unlabeled context for effective transductive learning. The implementation in \texttt{HeteroGraphBuilder} provides multiple sampling configurations to address different few-shot learning scenarios and deployment constraints.
 
 \subsection{Labeled Node Sampling}
 
-For k-shot learning scenarios, we sample exactly k labeled examples per class from the training set, following established few-shot learning protocols~\cite{wang2020fewshot, finn2017model}. Specifically:
+For k-shot learning scenarios, we sample exactly k labeled examples per class from the training set, following established few-shot learning protocols~\cite{wang2020fewshot, finn2017model}. The sampling process uses the \texttt{sample\_k\_shot} utility function to ensure balanced representation:
 \begin{itemize}
-    \item \textbf{k real news articles}: Selected randomly from authentic news samples
-    \item \textbf{k fake news articles}: Selected randomly from misinformation samples  
+    \item \textbf{k real news articles}: Selected randomly from authentic news samples using stratified sampling
+    \item \textbf{k fake news articles}: Selected randomly from misinformation samples with matched sampling
 \end{itemize}
 
-This balanced sampling ensures that the model receives equal representation from both classes during training, which is crucial for effective few-shot learning where class imbalance can severely impact performance.
+This balanced sampling ensures that the model receives equal representation from both classes during training, which is crucial for effective few-shot learning where class imbalance can severely impact performance. Our implementation supports k-shot values ranging from 3 to 16, with 8-shot being the primary evaluation setting based on empirical validation.
 
-\subsection{Unlabeled Node Sampling}
+\subsection{Unlabeled Node Sampling with Multiple Strategies}
 
-To leverage the transductive learning paradigm effectively, we sample additional unlabeled training nodes that participate in message passing but do not contribute to loss computation. The number of unlabeled nodes is determined by:
+To leverage the transductive learning paradigm effectively, we implement multiple strategies for sampling additional unlabeled training nodes that participate in message passing but do not contribute to loss computation. The \texttt{HeteroGraphBuilder} supports three distinct unlabeled sampling approaches:
 
+\textbf{Standard Uniform Sampling:} The default approach samples unlabeled nodes uniformly from the remaining training set. The number of unlabeled nodes is determined by:
 \begin{equation}
 N_{unlabeled} = \text{num\_classes} \times k \times \text{sample\_unlabeled\_factor}
 \end{equation}
 
-Where:
-\begin{itemize}
-    \item \textbf{num\_classes} = 2 (real and fake news)
-    \item \textbf{k} = number of shots per class  
-    \item \textbf{sample\_unlabeled\_factor} = 5 (default multiplier)
-\end{itemize}
+Where \texttt{sample\_unlabeled\_factor} defaults to 5, creating substantial unlabeled context (e.g., 80 unlabeled nodes in an 8-shot scenario: $2 \times 8 \times 5 = 80$).
 
-For example, in an 8-shot scenario: $N_{unlabeled} = 2 \times 8 \times 5 = 80$ unlabeled training nodes.
+\textbf{Pseudo-Label-Aware Sampling:} When \texttt{pseudo\_label=True}, the system employs confidence-based sampling that leverages pre-computed pseudo-labels and confidence scores. This approach sorts unlabeled instances by prediction confidence within each pseudo-label group and samples the most confident examples. The pseudo-label cache system (\texttt{pseudo\_label\_cache\_path}) enables consistent sampling across multiple experimental runs.
 
-This sampling strategy ensures that the model has access to substantial unlabeled context (typically 5× the labeled data) while maintaining computational efficiency. The unlabeled nodes provide crucial structural information for graph-based message passing and help the model learn better representations through the heterogeneous graph architecture.
+\textbf{Partial Unlabeled Sampling:} The \texttt{partial\_unlabeled} flag enables selective unlabeled sampling that focuses on high-quality instances based on embedding similarity to labeled examples. This strategy improves graph connectivity quality by ensuring that unlabeled nodes provide meaningful structural information for message passing.
+
+This comprehensive sampling strategy ensures that the model has access to substantial unlabeled context while maintaining computational efficiency. The unlabeled nodes provide crucial structural information for graph-based message passing and help the model learn better representations through the heterogeneous graph architecture.
 
 \subsection{Test Set Inclusion}
 
@@ -67,52 +65,60 @@ The test nodes are connected to training nodes through the chosen edge construct
 
 \section{Generative User Interaction Simulation}
 
-Traditional propagation-based fake news detection methods rely on real user interaction data, which is often unavailable due to privacy constraints or platform limitations. To address this fundamental limitation, we introduce a novel generative approach that synthesizes realistic user interactions using Large Language Models.
+Traditional propagation-based fake news detection methods rely on real user interaction data, which is often unavailable due to privacy constraints or platform limitations. To address this fundamental limitation, we introduce a novel generative approach that synthesizes realistic user interactions using Google's Gemini LLM. This approach represents a paradigm shift from dependency on actual social media data to controlled synthesis of social context.
 
-\subsection{LLM-based Interaction Generation}
+\subsection{Gemini-based Interaction Generation Pipeline}
 
-We employ Google's Gemini LLM to generate diverse user interactions for each news article. This approach addresses the limitations of traditional propagation-based methods~\cite{ma2016detecting, shu2017fake} that require real user interaction data. The generation process is designed to simulate authentic user responses that would naturally occur in social media environments. For each news article $n_i$, we generate a set of user interactions $I_i = \{i_1, i_2, \ldots, i_{20}\}$ where each interaction represents a potential user response to the news content.
+We employ Google's Gemini LLM through a systematic prompt engineering strategy to generate diverse user interactions for each news article. This approach addresses the limitations of traditional propagation-based methods~\cite{ma2016detecting, shu2017fake} that require real user interaction data. The generation process is designed to simulate authentic user responses that would naturally occur in social media environments, capturing the diversity of user reactions without privacy or access constraints.
 
-The prompt engineering strategy (see Figure~\ref{fig:prompt}) ensures that generated interactions reflect realistic user behavior patterns observed in social media platforms. We incorporate the complete news content, including headlines and article body, to generate contextually appropriate responses that capture various user perspectives and emotional reactions.
+For each news article $n_i$, we generate a set of user interactions $I_i = \{i_1, i_2, \ldots, i_{20}\}$ where each interaction represents a potential user response to the news content. The choice of 20 interactions per article balances computational efficiency with sufficient diversity to capture varied user perspectives. This systematic approach ensures consistent social context generation across all news articles in our datasets.
+
+The prompt engineering strategy (see Figure~\ref{fig:prompt}) ensures that generated interactions reflect realistic user behavior patterns observed in social media platforms. We incorporate the complete news content, including headlines and article body, to generate contextually appropriate responses that capture various user perspectives and emotional reactions. The prompts are specifically designed to instruct Gemini to produce responses that vary in tone, perspective, and engagement level, mimicking the natural diversity of social media interactions.
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.5\textwidth]{context/methodology/fig/prompt.png}
-    \caption{Prompt engineering strategy}
+    \caption{Prompt engineering strategy for Gemini-based interaction generation}
     \label{fig:prompt}
 \end{figure}
 
+\textbf{Technical Implementation:} Our implementation leverages Google's Vertex AI platform to access Gemini models, ensuring reliable and scalable interaction generation. The generation process includes safety filtering and content quality checks to ensure that generated interactions maintain appropriate tone and relevance to the source articles. Each interaction is generated independently to ensure diversity, while maintaining semantic coherence with the corresponding news content.
+
 \subsection{Multi-tone Interaction Design}
 
-To capture the diversity of user reactions to news content, we implement a structured multi-tone generation strategy (see Figure~\ref{fig:interaction-generation}) with 20 interactions per article that produces interactions across three distinct emotional categories:
+To capture the diversity of user reactions to news content, we implement a structured multi-tone generation strategy (see Figure~\ref{fig:interaction-generation}) that produces 20 interactions per article across three distinct emotional categories. This systematic approach ensures comprehensive coverage of the user response spectrum observed in real social media environments.
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.8\textwidth]{context/methodology/fig/user_interaction_generation.png}
-    \caption{Multi-tone interaction generation strategy}
+    \caption{Multi-tone interaction generation strategy with Gemini LLM}
     \label{fig:interaction-generation}
 \end{figure}
 
-\textbf{Neutral Interactions (8 per article):} These represent objective, factual responses that focus on information sharing without emotional bias. Neutral interactions typically include questions for clarification, requests for additional sources, or straightforward restatements of key facts.
+\textbf{Neutral Interactions (8 per article):} These represent objective, factual responses that focus on information sharing without emotional bias. Neutral interactions typically include questions for clarification, requests for additional sources, or straightforward restatements of key facts. These interactions reflect users who engage with news content in an analytical manner, seeking to understand rather than react emotionally.
 
-\textbf{Affirmative Interactions (7 per article):} These capture supportive or agreeable responses from users who accept the news content as credible. Affirmative interactions include expressions of agreement, sharing intentions, and positive emotional responses.
+\textbf{Affirmative Interactions (7 per article):} These capture supportive or agreeable responses from users who accept the news content as credible. Affirmative interactions include expressions of agreement, sharing intentions, positive emotional responses, and statements that reinforce the news narrative. These responses simulate users who find the content convincing and align with its presented perspective.
 
-\textbf{Skeptical Interactions (5 per article):} These represent critical or questioning responses from users who doubt the veracity of the news content. Skeptical interactions include challenges to facts, requests for verification, and expressions of disbelief or concern.
+\textbf{Skeptical Interactions (5 per article):} These represent critical or questioning responses from users who doubt the veracity of the news content. Skeptical interactions include challenges to facts, requests for verification, expressions of disbelief or concern, and alternative perspective presentations. These responses are crucial for capturing the critical evaluation process that characterizes careful news consumption.
 
-This distribution (8:7:5) reflects observed patterns in real social media interactions where neutral responses predominate, followed by supportive reactions, with skeptical responses being less common but highly informative for authenticity assessment.
+The distribution (8:7:5 for neutral:affirmative:skeptical) reflects observed patterns in real social media interactions where neutral responses predominate, followed by supportive reactions, with skeptical responses being less common but highly informative for authenticity assessment. This distribution was empirically determined through analysis of social media response patterns and provides balanced representation across interaction types.
 
-\subsection{Interaction-News Edge Construction}
+\subsection{Interaction-News Edge Construction with Tone Encoding}
 
-Each generated interaction is embedded using the VertexAI text-embedding-005 model. The interactions are connected to their corresponding news articles through directed edges that carry tone information as edge attributes (see Figure~\ref{fig:news_interaction_node}).
+Each generated interaction is embedded using the VertexAI text-embedding-005 model, ensuring consistency with the DeBERTa embeddings used for news articles. The interactions are connected to their corresponding news articles through directed edges that carry tone information as edge attributes (see Figure~\ref{fig:news_interaction_node}).
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.5\textwidth]{context/methodology/fig/news_interaction_node.png}
-    \caption{Interaction-News edge construction}
+    \caption{Interaction-News edge construction with tone-specific attributes}
     \label{fig:news_interaction_node}
 \end{figure}
 
-Formally, for each news article $n_i$ and its generated interactions $I_i$, we create edges $(n_i, i_j)$ where the edge attribute $a_{ij}$ encodes the interaction tone: $a_{ij} \in \{0, 1, 2\}$ representing neutral, affirmative, and skeptical tones respectively. This encoding allows the heterogeneous graph attention network to learn tone-specific importance weights during message aggregation.
+Formally, for each news article $n_i$ and its generated interactions $I_i$, we create directed edges $(n_i, i_j)$ where the edge attribute $a_{ij}$ encodes the interaction tone: $a_{ij} \in \{0, 1, 2\}$ representing neutral, affirmative, and skeptical tones respectively. This encoding allows the heterogeneous graph attention network to learn tone-specific importance weights during message aggregation.
+
+\textbf{Implementation Details:} Our \texttt{HeteroGraphBuilder} implementation supports two edge construction modes for interaction-news relationships: \texttt{edge\_attr} mode (default) that uses edge attributes to encode tone information, and \texttt{edge\_type} mode that creates separate edge types for each interaction tone. The \texttt{edge\_attr} mode proves more effective for few-shot learning as it allows the attention mechanism to learn continuous importance weights for different tones rather than discrete type-specific parameters.
+
+The bidirectional nature of interaction-news relationships (both news-to-interaction and interaction-to-news edges) enables comprehensive information flow where news content influences interaction representation and interaction patterns inform news classification. This bidirectional design is crucial for the heterogeneous attention mechanism to effectively integrate social context into news authenticity assessment.
 
 \section{Graph Construction Methodologies: KNN vs Test-Isolated KNN}
 
