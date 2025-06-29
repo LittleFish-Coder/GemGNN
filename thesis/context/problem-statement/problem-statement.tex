@@ -67,18 +67,19 @@ The core challenges that motivate this research include:
 
 \textbf{Learning Objective:} Given the heterogeneous graph $G$ and support set $\mathcal{S}$, learn a function $f_{\theta}: G \rightarrow [0,1]^{|V_n|}$ that predicts the probability of each news node being fake.
 
-\textbf{Loss Function:} The training objective combines multiple loss components to address few-shot learning challenges:
+\textbf{Loss Function:} The training objective employs a standard cross-entropy loss function optimized for few-shot learning scenarios:
 \begin{equation}
-\mathcal{L}_{total} = \mathcal{L}_{CE}(f_{\theta}(G), \mathcal{S}) + \lambda_{focal} \mathcal{L}_{focal}(f_{\theta}(G), \mathcal{S}) + \lambda_{reg} \mathcal{L}_{reg}(\theta)
+\mathcal{L}_{total} = \mathcal{L}_{CE}(f_{\theta}(G), \mathcal{S}) + \lambda_{reg} \mathcal{L}_{reg}(\theta)
 \end{equation}
 
 where:
 \begin{itemize}
-\item $\mathcal{L}_{CE}$ is the cross-entropy loss with label smoothing
-\item $\mathcal{L}_{focal}$ is the focal loss for handling class imbalance
+\item $\mathcal{L}_{CE}$ is the cross-entropy loss function
 \item $\mathcal{L}_{reg}$ provides regularization to prevent overfitting
-\item $\lambda_{focal}$ and $\lambda_{reg}$ are hyperparameters balancing loss components
+\item $\lambda_{reg}$ is a hyperparameter balancing the regularization component
 \end{itemize}
+
+This simplified approach was found to achieve optimal performance compared to more complex loss combinations, demonstrating that effective few-shot learning can be achieved without sophisticated loss engineering when proper graph architecture and attention mechanisms are employed.
 
 \textbf{Evaluation Metrics:} Model performance is evaluated using:
 \begin{itemize}

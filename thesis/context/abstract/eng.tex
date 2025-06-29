@@ -10,7 +10,7 @@ Our approach introduces four key innovations that collectively establish a new p
 
 % TODO: Add Table 1 - Comparison of GemGNN components with existing approaches
 
-The GemGNN framework operates under a transductive learning paradigm where all nodes (labeled, unlabeled, and test) participate in graph message passing, but only labeled nodes contribute to loss computation, maximizing the utility of limited supervision. Our heterogeneous architecture distinguishes between news nodes (characterized by rich textual embeddings) and interaction nodes (characterized by sentiment and tone features), enabling the model to learn distinct representation spaces for different entity types while capturing their relationships through learned attention weights.
+The GemGNN framework operates under a transductive learning paradigm where all nodes (labeled, unlabeled, and test) participate in graph message passing, but only labeled nodes contribute to loss computation, maximizing the utility of limited supervision. Our heterogeneous architecture distinguishes between news nodes (characterized by rich textual embeddings) and interaction nodes (characterized by sentiment and tone features), enabling the model to learn distinct representation spaces for different entity types while capturing their relationships through learned attention weights. Importantly, our empirical analysis demonstrates that standard cross-entropy loss achieves optimal performance, eliminating the need for complex loss combinations while maintaining training simplicity and computational efficiency.
 
 % TODO: Add Figure 2 - Heterogeneous graph structure visualization showing news nodes, interaction nodes, and edge types
 
