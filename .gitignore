@@ -32,4 +32,6 @@ logs/
 *.lof
 *.aux
 *.toc
+*.bbl
+*.blg
 
