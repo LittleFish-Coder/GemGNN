@@ -285,7 +285,7 @@ class HGTModel(nn.Module):
 
 
 class HANModel(nn.Module):
-    """Heterogeneous Attentional Network (HAN) Model with Configurable Layers"""
+    """Heterogeneous Graph Attentional Network (HAN) Model with Configurable Layers"""
     def __init__(self, data: HeteroData, hidden_channels: int, out_channels: int,
                  heads: int, target_node_type: str, dropout_rate: float, num_layers: int = 1):
         super().__init__()

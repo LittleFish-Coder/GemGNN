@@ -9,7 +9,7 @@ This report provides comprehensive analysis of heterogeneous graph neural networ
 ## Dataset Overview
 
 - **Dataset**: Gossipcop
-- **Model Architecture**: HAN (Hierarchical Attention Network)
+- **Model Architecture**: HAN (Heterogeneous Graph Attentional Network)
 - **Shot Range**: 3-16 shot learning
 - **Edge Policies Analyzed**: KNN, KNN Test-Isolated
 
