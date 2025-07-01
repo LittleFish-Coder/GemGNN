@@ -92,19 +92,16 @@ Table~\ref{tab:ablation:components} presents systematic ablation results demonst
 \centering
 \caption{Ablation study on PolitiFact dataset (8-shot setting). Each row removes one component.}
 \label{tab:ablation:components}
-\begin{tabular}{lcc}
+\begin{tabular}{lccc}
 \toprule
 \textbf{Configuration} & \textbf{F1-Score} & \textbf{Δ Performance} \\
 \midrule
-GemGNN (Full) & 0.83 & - \\
+GemGNN (Full) & 0.84 &  \\
 \midrule
-w/o Synthetic Interactions & 0.78 & -0.05 \\
-w/o Test-Isolated KNN & 0.76 & -0.07 \\
-w/o Multi-View Construction & 0.80 & -0.03 \\
-w/o Heterogeneous Architecture & 0.74 & -0.09 \\
-w/o Enhanced Loss Functions & 0.81 & -0.02 \\
+w/o Synthetic Interactions & 0.60 & -0.24 \\
+w/o Test-Isolated KNN & 0.84 & -0.00 \\
+w/o Multi-View Construction & 0.81 & -0.03 \\
 \midrule
-Baseline (No components) & 0.69 & -0.14 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -125,21 +122,21 @@ We conduct detailed analysis of how different interaction tones affect model per
 
 \begin{table}[htbp]
 \centering
-\caption{Impact of different interaction tones on performance (PolitiFact, 8-shot).}
+\caption{Impact of different interaction tones on performance (PolitiFact).}
 \label{tab:ablation:tones}
-\begin{tabular}{lcc}
+\begin{tabular}{lccc}
 \toprule
-\textbf{Interaction Configuration} & \textbf{F1-Score} & \textbf{Δ Performance} \\
+\textbf{Interaction Configuration} & \textbf{Average F1-Score} & \textbf{Δ Performance} \\
 \midrule
-All Tones (8 Neutral + 7 Affirmative + 5 Skeptical) & 0.83 & - \\
+    All Tones (8 Neutral + 7 Affirmative + 5 Skeptical) & 0.83 & - \\
 \midrule
-Neutral Only (20 interactions) & 0.79 & -0.04 \\
-Affirmative Only (20 interactions) & 0.77 & -0.06 \\
-Skeptical Only (20 interactions) & 0.75 & -0.08 \\
+Neutral Only (8 interactions) & 0.79 & -0.04 \\
+Affirmative Only (7 interactions) & 0.77 & -0.02 \\
+Skeptical Only (5 interactions) & 0.75 & -0.08 \\
 \midrule
 Neutral + Affirmative & 0.81 & -0.02 \\
 Neutral + Skeptical & 0.82 & -0.01 \\
-Affirmative + Skeptical & 0.78 & -0.05 \\
+Affirmative + Skeptical & 0.78 & -0.04 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -150,25 +147,25 @@ The results reveal that skeptical interactions provide the most discriminative s
 
 We conduct detailed analysis of how different synthetic interaction configurations affect model performance, providing insights into the mechanisms underlying our approach's effectiveness.
 
-Table~\ref{tab:ablation:tones} demonstrates the impact of different interaction tone combinations on overall performance.
+Table~\ref{tab:hyperparameter_interaction} demonstrates the impact of different interaction tone combinations on overall performance.
 
 \begin{table}[htbp]
 \centering
-\caption{Impact of different interaction tones on performance (PolitiFact, 8-shot).}
-\label{tab:ablation:tones}
-\begin{tabular}{lcc}
+\caption{Impact of different interaction tones on performance (PolitiFact).}
+\label{tab:hyperparameter_interaction}
+\begin{tabular}{lccc}
 \toprule
-\textbf{Interaction Configuration} & \textbf{F1-Score} & \textbf{Δ Performance} \\
+\textbf{Interaction Configuration} & \textbf{Average F1-Score} & \textbf{Δ Performance} \\
 \midrule
-All Tones (8 Neutral + 7 Affirmative + 5 Skeptical) & 0.83 & - \\
+All Tones (8 Neutral + 7 Affirmative + 5 Skeptical) & 0.83 & \- \\
 \midrule
-Neutral Only (20 interactions) & 0.79 & -0.04 \\
-Affirmative Only (20 interactions) & 0.77 & -0.06 \\
-Skeptical Only (20 interactions) & 0.75 & -0.08 \\
+Neutral Only (8 interactions) & 0.79 & -0.04 \\
+Affirmative Only (7 interactions) & 0.77 & -0.02 \\
+Skeptical Only (5 interactions) & 0.75 & -0.02 \\
 \midrule
 Neutral + Affirmative & 0.81 & -0.02 \\
 Neutral + Skeptical & 0.82 & -0.01 \\
-Affirmative + Skeptical & 0.78 & -0.05 \\
+Affirmative + Skeptical & 0.78 & -0.04 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -176,6 +173,80 @@ Affirmative + Skeptical & 0.78 & -0.05 \\
 \textbf{Tone Distribution Analysis:} The results reveal a clear hierarchy in discriminative power: skeptical interactions provide the strongest signal for fake news detection (-0.08 when used alone), followed by affirmative (-0.06) and neutral (-0.04) interactions. This pattern aligns with psychological research showing that suspicious content naturally elicits more questioning and critical responses.
 
 \textbf{Complementary Tone Benefits:} The optimal performance achieved by combining all three tones demonstrates that different interaction types capture complementary aspects of user response patterns. Neutral interactions establish baseline semantic context, affirmative interactions indicate content credibility signals, and skeptical interactions highlight potential manipulation indicators.
+
+
+\subsection{K-Neighbors Analysis}
+
+Table~\ref{tab:hyperparameter_k_neighbors} shows how varying the number of K-neighbors affects performance on PolitiFact.
+
+\begin{table}[htbp]
+\centering
+\caption{Impact of different K-neighbors on performance (PolitiFact).}
+\label{tab:hyperparameter_k_neighbors}
+\begin{tabular}{lccc}
+\toprule
+\textbf{K-Neighbors} & \textbf{Average F1-Score} & \textbf{Δ Performance} \\
+\midrule
+3 & 0.83 & -0.01 \\
+5 & 0.84 & \textbf{Best} \\
+7 & 0.83 & -0.01 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+Table~\ref{tab:hyperparameter_k_neighbors_gossipcop} shows how varying the number of K-neighbors affects performance on GossipCop.
+
+\begin{table}[htbp]
+\centering
+\caption{Impact of different K-neighbors on performance (GossipCop).}
+\label{tab:hyperparameter_k_neighbors_gossipcop}
+\begin{tabular}{lccc}
+\toprule
+\textbf{K-Neighbors} & \textbf{Average F1-Score} & \textbf{Δ Performance} \\
+\midrule
+3 & 0.5806 & -0.052 \\
+5 & 0.5928 & \textbf{Best} \\
+7 & 0.5925 & -0.0003 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Multi-View Analysis}
+
+Table~\ref{tab:hyperparameter_multi_view_politifact} shows how varying the number of multi-views affects performance on PolitiFact.
+
+\begin{table}[htbp]
+\centering
+\caption{Impact of different multi-view configurations on performance (PolitiFact).}
+\label{tab:hyperparameter_multi_view_politifact}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Multi-View Configuration} & \textbf{Average F1-Score} & \textbf{Δ Performance} \\
+\midrule
+0 & 0.7832 & \- \\
+3 & 0.7729 & \- \\
+6 & 0.7722 & \-0.01 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:hyperparameter_multi_view_gossipcop} shows how varying the number of multi-views affects performance on GossipCop.
+
+\begin{table}[htbp]
+\centering
+\caption{Impact of different multi-view configurations on performance (GossipCop).}
+\label{tab:hyperparameter_multi_view_gossipcop}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Multi-View Configuration} & \textbf{Average F1-Score} & \textbf{Δ Performance} \\
+\midrule
+0 & 0.5901 & \- \\
+3 & 0.5928 & \textbf{Best} \\
+6 & 0.5749 & \-0.0152 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{Deep Architecture Analysis}
 
