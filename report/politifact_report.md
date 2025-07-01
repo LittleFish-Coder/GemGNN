@@ -1,208 +1,223 @@
 # Politifact Dataset Analysis Report
 
+**Generated on:** 2025-07-01 10:40:21
+
 ## Executive Summary
 
-This report provides a comprehensive analysis of Heterogenous Graph Attention Network (HAN) performance on the Politifact dataset for fake news detection. The analysis covers 854 experiments across 61 different parameter configurations, focusing on 3-16 shot learning scenarios.
+This report provides comprehensive analysis of heterogeneous graph neural network performance on the Politifact dataset, comparing two edge construction policies: **KNN (standard)** and **KNN Test-Isolated**. The analysis covers experiments across different parameter configurations, focusing on 3-16 shot learning scenarios.
 
 ## Dataset Overview
 
 - **Dataset**: Politifact
-- **Model Architecture**: HAN (Heterogenous Graph Attention Network)
+- **Model Architecture**: HAN (Hierarchical Attention Network)
 - **Shot Range**: 3-16 shot learning
-- **Total Scenarios**: 61
-- **Total Experiments**: 854
+- **Edge Policies Analyzed**: KNN, KNN Test-Isolated
 
-## Performance Summary
+### Experiment Statistics by Edge Policy
 
-### Top 10 Best Performing Configurations
-
-| Rank | Configuration | Avg F1 Score | K-Neighbors | Edge Policy | Multiview | Dissimilar | Test Labeled |
-|------|---------------|--------------|-------------|-------------|-----------|-----------|--------------|
-| 1 | deberta_hetero_knn_7_ensure_test_labeled_neighbor_... | 0.7930 | 7 | knn | 3 | False | True |
-| 2 | deberta_hetero_knn_5_ensure_test_labeled_neighbor_... | 0.7930 | 5 | knn | 3 | False | True |
-| 3 | deberta_hetero_knn_test_isolated_5_partial_sample_... | 0.7930 | None | knn_test_isolated | 3 | False | False |
-| 4 | deberta_hetero_knn_5_partial_sample_unlabeled_fact... | 0.7924 | 5 | knn | 3 | False | False |
-| 5 | deberta_hetero_knn_7_partial_sample_unlabeled_fact... | 0.7920 | 7 | knn | 3 | False | False |
-| 6 | deberta_hetero_knn_test_isolated_7_ensure_test_lab... | 0.7913 | None | knn_test_isolated | 3 | False | True |
-| 7 | deberta_hetero_knn_test_isolated_7_partial_sample_... | 0.7913 | None | knn_test_isolated | 3 | False | False |
-| 8 | deberta_hetero_knn_test_isolated_3_ensure_test_lab... | 0.7907 | None | knn_test_isolated | 3 | False | True |
-| 9 | deberta_hetero_knn_test_isolated_5_ensure_test_lab... | 0.7907 | None | knn_test_isolated | 3 | False | True |
-| 10 | deberta_hetero_knn_test_isolated_3_partial_sample_... | 0.7907 | None | knn_test_isolated | 3 | False | False |
+- **KNN**: 24 scenarios, 336 experiments
+- **KNN_TEST_ISOLATED**: 37 scenarios, 518 experiments
 
 
-### Overall Performance Statistics
+## Performance Analysis by Edge Policy
 
-- **Best Average F1 Score**: 0.7930
-- **Worst Average F1 Score**: 0.5951
-- **Overall Mean F1 Score**: 0.7780
+### Best Performing Configurations
 
-## Parameter Impact Analysis
+#### KNN Policy Top 5
 
-### K-Neighbors Impact
-- **K=5**: Average F1 = 0.7819
-- **K=7**: Average F1 = 0.7812
-
-### Edge Policy Impact
-- **knn**: Average F1 = 0.7815
-- **knn_test_isolated**: Average F1 = 0.7756
-
-### Multiview Impact
-- **Multiview=0**: Average F1 = 0.7806
-- **Multiview=3**: Average F1 = 0.7788
-- **Multiview=6**: Average F1 = 0.7744
-
-### Feature Engineering Impact
-- **Dissimilar Sampling Disabled**: Average F1 = 0.7762
-- **Dissimilar Sampling Enabled**: Average F1 = 0.7798
-- **Test Labeled Neighbor Enabled**: Average F1 = 0.7808
-- **Test Labeled Neighbor Disabled**: Average F1 = 0.7752
+| Rank | Configuration | Avg F1 | K-Neighbors | Multiview | Interactions |
+|------|---------------|---------|-------------|-----------|-------------|
+| 1 | deberta_hetero_knn_7_ensure_test_labeled_neighbor_... | 0.7930 | 7 | 3 | Yes |
+| 2 | deberta_hetero_knn_5_ensure_test_labeled_neighbor_... | 0.7930 | 5 | 3 | Yes |
+| 3 | deberta_hetero_knn_5_partial_sample_unlabeled_fact... | 0.7924 | 5 | 3 | Yes |
+| 4 | deberta_hetero_knn_7_partial_sample_unlabeled_fact... | 0.7920 | 7 | 3 | Yes |
+| 5 | deberta_hetero_knn_5_partial_sample_unlabeled_fact... | 0.7864 | 5 | 3 | Yes |
 
 
-## Detailed Configuration Analysis
+**Optimal Configuration for KNN:**
+- **F1 Score**: 0.7930
+- **K-Neighbors**: 7
+- **Multiview**: 3
+- **Interactions**: Enabled
+- **Test Labeled Neighbor**: Enabled
+- **Dissimilar Sampling**: Disabled
 
-### Shot Learning Performance Trends
+#### KNN_TEST_ISOLATED Policy Top 5
 
-The following section analyzes how performance varies across different shot counts for the top configurations:
-
-#### Configuration 1: deberta_hetero_knn_7_ensure_test_labeled_neighbor_partial_sample_unlabeled_factor_5_multiview_3
-
-- **Average F1**: 0.7930
-- **Standard Deviation**: 0.0515
-- **Range**: 0.7019 - 0.8610
-- **Shot-wise Performance**:
-  - 3-shot: 0.7077
-  - 4-shot: 0.7778
-  - 5-shot: 0.7019
-  - 6-shot: 0.7077
-  - 7-shot: 0.7931
-  - 8-shot: 0.8382
-  - 9-shot: 0.8480
-  - 10-shot: 0.8610
-  - 11-shot: 0.8480
-  - 12-shot: 0.8174
-  - 13-shot: 0.8174
-  - 14-shot: 0.7915
-  - 15-shot: 0.7875
-  - 16-shot: 0.8048
-
-#### Configuration 2: deberta_hetero_knn_5_ensure_test_labeled_neighbor_partial_sample_unlabeled_factor_5_multiview_3
-
-- **Average F1**: 0.7930
-- **Standard Deviation**: 0.0515
-- **Range**: 0.7019 - 0.8610
-- **Shot-wise Performance**:
-  - 3-shot: 0.7077
-  - 4-shot: 0.7778
-  - 5-shot: 0.7019
-  - 6-shot: 0.7077
-  - 7-shot: 0.7931
-  - 8-shot: 0.8382
-  - 9-shot: 0.8480
-  - 10-shot: 0.8610
-  - 11-shot: 0.8480
-  - 12-shot: 0.8174
-  - 13-shot: 0.8174
-  - 14-shot: 0.7915
-  - 15-shot: 0.7875
-  - 16-shot: 0.8048
-
-#### Configuration 3: deberta_hetero_knn_test_isolated_5_partial_sample_unlabeled_factor_5_multiview_3
-
-- **Average F1**: 0.7930
-- **Standard Deviation**: 0.0515
-- **Range**: 0.7019 - 0.8610
-- **Shot-wise Performance**:
-  - 3-shot: 0.7077
-  - 4-shot: 0.7778
-  - 5-shot: 0.7019
-  - 6-shot: 0.7077
-  - 7-shot: 0.7931
-  - 8-shot: 0.8382
-  - 9-shot: 0.8480
-  - 10-shot: 0.8610
-  - 11-shot: 0.8480
-  - 12-shot: 0.8174
-  - 13-shot: 0.8174
-  - 14-shot: 0.7915
-  - 15-shot: 0.7875
-  - 16-shot: 0.8048
-
-#### Configuration 4: deberta_hetero_knn_5_partial_sample_unlabeled_factor_5_multiview_3
-
-- **Average F1**: 0.7924
-- **Standard Deviation**: 0.0526
-- **Range**: 0.6988 - 0.8610
-- **Shot-wise Performance**:
-  - 3-shot: 0.6988
-  - 4-shot: 0.7778
-  - 5-shot: 0.7019
-  - 6-shot: 0.7077
-  - 7-shot: 0.7931
-  - 8-shot: 0.8382
-  - 9-shot: 0.8480
-  - 10-shot: 0.8610
-  - 11-shot: 0.8480
-  - 12-shot: 0.8174
-  - 13-shot: 0.8174
-  - 14-shot: 0.7915
-  - 15-shot: 0.7875
-  - 16-shot: 0.8048
-
-#### Configuration 5: deberta_hetero_knn_7_partial_sample_unlabeled_factor_5_multiview_3
-
-- **Average F1**: 0.7920
-- **Standard Deviation**: 0.0506
-- **Range**: 0.7019 - 0.8610
-- **Shot-wise Performance**:
-  - 3-shot: 0.7077
-  - 4-shot: 0.7778
-  - 5-shot: 0.7019
-  - 6-shot: 0.7077
-  - 7-shot: 0.7931
-  - 8-shot: 0.8382
-  - 9-shot: 0.8347
-  - 10-shot: 0.8610
-  - 11-shot: 0.8480
-  - 12-shot: 0.8174
-  - 13-shot: 0.8174
-  - 14-shot: 0.7915
-  - 15-shot: 0.7875
-  - 16-shot: 0.8048
+| Rank | Configuration | Avg F1 | K-Neighbors | Multiview | Interactions |
+|------|---------------|---------|-------------|-----------|-------------|
+| 1 | deberta_hetero_knn_test_isolated_5_partial_sample_... | 0.7930 | 5 | 3 | Yes |
+| 2 | deberta_hetero_knn_test_isolated_7_ensure_test_lab... | 0.7913 | 7 | 3 | Yes |
+| 3 | deberta_hetero_knn_test_isolated_7_partial_sample_... | 0.7913 | 7 | 3 | Yes |
+| 4 | deberta_hetero_knn_test_isolated_3_ensure_test_lab... | 0.7907 | 3 | 3 | Yes |
+| 5 | deberta_hetero_knn_test_isolated_5_ensure_test_lab... | 0.7907 | 5 | 3 | Yes |
 
 
+**Optimal Configuration for KNN_TEST_ISOLATED:**
+- **F1 Score**: 0.7930
+- **K-Neighbors**: 5
+- **Multiview**: 3
+- **Interactions**: Enabled
+- **Test Labeled Neighbor**: Disabled
+- **Dissimilar Sampling**: Disabled
 
-## Recommendations
 
-### Optimal Configuration for Politifact
+## Edge Policy Performance Comparison
 
-Based on the analysis, the optimal configuration for Politifact dataset is:
+### Top 5 Configurations for Each Edge Policy
 
-- **Configuration**: deberta_hetero_knn_7_ensure_test_labeled_neighbor_partial_sample_unlabeled_factor_5_multiview_3
-- **Average F1 Score**: 0.7930
-- **Parameters**:
-  - K-Neighbors: 7
-  - Edge Policy: knn
-  - Multiview: 3
-  - Dissimilar Sampling: Disabled
-  - Test Labeled Neighbor: Enabled
+#### KNN (Standard) Policy
 
-### Parameter Selection Guidelines
+| Rank | Configuration | Avg F1 | K-Neighbors | Multiview | Interactions | Test Labeled |
+|------|---------------|---------|-------------|-----------|--------------|-------------|
+| 1 | deberta_hetero_knn_7_ensure_test_labeled... | 0.7930 | 7 | 3 | Yes | Yes |
+| 2 | deberta_hetero_knn_5_ensure_test_labeled... | 0.7930 | 5 | 3 | Yes | Yes |
+| 3 | deberta_hetero_knn_5_partial_sample_unla... | 0.7924 | 5 | 3 | Yes | No |
+| 4 | deberta_hetero_knn_7_partial_sample_unla... | 0.7920 | 7 | 3 | Yes | No |
+| 5 | deberta_hetero_knn_5_partial_sample_unla... | 0.7864 | 5 | 3 | Yes | No |
 
-1. **K-Neighbors**: Based on the analysis, k=7 shows the best performance
-2. **Edge Policy**: knn performs better than alternatives
-3. **Multiview**: Multiview setting of 0 shows optimal results
-4. **Feature Engineering**: Dissimilar sampling shows positive impact
+#### KNN Test-Isolated Policy
 
-## Statistical Significance
+| Rank | Configuration | Avg F1 | K-Neighbors | Multiview | Interactions | Test Labeled |
+|------|---------------|---------|-------------|-----------|--------------|-------------|
+| 1 | deberta_hetero_knn_test_isolated_5_parti... | 0.7930 | 5 | 3 | Yes | No |
+| 2 | deberta_hetero_knn_test_isolated_7_ensur... | 0.7913 | 7 | 3 | Yes | Yes |
+| 3 | deberta_hetero_knn_test_isolated_7_parti... | 0.7913 | 7 | 3 | Yes | No |
+| 4 | deberta_hetero_knn_test_isolated_3_ensur... | 0.7907 | 3 | 3 | Yes | Yes |
+| 5 | deberta_hetero_knn_test_isolated_5_ensur... | 0.7907 | 5 | 3 | Yes | Yes |
 
-The analysis includes 854 experiments across 14 different shot counts, providing robust statistical evidence for the reported trends.
+### Performance Summary
 
-## Limitations and Future Work
+- **Best KNN Performance**: 0.7930
+- **Best KNN Test-Isolated Performance**: 0.7930
+- **Performance Difference**: 0.0000 (+0.0%)
 
-1. **Parameter Space**: Current analysis covers the implemented parameter combinations; additional hyperparameter exploration might yield better results
-2. **Cross-validation**: Results are based on single train/test splits; cross-validation would provide more robust estimates
-3. **Statistical Testing**: Formal statistical significance tests between configurations would strengthen conclusions
+**Analysis**: Test-isolated KNN shows better or comparable performance, indicating robust generalization without test data leakage.
+
+
+## K-Shot Performance Analysis by Edge Policy
+
+### KNN Policy - Top 3 Configurations
+
+| Configuration | Avg F1 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| deberta_hetero_knn_7_ensu... | 0.7930 | 0.708 | 0.778 | 0.702 | 0.708 | 0.793 | 0.838 | 0.848 | 0.861 | 0.848 | 0.817 | 0.817 | 0.791 | 0.787 | 0.805 |
+| deberta_hetero_knn_5_ensu... | 0.7930 | 0.708 | 0.778 | 0.702 | 0.708 | 0.793 | 0.838 | 0.848 | 0.861 | 0.848 | 0.817 | 0.817 | 0.791 | 0.787 | 0.805 |
+| deberta_hetero_knn_5_part... | 0.7924 | 0.699 | 0.778 | 0.702 | 0.708 | 0.793 | 0.838 | 0.848 | 0.861 | 0.848 | 0.817 | 0.817 | 0.791 | 0.787 | 0.805 |
+
+### KNN_TEST_ISOLATED Policy - Top 3 Configurations
+
+| Configuration | Avg F1 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| deberta_hetero_knn_test_i... | 0.7930 | 0.708 | 0.778 | 0.702 | 0.708 | 0.793 | 0.838 | 0.848 | 0.861 | 0.848 | 0.817 | 0.817 | 0.791 | 0.787 | 0.805 |
+| deberta_hetero_knn_test_i... | 0.7913 | 0.708 | 0.778 | 0.702 | 0.708 | 0.793 | 0.828 | 0.835 | 0.861 | 0.848 | 0.817 | 0.817 | 0.791 | 0.787 | 0.805 |
+| deberta_hetero_knn_test_i... | 0.7913 | 0.708 | 0.778 | 0.702 | 0.708 | 0.793 | 0.828 | 0.835 | 0.861 | 0.848 | 0.817 | 0.817 | 0.791 | 0.787 | 0.805 |
+
+
+## Ablation Study Analysis
+
+### KNN Policy Ablation Analysis
+
+#### Interaction Component Impact
+
+#### Multi-View Settings Impact
+
+- **Multiview 0 (Baseline)**: 0.7802
+- **Multiview 3**: 0.7886 (+0.0084)
+- **Multiview 6**: 0.7758 (-0.0044)
+
+**Best Setting**: Multiview 3 with F1 score of 0.7886
+
+#### K-Neighbors Hyperparameter Analysis
+
+- **K=5**: 0.7819
+- **K=7**: 0.7812
+
+**Optimal K-value**: 5 (F1: 0.7819)
+**Performance Range**: 0.0007 (0.1% improvement from worst to best)
 
 ---
 
-*This report was generated automatically using the comprehensive analysis pipeline.*
+### KNN_TEST_ISOLATED Policy Ablation Analysis
+
+#### Interaction Component Impact
+
+- **With Interactions**: 0.7806
+- **Without Interactions (no_interactions)**: 0.5951
+- **Interaction Benefit**: 0.1856 (+31.2%)
+
+**Conclusion**: Synthetic user interactions provide meaningful signal for fake news detection.
+
+#### Multi-View Settings Impact
+
+- **Multiview 0 (Baseline)**: 0.7810
+- **Multiview 3**: 0.7727 (-0.0082)
+- **Multiview 6**: 0.7735 (-0.0075)
+
+**Best Setting**: Multiview 0 with F1 score of 0.7810
+
+#### K-Neighbors Hyperparameter Analysis
+
+- **K=3**: 0.7807
+- **K=5**: 0.7664
+- **K=7**: 0.7805
+
+**Optimal K-value**: 3 (F1: 0.7807)
+**Performance Range**: 0.0143 (1.9% improvement from worst to best)
+
+---
+
+
+## Hyperparameter Search Analysis
+
+### Multi-View Configuration Analysis (0, 3, 6 views)
+
+| Edge Policy | Multiview 0 | Multiview 3 | Multiview 6 | Best Setting |
+|-------------|-------------|-------------|-------------|-------------|
+| knn | 0.7802 | 0.7886 | 0.7758 | 3 (0.7886) |
+| knn_test_isolated | 0.7810 | 0.7727 | 0.7735 | 0 (0.7810) |
+
+### K-Neighbors Analysis (3, 5, 7)
+
+| Edge Policy | K=3 | K=5 | K=7 | Best Setting |
+|-------------|-----|-----|-----|-------------|
+| knn | 0.0000 | 0.7819 | 0.7812 | 5 (0.7819) |
+| knn_test_isolated | 0.7807 | 0.7664 | 0.7805 | 3 (0.7807) |
+
+### Hyperparameter Recommendations
+
+#### KNN Policy
+
+- **Recommended Multiview**: 3 views
+- **Recommended K-neighbors**: 5
+
+#### KNN_TEST_ISOLATED Policy
+
+- **Recommended Multiview**: 0 views
+- **Recommended K-neighbors**: 3
+
+
+## Recommendations for Politifact
+
+### Edge Policy Selection
+
+- **Recommended**: KNN Test-Isolated policy (comparable/better performance with realistic evaluation)
+
+
+### Parameter Guidelines
+
+1. **Edge Policy Choice**:
+   - Use KNN for maximum performance in batch processing scenarios
+   - Use KNN Test-Isolated for realistic evaluation and deployment
+
+2. **Hyperparameter Selection**:
+   - Follow the hyperparameter recommendations above for each edge policy
+   - Consider interaction components based on ablation study results
+
+3. **Few-Shot Considerations**:
+   - Both policies show consistent performance across 3-16 shot range
+   - Lower shot counts may benefit from specific parameter tuning
+
+---
+
+*This report was generated automatically using the edge policy analysis pipeline.*
