@@ -72,6 +72,22 @@ def analyze_metrics(folder_path):
     for scenario, avg_score, num_points in scenario_averages:
         print(f"{scenario:<110} | {avg_score:<15.4f} | {num_points}")
 
+    while True:
+        scenario = input("Enter the scenario name to see the F1 scores(type 'exit' to quit): ")
+        if scenario == "exit":
+            break
+        else:
+            if scenario in results:
+                scores = [score for _, score in sorted(results[scenario].items())]
+                print(f"F1 Scores sequence ({len(scores)}):")
+                print(scores)
+                average_score = sum(scores) / len(scores) if scores else 0
+                print(f"Average F1 Score: {average_score:.4f}")
+                print(f"Max F1 Score: {max(scores):.4f}")
+                print(f"Min F1 Score: {min(scores):.4f}")
+            else:
+                print(f"Scenario {scenario} not found")
+
                 
 
 if __name__ == "__main__":
