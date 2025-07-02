@@ -8,36 +8,36 @@ This chapter presents comprehensive experimental results demonstrating the effec
 
 \subsection{Performance on PolitiFact Dataset}
 
-Table~\ref{tab:results:politifact} presents comprehensive performance comparison on the PolitiFact dataset across different K-shot configurations. GemGNN consistently outperforms all baseline methods, achieving an average F1-score of 0.81 compared to the best baseline performance of 0.76 (HeteroSGT).
+Table~\ref{tab:results_politifact} presents comprehensive performance comparison on the PolitiFact dataset across different K-shot configurations. GemGNN consistently outperforms all baseline methods, achieving an average F1-score of 0.81 compared to the best baseline performance of 0.76 (HeteroSGT).
 
 \begin{table}[htbp]
 \centering
-\caption{Performance comparison on PolitiFact dataset. Best results in bold, second-best underlined.}
-\label{tab:results:politifact}
-\begin{tabular}{lcccc}
+\caption{Performance comparison on PolitiFact dataset for 3 to 16 shot.}
+\label{tab:results_politifact}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccccccccccc}
 \toprule
-\textbf{Method} & \textbf{3-shot} & \textbf{4-shot} & \textbf{8-shot} & \textbf{16-shot} \\
+\textbf{Method} & \textbf{3} & \textbf{4} & \textbf{5} & \textbf{6} & \textbf{7} & \textbf{8} & \textbf{9} & \textbf{10} & \textbf{11} & \textbf{12} & \textbf{13} & \textbf{14} & \textbf{15} & \textbf{16} \\
 \midrule
-\multicolumn{5}{l}{\textit{Traditional Methods}} \\
-MLP & 0.52 & 0.55 & 0.61 & 0.67 \\
-LSTM & 0.54 & 0.57 & 0.63 & 0.69 \\
+\multicolumn{15}{l}{\textbf{Language Model}} \\
+RoBERTa & 0.417 & 0.417 & 0.417 & 0.417 & 0.417 & 0.417 & 0.417 & 0.417 & 0.417 & 0.417 & 0.417 & 0.417 & 0.417 & 0.417 \\
+DeBERTa & 0.221 & 0.221 & 0.221 & 0.221 & 0.221 & 0.221 & 0.221 & 0.221 & 0.221 & 0.221 & 0.221 & 0.221 & 0.221 & 0.221 \\
 \midrule
-\multicolumn{5}{l}{\textit{Language Models}} \\
-BERT & 0.58 & 0.62 & 0.68 & 0.72 \\
-RoBERTa & 0.61 & 0.64 & 0.70 & 0.74 \\
+\multicolumn{15}{l}{\textbf{Large Language Model}} \\
+Llama & \underline{0.742} & \underline{0.737} & \underline{0.786} & \underline{0.765} & \underline{0.755} & \underline{0.755} & \underline{0.788} & \underline{0.765} & \underline{0.737} & \underline{0.729} & \underline{0.729} & \underline{0.719} & \underline{0.72} & \underline{0.7} \\
+Gemma & 0.713 & 0.717 & 0.703 & 0.699 & 0.691 & 0.647 & 0.618 & 0.546 & 0.657 & 0.636 & 0.625 & 0.635 & 0.618 & 0.606 \\
 \midrule
-\multicolumn{5}{l}{\textit{Large Language Models}} \\
-LLaMA & 0.49 & 0.52 & 0.58 & 0.63 \\
-Gemma & 0.51 & 0.54 & 0.60 & 0.65 \\
+\multicolumn{15}{l}{\textbf{Graph Models}} \\
+LESS4FD & 0.5 & 0.5 & 0.5 & 0.5 & 0.5 & 0.5 & 0.5 & 0.5 & 0.5 & 0.5 & 0.5 & 0.5 & 0.5 & 0.5 \\
+HeteroSGT & 0.4 & 0.4 & 0.4 & 0.4 & 0.4 & 0.4 & 0.4 & 0.4 & 0.4 & 0.4 & 0.4 & 0.4 & 0.4 & 0.4 \\
+KEHGNN-FD & 0.3 & 0.3 & 0.3 & 0.3 & 0.3 & 0.3 & 0.3 & 0.3 & 0.3 & 0.3 & 0.3 & 0.3 & 0.3 & 0.3 \\
 \midrule
-\multicolumn{5}{l}{\textit{Graph-based Methods}} \\
-Less4FD & 0.63 & 0.66 & 0.71 & 0.75 \\
-HeteroSGT & \underline{0.65} & \underline{0.68} & \underline{0.73} & \underline{0.76} \\
-\midrule
-\multicolumn{5}{l}{\textit{Our Method}} \\
-GemGNN & \textbf{0.78} & \textbf{0.80} & \textbf{0.83} & \textbf{0.84} \\
+\multicolumn{15}{l}{\textbf{Our Method}} \\
+Ours (Test-Isolated KNN) & \textbf{0.708} & \textbf{0.778} & \textbf{0.702} & \textbf{0.708} & \textbf{0.793} & \textbf{0.838} & \textbf{0.848} & \textbf{0.861} & \textbf{0.848} & \textbf{0.817} & \textbf{0.817} & \textbf{0.791} & \textbf{0.787} & \textbf{0.805} \\
+Ours (KNN) & \textbf{0.708} & \textbf{0.778} & \textbf{0.702} & \textbf{0.708} & \textbf{0.793} & \textbf{0.838} & \textbf{0.848} & \textbf{0.861} & \textbf{0.848} & \textbf{0.817} & \textbf{0.817} & \textbf{0.791} & \textbf{0.787} & \textbf{0.805} \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 \textbf{Key Performance Insights:} The results reveal several critical patterns that validate our architectural choices. First, the 13-20\% improvement over traditional methods (MLP, LSTM) demonstrates the fundamental importance of modeling inter-document relationships through graph structures. Second, our 7-12\% improvement over transformer models (BERT, RoBERTa) highlights the value of heterogeneous graph attention over independent document processing. Third, the poor performance of large language models in few-shot scenarios (8-21\% below GemGNN) likely stems from limited task-specific adaptation and potential overfitting to training data patterns.
@@ -46,12 +46,12 @@ GemGNN & \textbf{0.78} & \textbf{0.80} & \textbf{0.83} & \textbf{0.84} \\
 
 \subsection{Performance on GossipCop Dataset}
 
-Table~\ref{tab:results:gossipcop} presents results on the larger GossipCop dataset, which contains entertainment news and presents different linguistic patterns compared to political news in PolitiFact. Despite the domain shift and increased dataset complexity, GemGNN maintains superior performance with an average F1-score of 0.61.
+Table~\ref{tab:results_gossipcop} presents results on the larger GossipCop dataset, which contains entertainment news and presents different linguistic patterns compared to political news in PolitiFact. Despite the domain shift and increased dataset complexity, GemGNN maintains superior performance with an average F1-score of 0.61.
 
 \begin{table}[htbp]
 \centering
 \caption{Performance comparison on GossipCop dataset. Best results in bold, second-best underlined.}
-\label{tab:results:gossipcop}
+\label{tab:results_gossipcop}
 \begin{tabular}{lcccc}
 \toprule
 \textbf{Method} & \textbf{3-shot} & \textbf{4-shot} & \textbf{8-shot} & \textbf{16-shot} \\
@@ -86,12 +86,12 @@ GemGNN & \textbf{0.58} & \textbf{0.60} & \textbf{0.63} & \textbf{0.66} \\
 
 \subsection{Core Component Analysis}
 
-Table~\ref{tab:ablation:components} presents systematic ablation results demonstrating the individual contribution of each major architectural component to overall performance.
+Table~\ref{tab:ablation_components} presents systematic ablation results demonstrating the individual contribution of each major architectural component to overall performance.
 
 \begin{table}[htbp]
 \centering
 \caption{Ablation study on PolitiFact dataset (8-shot setting). Each row removes one component.}
-\label{tab:ablation:components}
+\label{tab:ablation_components}
 \begin{tabular}{lccc}
 \toprule
 \textbf{Configuration} & \textbf{F1-Score} & \textbf{Δ Performance} \\
@@ -118,12 +118,12 @@ w/o Multi-View Construction & 0.81 & -0.03 \\
 
 \subsection{Impact of Generative User Interactions}
 
-We conduct detailed analysis of how different interaction tones affect model performance, as shown in Table~\ref{tab:ablation:tones}.
+We conduct detailed analysis of how different interaction tones affect model performance, as shown in Table~\ref{tab:ablation_tones}.
 
 \begin{table}[htbp]
 \centering
 \caption{Impact of different interaction tones on performance (PolitiFact).}
-\label{tab:ablation:tones}
+\label{tab:ablation_tones}
 \begin{tabular}{lccc}
 \toprule
 \textbf{Interaction Configuration} & \textbf{Average F1-Score} & \textbf{Δ Performance} \\
@@ -147,12 +147,12 @@ The results reveal that skeptical interactions provide the most discriminative s
 
 We conduct detailed analysis of how different synthetic interaction configurations affect model performance, providing insights into the mechanisms underlying our approach's effectiveness.
 
-Table~\ref{tab:hyperparameter_interaction} demonstrates the impact of different interaction tone combinations on overall performance.
+Table~\ref{tab:hyperparameter_interaction_politifact} demonstrates the impact of different interaction tone combinations on overall performance.
 
 \begin{table}[htbp]
 \centering
 \caption{Impact of different interaction tones on performance (PolitiFact).}
-\label{tab:hyperparameter_interaction}
+\label{tab:hyperparameter_interaction_politifact}
 \begin{tabular}{lccc}
 \toprule
 \textbf{Interaction Configuration} & \textbf{Average F1-Score} & \textbf{Δ Performance} \\
@@ -177,12 +177,12 @@ Affirmative + Skeptical & 0.78 & -0.04 \\
 
 \subsection{K-Neighbors Analysis}
 
-Table~\ref{tab:hyperparameter_k_neighbors} shows how varying the number of K-neighbors affects performance on PolitiFact.
+Table~\ref{tab:hyperparameter_k_neighbors_politifact} shows how varying the number of K-neighbors affects performance on PolitiFact.
 
 \begin{table}[htbp]
 \centering
 \caption{Impact of different K-neighbors on performance (PolitiFact).}
-\label{tab:hyperparameter_k_neighbors}
+\label{tab:hyperparameter_k_neighbors_politifact}
 \begin{tabular}{lccc}
 \toprule
 \textbf{K-Neighbors} & \textbf{Average F1-Score} & \textbf{Δ Performance} \\

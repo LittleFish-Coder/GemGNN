@@ -2,6 +2,33 @@
 \StartChapter{Problem Statement}{chapter:problem-statement}
 % ------------------------------------------------
 
+\vspace{0.3cm}
+
+\textbf{Given:}
+\begin{itemize}
+    \item Labeled set: $\mathcal{L} = \{(x_i, y_i)\}_{i=1}^{2K}$ where $K$ examples per class
+    \item Unlabeled set: $\mathcal{U} = \{x_j\}_{j=1}^{M}$ 
+    \item Test set: $\mathcal{T} = \{x_k\}_{k=1}^{N}$
+    \item Constraints: $K \ll M, N$
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Objective:}
+\begin{itemize}
+    \item Learn classifier $f: \mathcal{X} \rightarrow \{0, 1\}$ that accurately predicts labels for $\mathcal{T}$
+    \item Binary classification: real news ($y = 0$) vs fake news ($y = 1$)
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Key Challenges:}
+\begin{itemize}
+    \item \textcolor{red}{Extreme data scarcity}: $K \in \{3, 4, 8, 16\}$ labeled examples per class
+    \item \textcolor{blue}{Content-only constraint}: No user interaction or propagation data available
+\end{itemize}
+
+
 This chapter formally defines the few-shot fake news detection problem and establishes the mathematical framework for our GemGNN approach. We present the fundamental challenges and constraints that motivate our heterogeneous graph-based solution.
 
 \section{Problem Formulation}
