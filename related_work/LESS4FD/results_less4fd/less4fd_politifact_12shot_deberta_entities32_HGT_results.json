@@ -1,0 +1,13 @@
+{
+  "epochs_trained": 30,
+  "best_val_accuracy": 0.5789473652839661,
+  "final_test_metrics": {
+    "accuracy": 0.43421053886413574,
+    "f1": 0.43421053886413574,
+    "precision": 0.43421053886413574,
+    "recall": 0.43421053886413574
+  },
+  "training_time": 0.22385573387145996,
+  "model_type": "HGT",
+  "graph_path": "graphs_less4fd/less4fd_politifact_12shot_deberta_entities32.pt"
+}
