@@ -16,7 +16,7 @@ Our work establishes several key methodological and technical contributions that
 
 \textbf{Multi-View DeBERTa Architecture:} We leverage DeBERTa's disentangled attention mechanism to create embeddings with superior partitioning properties, enabling meaningful multi-view learning where each view captures distinct linguistic and semantic aspects while maintaining discriminative power. This architectural choice fundamentally enables our multi-view approach to achieve robust performance.
 
-\textbf{Advanced Loss Function Analysis:} Through comprehensive experimentation across multiple loss function variants (Cross-Entropy, Focal, Enhanced, Robust), we demonstrate that effective few-shot learning can be achieved through architectural innovations rather than complex loss engineering, establishing cross-entropy with label smoothing as the optimal choice for our framework.
+\textbf{Cross-Entropy Loss Optimization:} Through empirical evaluation, we demonstrate that cross-entropy loss with label smoothing provides optimal performance for few-shot fake news detection. This finding highlights that effective few-shot learning can be achieved through architectural innovations rather than complex loss engineering, with simple yet well-regularized objectives proving most effective when combined with sophisticated graph structures.
 
 \textbf{Comprehensive Component Validation:} We provide detailed ablation studies demonstrating the individual contribution of each architectural component, revealing that heterogeneous graph structure (-0.09 impact), test isolation (-0.07), synthetic interactions (-0.05), and multi-view learning (-0.03) all contribute meaningfully to overall performance.
 
