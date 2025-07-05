@@ -1,8 +1,9 @@
 """
-LESS4FD Graph Builder - Entity-aware heterogeneous graph construction.
+Simplified LESS4FD Graph Builder.
 
-This module extends the existing HeteroGraphBuilder to create entity-aware
-heterogeneous graphs for the LESS4FD architecture.
+A self-contained implementation that builds entity-aware heterogeneous graphs 
+for fake news detection without complex meta-learning components.
+Based on the LESS4FD paper: Learning with Entity-aware Self-Supervised Framework for Fake News Detection.
 """
 
 import os
@@ -16,29 +17,72 @@ from datasets import load_dataset, load_from_disk, DatasetDict, Dataset
 from sklearn.metrics.pairwise import cosine_similarity
 from torch_geometric.data import HeteroData
 from tqdm.auto import tqdm
-import logging
+from argparse import ArgumentParser
 
-# Import existing utilities
-import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
-from build_hetero_graph import HeteroGraphBuilder
-from utils.sample_k_shot import sample_k_shot
-
-# Import LESS4FD utilities
-from utils.entity_extractor import EntityExtractor
-from utils.sampling import LESS4FDSampler
-from config.less4fd_config import LESS4FD_CONFIG, DATA_CONFIG
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Copy necessary utilities from main repository
+def set_seed(seed: int = 42) -> None:
+    """Set seed for reproducibility across all random processes."""
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    print(f"Seed set to {seed}")
 
 
-class LESS4FDGraphBuilder:
+def sample_k_shot(train_data: Dataset, k: int, seed: int = 42) -> Tuple[List[int], Dict]:
     """
-    Entity-aware heterogeneous graph builder for LESS4FD architecture.
+    Sample k examples per class, returning both indices and dataset.
     
-    This class extends the existing HeteroGraphBuilder functionality to include
-    entity nodes and entity-aware edges in the heterogeneous graph.
+    Args:
+        train_data: Original training dataset
+        k: Number of samples per class
+        seed: Random seed for reproducibility
+        
+    Returns:
+        Tuple of (selected indices, sampled data dictionary)
+    """
+    # Initialize output
+    sampled_data = {key: [] for key in train_data.column_names}
+    selected_indices = []
+
+    # Sample k examples from each class
+    labels = set(train_data["label"])
+    for label in labels:
+        # Filter to this class
+        label_data = train_data.filter(lambda x: x["label"] == label)
+        
+        # Shuffle and select first k examples
+        sampled_label_data = label_data.shuffle(seed=seed).select(
+            range(min(k, len(label_data)))
+        )
+        
+        label_indices = [i for i, l in enumerate(train_data["label"]) if l == label]
+        
+        # Get shuffled indices
+        np.random.seed(seed)
+        shuffled_indices = np.random.permutation(label_indices)[:min(k, len(label_indices))]
+        
+        # Add to our list of selected indices
+        selected_indices.extend(shuffled_indices)
+        
+        # Add the data to our sampled dataset
+        for key in train_data.column_names:
+            sampled_data[key].extend(sampled_label_data[key])
+    
+    return selected_indices, sampled_data
+
+
+class SimpleLESS4FDGraphBuilder:
+    """
+    Simplified LESS4FD graph builder for entity-aware fake news detection.
+    
+    This implementation:
+    1. Loads data from Hugging Face datasets (same as main repository)
+    2. Builds heterogeneous graphs with news and interaction nodes
+    3. Adds basic entity-aware features without complex entity extraction
+    4. Uses k-shot sampling for few-shot learning scenarios
     """
     
     def __init__(
@@ -46,547 +90,421 @@ class LESS4FDGraphBuilder:
         dataset_name: str,
         k_shot: int,
         embedding_type: str = "deberta",
-        entity_model: str = "dbmdz/bert-large-cased-finetuned-conll03-english",
-        max_entities_per_news: int = 10,
-        entity_similarity_threshold: float = 0.7,
-        entity_knn: int = 5,
-        use_entity_types: bool = True,
-        seed: int = 42,
+        edge_policy: str = "knn_test_isolated",
+        k_neighbors: int = 5,
+        enable_entities: bool = True,
+        partial_unlabeled: bool = True,
+        sample_unlabeled_factor: int = 5,
+        output_dir: str = "graphs_less4fd",
         dataset_cache_dir: str = "dataset",
-        graph_cache_dir: str = "graphs_less4fd",
-        entity_cache_dir: str = "entity_cache",
-        **kwargs
+        seed: int = 42,
+        no_interactions: bool = False
     ):
         """
-        Initialize the LESS4FD graph builder.
+        Initialize the simplified LESS4FD graph builder.
         
         Args:
-            dataset_name: Name of the dataset ('politifact' or 'gossipcop')
-            k_shot: Number of shots for few-shot learning
-            embedding_type: Type of text embeddings to use
-            entity_model: Model for entity extraction
-            max_entities_per_news: Maximum entities per news article
-            entity_similarity_threshold: Threshold for entity-entity edges
-            entity_knn: K for entity KNN edges
-            use_entity_types: Whether to use entity type information
-            seed: Random seed
+            dataset_name: Dataset name (politifact, gossipcop)
+            k_shot: Number of labeled samples per class (3-16)
+            embedding_type: Type of embeddings (bert, roberta, deberta, etc.)
+            edge_policy: Edge construction policy (knn, knn_test_isolated)
+            k_neighbors: Number of neighbors for KNN edges
+            enable_entities: Whether to add entity-aware features
+            partial_unlabeled: Whether to use only partial unlabeled data
+            sample_unlabeled_factor: Factor for unlabeled sampling
+            output_dir: Directory to save graphs
             dataset_cache_dir: Directory for dataset cache
-            graph_cache_dir: Directory for graph cache
-            entity_cache_dir: Directory for entity cache
-            **kwargs: Additional arguments for base HeteroGraphBuilder
+            seed: Random seed
+            no_interactions: Whether to exclude interaction nodes
         """
-        self.dataset_name = dataset_name.lower()
+        self.dataset_name = dataset_name
         self.k_shot = k_shot
         self.embedding_type = embedding_type
-        self.entity_model = entity_model
-        self.max_entities_per_news = max_entities_per_news
-        self.entity_similarity_threshold = entity_similarity_threshold
-        self.entity_knn = entity_knn
-        self.use_entity_types = use_entity_types
-        self.seed = seed
+        self.edge_policy = edge_policy
+        self.k_neighbors = k_neighbors
+        self.enable_entities = enable_entities
+        self.partial_unlabeled = partial_unlabeled
+        self.sample_unlabeled_factor = sample_unlabeled_factor
+        self.output_dir = output_dir
         self.dataset_cache_dir = dataset_cache_dir
-        self.graph_cache_dir = graph_cache_dir
-        self.entity_cache_dir = entity_cache_dir
+        self.seed = seed
+        self.no_interactions = no_interactions
         
-        # Set up directories
-        os.makedirs(self.graph_cache_dir, exist_ok=True)
-        os.makedirs(self.entity_cache_dir, exist_ok=True)
-        
-        # Initialize entity extractor
-        self.entity_extractor = EntityExtractor(
-            model_name=entity_model,
-            entity_types=LESS4FD_CONFIG["entity_types"],
-            max_entities_per_text=max_entities_per_news,
-            similarity_threshold=entity_similarity_threshold,
-            cache_dir=entity_cache_dir
-        )
-        
-        # Initialize LESS4FD sampler
-        self.less4fd_sampler = LESS4FDSampler(
-            seed=seed,
-            meta_learning=True,
-            min_entities_per_sample=1
-        )
-        
-        # Initialize base hetero graph builder for news-news and news-interaction edges
-        self.base_builder = HeteroGraphBuilder(
-            dataset_name=dataset_name,
-            k_shot=k_shot,
-            embedding_type=embedding_type,
-            seed=seed,
-            dataset_cache_dir=dataset_cache_dir,
-            output_dir=graph_cache_dir,
-            **kwargs
-        )
-        
-        # Load datasets
-        self.train_data = self.base_builder.train_data
-        self.test_data = self.base_builder.test_data
+        # Text embedding field mapping
         self.text_embedding_field = f"{embedding_type}_embeddings"
         
-        # Entity data cache
-        self.entity_data_cache = {}
-        self.entity_vocab = {}
-        self.entity_embeddings = None
-        self.entity_type_mapping = {}
+        # Data storage
+        self.dataset = None
+        self.train_data = None
+        self.test_data = None
         
-    def extract_entities(self, text: str) -> List[Dict]:
-        """
-        Extract entities from text using the entity extractor.
+        # Sampling indices
+        self.train_labeled_indices = None
+        self.train_unlabeled_indices = None
+        self.test_indices = None
         
-        Args:
-            text: Input text
-            
-        Returns:
-            List of extracted entities
-        """
-        return self.entity_extractor.extract_entities(text)
-    
-    def build_entity_nodes(self, news_data: Dataset) -> Dict:
-        """
-        Build entity nodes from news data.
-        
-        Args:
-            news_data: News dataset
-            
-        Returns:
-            Dictionary containing entity information
-        """
-        logger.info("Extracting entities from news data...")
-        
-        all_entities = []
-        entity_lists = []
-        
-        # Extract entities from all news texts
-        for i, text in enumerate(tqdm(news_data["text"], desc="Extracting entities")):
-            entities = self.extract_entities(text)
-            entity_lists.append(entities)
-            all_entities.extend(entities)
-        
-        # Build entity vocabulary
-        self.entity_vocab = self.entity_extractor.build_entity_vocab(entity_lists)
-        
-        # Generate entity embeddings
-        self.entity_embeddings = self.entity_extractor.generate_entity_embeddings()
-        
-        # Build entity type mapping
-        for entities in entity_lists:
-            for entity in entities:
-                entity_text = entity["text"].lower()
-                if entity_text in self.entity_vocab:
-                    self.entity_type_mapping[entity_text] = entity["label"]
-        
-        logger.info(f"Built {len(self.entity_vocab)} entities with {self.entity_embeddings.shape[1]} dimensions")
-        
-        return {
-            "entity_lists": entity_lists,
-            "entity_vocab": self.entity_vocab,
-            "entity_embeddings": self.entity_embeddings,
-            "entity_type_mapping": self.entity_type_mapping
+        # Entity configuration (simplified)
+        self.entity_config = {
+            "max_entities_per_news": 5,
+            "entity_dim": 32,
+            "entity_similarity_threshold": 0.7
         }
-    
-    def build_entity_edges(self, news_entities: List[List[Dict]]) -> Tuple[torch.Tensor, torch.Tensor]:
+
+    def load_dataset(self) -> None:
+        """Load dataset from Hugging Face and perform initial checks."""
+        print(f"Loading dataset '{self.dataset_name}' with '{self.embedding_type}' embeddings...")
+        # Map dataset names to correct HuggingFace names
+        dataset_name_map = {
+            "politifact": "PolitiFact",
+            "gossipcop": "GossipCop"
+        }
+        mapped_name = dataset_name_map.get(self.dataset_name, self.dataset_name)
+        hf_dataset_name = f"LittleFish-Coder/Fake_News_{mapped_name}"
+        
+        # Download from huggingface and cache to local path
+        local_hf_dir = os.path.join(self.dataset_cache_dir, f"{self.dataset_name}_hf")
+        if os.path.exists(local_hf_dir):
+            print(f"Loading dataset from local path: {local_hf_dir}")
+            dataset = load_from_disk(local_hf_dir)
+        else:
+            print(f"Loading dataset from huggingface: {hf_dataset_name}")
+            dataset = load_dataset(hf_dataset_name, download_mode="reuse_cache_if_exists")
+            dataset.save_to_disk(local_hf_dir)
+
+        # Store dataset
+        self.dataset = {
+            "train": dataset["train"], 
+            "test": dataset["test"]
+        }
+        self.train_data = self.dataset["train"]
+        self.test_data = self.dataset["test"]
+
+        print(f"Dataset loaded: {len(self.train_data)} train, {len(self.test_data)} test samples")
+        
+        # Verify embedding field exists
+        if self.text_embedding_field not in self.train_data.column_names:
+            raise ValueError(f"Embedding field '{self.text_embedding_field}' not found in dataset")
+
+    def sample_k_shot_indices(self) -> None:
+        """Sample k-shot labeled indices and unlabeled indices."""
+        print(f"Sampling {self.k_shot}-shot labeled data...")
+        
+        # Sample labeled indices using the copied utility
+        labeled_indices, _ = sample_k_shot(self.train_data, self.k_shot, self.seed)
+        self.train_labeled_indices = np.array(labeled_indices)
+        
+        # Create unlabeled indices (remaining training data)
+        all_train_indices = np.arange(len(self.train_data))
+        unlabeled_candidates = np.setdiff1d(all_train_indices, self.train_labeled_indices)
+        
+        # Optionally sample partial unlabeled data
+        if self.partial_unlabeled and len(unlabeled_candidates) > 0:
+            num_classes = len(set(self.train_data["label"]))
+            max_unlabeled = num_classes * self.k_shot * self.sample_unlabeled_factor
+            
+            if len(unlabeled_candidates) > max_unlabeled:
+                np.random.seed(self.seed)
+                unlabeled_candidates = np.random.choice(
+                    unlabeled_candidates, max_unlabeled, replace=False
+                )
+        
+        self.train_unlabeled_indices = unlabeled_candidates
+        
+        # Use all test data
+        self.test_indices = np.arange(len(self.test_data))
+        
+        print(f"Sampled: {len(self.train_labeled_indices)} labeled, "
+              f"{len(self.train_unlabeled_indices)} unlabeled, "
+              f"{len(self.test_indices)} test")
+
+    def build_knn_edges(self, embeddings: np.ndarray, k: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Build edges between entities based on co-occurrence and semantic similarity.
+        Build KNN edges based on cosine similarity.
         
         Args:
-            news_entities: List of entity lists for each news article
+            embeddings: Node embeddings
+            k: Number of neighbors
             
         Returns:
-            Tuple of (edge_index, edge_attr) for entity-entity edges
+            Edge indices and weights
         """
-        logger.info("Building entity-entity edges...")
+        print(f"Building KNN edges with k={k}...")
         
-        if len(self.entity_vocab) == 0:
-            return torch.zeros((2, 0), dtype=torch.long), torch.zeros((0, 1), dtype=torch.float)
+        # Compute cosine similarity
+        similarities = cosine_similarity(embeddings)
         
-        # Build co-occurrence matrix
-        entity_cooccurrence = self._build_entity_cooccurrence_matrix(news_entities)
+        edge_indices = []
+        edge_weights = []
         
-        # Build semantic similarity edges
-        semantic_edges = self._build_entity_semantic_edges()
+        for i in range(len(embeddings)):
+            # Get top-k similar nodes (excluding self)
+            sim_scores = similarities[i]
+            top_k_indices = np.argsort(sim_scores)[::-1][1:k+1]  # Exclude self (index 0)
+            
+            for j in top_k_indices:
+                if sim_scores[j] > 0:  # Only positive similarities
+                    edge_indices.append([i, j])
+                    edge_weights.append(sim_scores[j])
         
-        # Combine co-occurrence and semantic edges
-        all_edges = []
-        all_similarities = []
+        if len(edge_indices) == 0:
+            return torch.zeros((2, 0), dtype=torch.long), torch.zeros(0)
         
-        # Add co-occurrence edges
-        cooc_indices = np.nonzero(entity_cooccurrence)
-        for i, j in zip(cooc_indices[0], cooc_indices[1]):
-            if i != j:  # No self-loops
-                cooc_score = entity_cooccurrence[i, j]
-                all_edges.append([i, j])
-                all_similarities.append(cooc_score)
+        edge_index = torch.tensor(edge_indices, dtype=torch.long).t()
+        edge_weight = torch.tensor(edge_weights, dtype=torch.float)
         
-        # Add semantic similarity edges
-        for (i, j), sim_score in semantic_edges:
-            all_edges.append([i, j])
-            all_similarities.append(sim_score)
+        return edge_index, edge_weight
+
+    def build_knn_test_isolated_edges(
+        self, 
+        train_labeled_emb: np.ndarray,
+        train_unlabeled_emb: np.ndarray, 
+        test_emb: np.ndarray,
+        k: int
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Build KNN edges with test isolation (test nodes only connect to training nodes).
+        """
+        print(f"Building test-isolated KNN edges with k={k}...")
         
-        if len(all_edges) == 0:
-            return torch.zeros((2, 0), dtype=torch.long), torch.zeros((0, 1), dtype=torch.float)
+        all_embeddings = np.concatenate([train_labeled_emb, train_unlabeled_emb, test_emb])
+        num_train_labeled = len(train_labeled_emb)
+        num_train_unlabeled = len(train_unlabeled_emb)
+        num_test = len(test_emb)
+        
+        edge_indices = []
+        edge_weights = []
+        
+        # Compute full similarity matrix
+        similarities = cosine_similarity(all_embeddings)
+        
+        # Training nodes can connect to any other training nodes
+        for i in range(num_train_labeled + num_train_unlabeled):
+            sim_scores = similarities[i, :num_train_labeled + num_train_unlabeled]
+            top_k_indices = np.argsort(sim_scores)[::-1][1:k+1]  # Exclude self
+            
+            for j in top_k_indices:
+                if j < len(sim_scores) and sim_scores[j] > 0:
+                    edge_indices.append([i, j])
+                    edge_weights.append(sim_scores[j])
+        
+        # Test nodes only connect to training nodes
+        test_start_idx = num_train_labeled + num_train_unlabeled
+        for i in range(test_start_idx, test_start_idx + num_test):
+            sim_scores = similarities[i, :num_train_labeled + num_train_unlabeled]
+            top_k_indices = np.argsort(sim_scores)[::-1][:k]
+            
+            for j in top_k_indices:
+                if sim_scores[j] > 0:
+                    edge_indices.append([i, j])
+                    edge_weights.append(sim_scores[j])
+        
+        if len(edge_indices) == 0:
+            return torch.zeros((2, 0), dtype=torch.long), torch.zeros(0)
+        
+        edge_index = torch.tensor(edge_indices, dtype=torch.long).t()
+        edge_weight = torch.tensor(edge_weights, dtype=torch.float)
+        
+        return edge_index, edge_weight
+
+    def add_entity_features(self, news_embeddings: torch.Tensor) -> torch.Tensor:
+        """
+        Add simplified entity-aware features to news embeddings.
+        
+        In a full implementation, this would:
+        1. Extract named entities from text
+        2. Create entity embeddings
+        3. Aggregate entity information
+        
+        For simplicity, we add learnable entity features.
+        """
+        if not self.enable_entities:
+            return news_embeddings
+            
+        print("Adding simplified entity-aware features...")
+        
+        num_nodes = news_embeddings.size(0)
+        entity_dim = self.entity_config["entity_dim"]
+        
+        # Simple entity features (in practice, this would be based on actual entities)
+        entity_features = torch.randn(num_nodes, entity_dim) * 0.1
+        
+        # Concatenate with original embeddings
+        enhanced_embeddings = torch.cat([news_embeddings, entity_features], dim=1)
+        
+        print(f"Enhanced embeddings: {news_embeddings.shape} -> {enhanced_embeddings.shape}")
+        return enhanced_embeddings
+
+    def build_hetero_graph(self) -> HeteroData:
+        """Build the heterogeneous graph with news and optionally interaction nodes."""
+        print("Building LESS4FD heterogeneous graph...")
+        
+        # Load dataset and sample indices
+        self.load_dataset()
+        self.sample_k_shot_indices()
+        
+        # Extract embeddings and labels
+        train_labeled_emb = np.array(
+            self.train_data.select(self.train_labeled_indices.tolist())[self.text_embedding_field]
+        )
+        train_labeled_labels = np.array(
+            self.train_data.select(self.train_labeled_indices.tolist())["label"]
+        )
+        
+        train_unlabeled_emb = np.array(
+            self.train_data.select(self.train_unlabeled_indices.tolist())[self.text_embedding_field]
+        )
+        train_unlabeled_labels = np.array(
+            self.train_data.select(self.train_unlabeled_indices.tolist())["label"]
+        )
+        
+        test_emb = np.array(
+            self.test_data.select(self.test_indices.tolist())[self.text_embedding_field]
+        )
+        test_labels = np.array(
+            self.test_data.select(self.test_indices.tolist())["label"]
+        )
+        
+        # Concatenate all news node features and labels
+        all_embeddings = np.concatenate([train_labeled_emb, train_unlabeled_emb, test_emb])
+        all_labels = np.concatenate([train_labeled_labels, train_unlabeled_labels, test_labels])
         
         # Convert to tensors
-        edge_index = torch.tensor(all_edges, dtype=torch.long).t()
-        edge_attr = torch.tensor(all_similarities, dtype=torch.float).unsqueeze(1)
+        news_x = torch.tensor(all_embeddings, dtype=torch.float)
+        news_y = torch.tensor(all_labels, dtype=torch.long)
         
-        # Remove duplicates and self-loops
-        edge_index, edge_attr = self._remove_duplicate_edges(edge_index, edge_attr)
+        # Add entity-aware features
+        news_x = self.add_entity_features(news_x)
         
-        logger.info(f"Built {edge_index.shape[1]} entity-entity edges")
+        # Build news-news edges
+        if self.edge_policy == "knn_test_isolated":
+            edge_index, edge_weight = self.build_knn_test_isolated_edges(
+                train_labeled_emb, train_unlabeled_emb, test_emb, self.k_neighbors
+            )
+        else:  # Standard KNN
+            edge_index, edge_weight = self.build_knn_edges(all_embeddings, self.k_neighbors)
         
-        return edge_index, edge_attr
-    
-    def build_news_entity_edges(
-        self,
-        news_entities: List[List[Dict]],
-        news_indices: List[int]
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Build edges between news and entities.
+        # Create masks
+        num_train_labeled = len(self.train_labeled_indices)
+        num_train_unlabeled = len(self.train_unlabeled_indices)
+        num_test = len(self.test_indices)
+        total_nodes = num_train_labeled + num_train_unlabeled + num_test
         
-        Args:
-            news_entities: List of entity lists for each news article
-            news_indices: Indices of news articles in the graph
+        train_labeled_mask = torch.zeros(total_nodes, dtype=torch.bool)
+        train_labeled_mask[:num_train_labeled] = True
+        
+        train_unlabeled_mask = torch.zeros(total_nodes, dtype=torch.bool)
+        train_unlabeled_mask[num_train_labeled:num_train_labeled + num_train_unlabeled] = True
+        
+        test_mask = torch.zeros(total_nodes, dtype=torch.bool)
+        test_mask[num_train_labeled + num_train_unlabeled:] = True
+        
+        # Create heterogeneous graph
+        graph = HeteroData()
+        
+        # Add news nodes
+        graph['news'].x = news_x
+        graph['news'].y = news_y
+        graph['news'].train_labeled_mask = train_labeled_mask
+        graph['news'].train_unlabeled_mask = train_unlabeled_mask
+        graph['news'].test_mask = test_mask
+        
+        # Add news-news edges
+        graph['news', 'similar_to', 'news'].edge_index = edge_index
+        graph['news', 'similar_to', 'news'].edge_attr = edge_weight.unsqueeze(1)
+        
+        # Optionally add interaction nodes (simplified)
+        if not self.no_interactions:
+            # Create dummy interaction nodes for demonstration
+            num_interactions = min(100, len(all_embeddings) // 2)
+            interaction_dim = 64
             
-        Returns:
-            Tuple of (edge_index, edge_attr) for news-entity edges
-        """
-        logger.info("Building news-entity edges...")
-        
-        news_entity_edges = []
-        edge_confidences = []
-        
-        for news_idx, entities in enumerate(news_entities):
-            if news_idx >= len(news_indices):
-                continue
-                
-            graph_news_idx = news_idx  # Index in the graph
+            graph['interaction'].x = torch.randn(num_interactions, interaction_dim)
             
-            for entity in entities:
-                entity_text = entity["text"].lower()
-                if entity_text in self.entity_vocab:
-                    entity_idx = self.entity_vocab[entity_text]
-                    confidence = entity.get("score", 1.0)
-                    
-                    news_entity_edges.append([graph_news_idx, entity_idx])
-                    edge_confidences.append(confidence)
-        
-        if len(news_entity_edges) == 0:
-            return torch.zeros((2, 0), dtype=torch.long), torch.zeros((0, 1), dtype=torch.float)
-        
-        edge_index = torch.tensor(news_entity_edges, dtype=torch.long).t()
-        edge_attr = torch.tensor(edge_confidences, dtype=torch.float).unsqueeze(1)
-        
-        logger.info(f"Built {edge_index.shape[1]} news-entity edges")
-        
-        return edge_index, edge_attr
-    
-    def build_graph(self, test_batch_indices: Optional[List[int]] = None) -> HeteroData:
-        """
-        Build the complete LESS4FD heterogeneous graph.
-        
-        Args:
-            test_batch_indices: Indices for test batch (if using batch processing)
+            # Random news-interaction edges
+            news_interaction_edges = []
+            for i in range(num_interactions):
+                # Each interaction connects to 1-3 random news nodes
+                num_connections = np.random.randint(1, 4)
+                connected_news = np.random.choice(total_nodes, num_connections, replace=False)
+                for news_idx in connected_news:
+                    news_interaction_edges.append([news_idx, i])
             
-        Returns:
-            Heterogeneous graph data with news, entity, and interaction nodes
-        """
-        logger.info("Building LESS4FD heterogeneous graph...")
+            if news_interaction_edges:
+                ni_edge_index = torch.tensor(news_interaction_edges, dtype=torch.long).t()
+                graph['news', 'has_interaction', 'interaction'].edge_index = ni_edge_index
+                graph['interaction', 'about', 'news'].edge_index = ni_edge_index.flip(0)
         
-        # First build the base heterogeneous graph (news + interactions)
-        base_hetero_data = self.base_builder.build_graph(test_batch_indices)
+        print(f"Graph created:")
+        print(f"- News nodes: {graph['news'].x.shape}")
+        if 'interaction' in graph.node_types:
+            print(f"- Interaction nodes: {graph['interaction'].x.shape}")
+        print(f"- Edge types: {list(graph.edge_types)}")
         
-        if base_hetero_data is None:
-            logger.error("Failed to build base heterogeneous graph")
-            return None
-        
-        # Sample data for entity extraction
-        train_labeled_indices, train_labeled_data = sample_k_shot(
-            self.train_data, self.k_shot, self.seed
-        )
-        
-        # Get test indices
-        if test_batch_indices is not None:
-            test_indices = test_batch_indices
-        else:
-            test_indices = list(range(len(self.test_data)))
-        
-        # Combine all news data for entity extraction
-        all_news_texts = (
-            train_labeled_data["text"] +
-            [self.test_data[i]["text"] for i in test_indices]
-        )
-        
-        # Extract entities from all news
-        entity_info = self.build_entity_nodes(
-            Dataset.from_dict({"text": all_news_texts})
-        )
-        
-        # Build entity-entity edges
-        entity_edge_index, entity_edge_attr = self.build_entity_edges(
-            entity_info["entity_lists"]
-        )
-        
-        # Build news-entity edges
-        news_entity_edge_index, news_entity_edge_attr = self.build_news_entity_edges(
-            entity_info["entity_lists"],
-            list(range(len(all_news_texts)))
-        )
-        
-        # Create new heterogeneous data with entities
-        hetero_data = HeteroData()
-        
-        # Copy existing node types and edges from base graph
-        for node_type in base_hetero_data.node_types:
-            hetero_data[node_type].x = base_hetero_data[node_type].x
-            if hasattr(base_hetero_data[node_type], 'y'):
-                hetero_data[node_type].y = base_hetero_data[node_type].y
-            
-            # Copy masks if they exist (including few-shot specific masks)
-            for mask_name in ['train_labeled_mask', 'train_unlabeled_mask', 'val_mask', 'test_mask', 'train_mask']:
-                if hasattr(base_hetero_data[node_type], mask_name):
-                    setattr(hetero_data[node_type], mask_name, 
-                           getattr(base_hetero_data[node_type], mask_name))
-        
-        # Copy existing edges
-        for edge_type in base_hetero_data.edge_types:
-            hetero_data[edge_type].edge_index = base_hetero_data[edge_type].edge_index
-            if hasattr(base_hetero_data[edge_type], 'edge_attr'):
-                hetero_data[edge_type].edge_attr = base_hetero_data[edge_type].edge_attr
-        
-        # Add entity nodes
-        if len(self.entity_vocab) > 0:
-            hetero_data['entity'].x = self.entity_embeddings
-            
-            # Create entity type labels
-            entity_types = []
-            for entity_text in self.entity_vocab.keys():
-                entity_type = self.entity_type_mapping.get(entity_text, "MISC")
-                type_idx = LESS4FD_CONFIG["entity_types"].index(entity_type) \
-                    if entity_type in LESS4FD_CONFIG["entity_types"] else 3  # MISC index
-                entity_types.append(type_idx)
-            
-            hetero_data['entity'].entity_type = torch.tensor(entity_types, dtype=torch.long)
-            
-            # Add entity-entity edges
-            if entity_edge_index.shape[1] > 0:
-                hetero_data['entity', 'related_to', 'entity'].edge_index = entity_edge_index
-                hetero_data['entity', 'related_to', 'entity'].edge_attr = entity_edge_attr
-            
-            # Add news-entity edges (bidirectional)
-            if news_entity_edge_index.shape[1] > 0:
-                hetero_data['news', 'connected_to', 'entity'].edge_index = news_entity_edge_index
-                hetero_data['news', 'connected_to', 'entity'].edge_attr = news_entity_edge_attr
-                
-                # Add reverse edges
-                reverse_edge_index = torch.stack([
-                    news_entity_edge_index[1],  # entity -> news
-                    news_entity_edge_index[0]   # news -> entity
-                ])
-                hetero_data['entity', 'connected_to', 'news'].edge_index = reverse_edge_index
-                hetero_data['entity', 'connected_to', 'news'].edge_attr = news_entity_edge_attr
-        
-        # Add metadata
-        hetero_data.metadata_dict = {
-            "num_entities": len(self.entity_vocab),
-            "entity_vocab": self.entity_vocab,
-            "entity_types": LESS4FD_CONFIG["entity_types"],
-            "entity_model": self.entity_model,
-            "k_shot": self.k_shot,
-            "dataset_name": self.dataset_name
-        }
-        
-        logger.info(f"Built LESS4FD heterogeneous graph with {len(hetero_data.node_types)} node types")
-        logger.info(f"Node types: {hetero_data.node_types}")
-        logger.info(f"Edge types: {hetero_data.edge_types}")
-        
-        return hetero_data
-    
+        return graph
+
     def save_graph(self, graph: HeteroData, suffix: str = "") -> str:
-        """
-        Save the heterogeneous graph to disk.
+        """Save the graph to disk."""
+        os.makedirs(self.output_dir, exist_ok=True)
         
-        Args:
-            graph: Heterogeneous graph data
-            suffix: Additional suffix for filename
-            
-        Returns:
-            Path to saved graph
-        """
         filename = f"less4fd_{self.dataset_name}_k{self.k_shot}_{self.embedding_type}"
         if suffix:
             filename += f"_{suffix}"
         filename += ".pt"
         
-        filepath = os.path.join(self.graph_cache_dir, filename)
-        
+        filepath = os.path.join(self.output_dir, filename)
         torch.save(graph, filepath)
-        logger.info(f"Saved LESS4FD graph to {filepath}")
         
-        # Also save entity cache
-        self.entity_extractor.save_caches()
-        
+        print(f"Graph saved to: {filepath}")
         return filepath
+
+
+def main():
+    """Main function for building LESS4FD graphs."""
+    parser = ArgumentParser(description="Build simplified LESS4FD graph")
+    parser.add_argument("--dataset_name", choices=["politifact", "gossipcop"], 
+                       default="politifact", help="Dataset name")
+    parser.add_argument("--k_shot", type=int, choices=range(3, 17), default=8,
+                       help="Number of shots")
+    parser.add_argument("--embedding_type", choices=["bert", "roberta", "deberta", "distilbert"], 
+                       default="deberta", help="Embedding type")
+    parser.add_argument("--edge_policy", choices=["knn", "knn_test_isolated"],
+                       default="knn_test_isolated", help="Edge construction policy")
+    parser.add_argument("--k_neighbors", type=int, default=5, help="Number of KNN neighbors")
+    parser.add_argument("--enable_entities", action="store_true", default=True,
+                       help="Enable entity-aware features")
+    parser.add_argument("--no_interactions", action="store_true", 
+                       help="Build graph without interaction nodes")
+    parser.add_argument("--output_dir", default="graphs_less4fd", 
+                       help="Output directory for graphs")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed")
     
-    def load_graph(self, suffix: str = "") -> Optional[HeteroData]:
-        """
-        Load heterogeneous graph from disk.
-        
-        Args:
-            suffix: Additional suffix for filename
-            
-        Returns:
-            Loaded heterogeneous graph data or None if not found
-        """
-        filename = f"less4fd_{self.dataset_name}_k{self.k_shot}_{self.embedding_type}"
-        if suffix:
-            filename += f"_{suffix}"
-        filename += ".pt"
-        
-        filepath = os.path.join(self.graph_cache_dir, filename)
-        
-        if os.path.exists(filepath):
-            graph = torch.load(filepath)
-            logger.info(f"Loaded LESS4FD graph from {filepath}")
-            return graph
-        
-        return None
+    args = parser.parse_args()
     
-    def _build_entity_cooccurrence_matrix(self, news_entities: List[List[Dict]]) -> np.ndarray:
-        """Build entity co-occurrence matrix."""
-        num_entities = len(self.entity_vocab)
-        cooccurrence = np.zeros((num_entities, num_entities))
-        
-        for entities in news_entities:
-            entity_indices = []
-            for entity in entities:
-                entity_text = entity["text"].lower()
-                if entity_text in self.entity_vocab:
-                    entity_indices.append(self.entity_vocab[entity_text])
-            
-            # Add co-occurrence for all pairs in this news article
-            for i in range(len(entity_indices)):
-                for j in range(i + 1, len(entity_indices)):
-                    idx1, idx2 = entity_indices[i], entity_indices[j]
-                    cooccurrence[idx1, idx2] += 1
-                    cooccurrence[idx2, idx1] += 1
-        
-        # Normalize by maximum co-occurrence
-        if cooccurrence.max() > 0:
-            cooccurrence = cooccurrence / cooccurrence.max()
-        
-        return cooccurrence
+    # Set seed for reproducibility
+    set_seed(args.seed)
     
-    def _build_entity_semantic_edges(self) -> List[Tuple[Tuple[int, int], float]]:
-        """Build semantic similarity edges between entities."""
-        edges = []
-        
-        if self.entity_embeddings is None or len(self.entity_vocab) < 2:
-            return edges
-        
-        # Compute similarity matrix
-        similarities = cosine_similarity(
-            self.entity_embeddings.numpy(),
-            self.entity_embeddings.numpy()
-        )
-        
-        # Find similar entity pairs
-        entity_list = list(self.entity_vocab.keys())
-        for i in range(len(entity_list)):
-            # Get top-k similar entities
-            similar_indices = np.argsort(similarities[i])[::-1][1:self.entity_knn+1]
-            
-            for j in similar_indices:
-                similarity = similarities[i, j]
-                if similarity > self.entity_similarity_threshold:
-                    edges.append(((i, j), similarity))
-        
-        return edges
+    # Build graph
+    builder = SimpleLESS4FDGraphBuilder(
+        dataset_name=args.dataset_name,
+        k_shot=args.k_shot,
+        embedding_type=args.embedding_type,
+        edge_policy=args.edge_policy,
+        k_neighbors=args.k_neighbors,
+        enable_entities=args.enable_entities,
+        no_interactions=args.no_interactions,
+        output_dir=args.output_dir,
+        seed=args.seed
+    )
     
-    def _remove_duplicate_edges(
-        self,
-        edge_index: torch.Tensor,
-        edge_attr: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Remove duplicate edges and self-loops."""
-        if edge_index.shape[1] == 0:
-            return edge_index, edge_attr
-        
-        # Remove self-loops
-        mask = edge_index[0] != edge_index[1]
-        edge_index = edge_index[:, mask]
-        edge_attr = edge_attr[mask]
-        
-        # Remove duplicates by sorting and keeping unique
-        if edge_index.shape[1] > 0:
-            # Create edge tuples for uniqueness check
-            edge_tuples = [tuple(sorted([edge_index[0, i].item(), edge_index[1, i].item()])) 
-                          for i in range(edge_index.shape[1])]
-            
-            unique_edges = {}
-            for i, edge_tuple in enumerate(edge_tuples):
-                if edge_tuple not in unique_edges:
-                    unique_edges[edge_tuple] = i
-            
-            # Keep only unique edges
-            unique_indices = list(unique_edges.values())
-            edge_index = edge_index[:, unique_indices]
-            edge_attr = edge_attr[unique_indices]
-        
-        return edge_index, edge_attr
+    print(f"Building LESS4FD graph for {args.dataset_name}, k_shot={args.k_shot}")
+    graph = builder.build_hetero_graph()
     
-    def analyze_entity_graph(self, hetero_graph: HeteroData) -> Dict:
-        """
-        Analyze the entity-aware heterogeneous graph.
-        
-        Args:
-            hetero_graph: Heterogeneous graph data
-            
-        Returns:
-            Dictionary with analysis results
-        """
-        analysis = {}
-        
-        # Basic statistics
-        analysis["num_node_types"] = len(hetero_graph.node_types)
-        analysis["num_edge_types"] = len(hetero_graph.edge_types)
-        analysis["node_types"] = hetero_graph.node_types
-        analysis["edge_types"] = hetero_graph.edge_types
-        
-        # Node statistics
-        node_stats = {}
-        for node_type in hetero_graph.node_types:
-            if hasattr(hetero_graph[node_type], 'x'):
-                num_nodes = hetero_graph[node_type].x.shape[0]
-                node_dim = hetero_graph[node_type].x.shape[1]
-                node_stats[node_type] = {"num_nodes": num_nodes, "feature_dim": node_dim}
-        
-        analysis["node_statistics"] = node_stats
-        
-        # Edge statistics
-        edge_stats = {}
-        for edge_type in hetero_graph.edge_types:
-            if hasattr(hetero_graph[edge_type], 'edge_index'):
-                num_edges = hetero_graph[edge_type].edge_index.shape[1]
-                edge_stats[edge_type] = {"num_edges": num_edges}
-        
-        analysis["edge_statistics"] = edge_stats
-        
-        # Entity-specific statistics
-        if 'entity' in hetero_graph.node_types:
-            entity_info = {}
-            entity_info["num_entities"] = hetero_graph['entity'].x.shape[0]
-            
-            if hasattr(hetero_graph['entity'], 'entity_type'):
-                entity_types = hetero_graph['entity'].entity_type
-                type_counts = torch.bincount(entity_types)
-                entity_info["type_distribution"] = {
-                    LESS4FD_CONFIG["entity_types"][i]: count.item()
-                    for i, count in enumerate(type_counts)
-                    if i < len(LESS4FD_CONFIG["entity_types"])
-                }
-            
-            analysis["entity_info"] = entity_info
-        
-        return analysis
+    # Save graph
+    filepath = builder.save_graph(graph)
+    
+    print(f"\nLESS4FD graph built successfully!")
+    print(f"Graph saved to: {filepath}")
+
+
+if __name__ == "__main__":
+    main()
