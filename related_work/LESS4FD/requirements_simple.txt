@@ -1,5 +1,9 @@
-# Simplified requirements for LESS4FD
-# These are minimal additional requirements on top of the base requirements.txt
-
-# No additional requirements needed - uses the same dependencies as main repository
-# The simplified LESS4FD implementation leverages existing functionality
+# Simplified LESS4FD Requirements
+# 
+# No additional requirements needed beyond the main repository!
+# 
+# This simplified LESS4FD implementation is fully self-contained and uses
+# only the dependencies already specified in the main repository's requirements.txt
+#
+# To install dependencies, run from the main repository root:
+# pip install -r requirements.txt

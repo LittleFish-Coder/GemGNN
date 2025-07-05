@@ -1,0 +1,23 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Generated graphs and results
+graphs_less4fd/
+results_less4fd/
+
+# Temporary files
+*.tmp
+*.log
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Environment variables
+.env
+
+# PyTorch model files (keep only essential ones)
+*.pth
+*.pt
+!example_*.pt
