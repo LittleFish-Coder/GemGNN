@@ -307,9 +307,9 @@ class SimpleLESS4FDTrainer:
             
             # Compute metrics
             accuracy = accuracy_score(labels.cpu(), pred.cpu())
-            precision = precision_score(labels.cpu(), pred.cpu(), average='weighted', zero_division=0)
-            recall = recall_score(labels.cpu(), pred.cpu(), average='weighted', zero_division=0)
-            f1 = f1_score(labels.cpu(), pred.cpu(), average='weighted', zero_division=0)
+            precision = precision_score(labels.cpu(), pred.cpu(), average='macro', zero_division=0)
+            recall = recall_score(labels.cpu(), pred.cpu(), average='macro', zero_division=0)
+            f1 = f1_score(labels.cpu(), pred.cpu(), average='macro', zero_division=0)
             
             return {
                 'loss': loss,
@@ -441,7 +441,7 @@ def main():
                        default="HGT", help="Model type")
     parser.add_argument("--hidden_channels", type=int, default=64, 
                        help="Hidden dimension size")
-    parser.add_argument("--num_layers", type=int, default=2, 
+    parser.add_argument("--num_layers", type=int, default=1, 
                        help="Number of GNN layers")
     parser.add_argument("--dropout", type=float, default=0.3, help="Dropout rate")
     parser.add_argument("--learning_rate", type=float, default=5e-4, 
