@@ -131,7 +131,11 @@ class SimpleLESS4FDModel(nn.Module):
         # Initialize node embeddings if not done yet
         for node_type, x in x_dict.items():
             if self.node_embeddings[node_type] is None:
-                self.node_embeddings[node_type] = Linear(x.size(1), self.hidden_channels)
+                embedding_layer = Linear(x.size(1), self.hidden_channels)
+                embedding_layer = embedding_layer.to(x.device)
+                self.node_embeddings[node_type] = embedding_layer
+                # Register as submodule to ensure it's moved with the model
+                self.add_module(f'node_embedding_{node_type}', embedding_layer)
         
         # Project node features to hidden dimension
         for node_type in x_dict:
@@ -232,6 +236,9 @@ class SimpleLESS4FDTrainer:
         print(f"Loading graph from: {graph_path}")
         self.graph = torch.load(graph_path, map_location=self.device, weights_only=False)
         
+        # Move graph to device
+        self.graph = self.graph.to(self.device)
+        
         # Initialize model
         metadata = (self.graph.node_types, self.graph.edge_types)
         self.model = SimpleLESS4FDModel(
@@ -242,6 +249,9 @@ class SimpleLESS4FDTrainer:
             model_type=model_type,
             entity_aware=True
         ).to(self.device)
+        
+        # Ensure model is on correct device
+        self.model = self.model.to(self.device)
         
         # Initialize optimizer and loss
         self.optimizer = Adam(

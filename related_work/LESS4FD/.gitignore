@@ -5,7 +5,7 @@ __pycache__/
 
 # Generated graphs and results
 graphs_less4fd/
-results_less4fd/
+# results_less4fd/
 
 # Temporary files
 *.tmp
