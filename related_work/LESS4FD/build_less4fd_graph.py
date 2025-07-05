@@ -452,7 +452,7 @@ class SimpleLESS4FDGraphBuilder:
         filename += ".pt"
         
         filepath = os.path.join(self.output_dir, filename)
-        torch.save(graph, filepath)
+        torch.save(graph, filepath, _use_new_zipfile_serialization=False)
         
         print(f"Graph saved to: {filepath}")
         return filepath

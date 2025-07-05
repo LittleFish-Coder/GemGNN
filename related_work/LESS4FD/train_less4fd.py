@@ -230,7 +230,7 @@ class SimpleLESS4FDTrainer:
         
         # Load graph
         print(f"Loading graph from: {graph_path}")
-        self.graph = torch.load(graph_path, map_location=self.device)
+        self.graph = torch.load(graph_path, map_location=self.device, weights_only=False)
         
         # Initialize model
         metadata = (self.graph.node_types, self.graph.edge_types)
