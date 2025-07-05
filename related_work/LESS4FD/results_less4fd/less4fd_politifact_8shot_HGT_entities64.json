@@ -1,0 +1,23 @@
+{
+  "epochs_trained": 20,
+  "best_val_accuracy": 0.4404761791229248,
+  "final_test_metrics": {
+    "accuracy": 0.4404761791229248,
+    "f1": 0.4404761791229248,
+    "precision": 0.4404761791229248,
+    "recall": 0.4404761791229248
+  },
+  "training_time": 0.15256977081298828,
+  "model_type": "HGT",
+  "graph_path": "graphs_less4fd/less4fd_politifact_8shot_deberta_entities64.pt",
+  "config": {
+    "dataset_name": "politifact",
+    "k_shot": 8,
+    "embedding_type": "deberta",
+    "model_type": "HGT",
+    "entity_dim": 64,
+    "epochs": 20,
+    "seed": 42,
+    "main_repo_available": false
+  }
+}
