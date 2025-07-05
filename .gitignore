@@ -35,3 +35,7 @@ logs/
 *.bbl
 *.blg
 
+# test files
+test_tones_selection.py
+demo_tones_selection.py
+
