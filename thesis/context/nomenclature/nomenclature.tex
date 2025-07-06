@@ -6,13 +6,20 @@
 % ------------------------------------------------
 
 \InsertTable
+  [pos=top, nomtitle={Problem Formulation and Data Sets}]
   {
-    \begin{tabular}{C{0.2\textwidth} L{0.4\textwidth}}
+    \begin{tabular}{C{0.15\textwidth} L{0.8\textwidth}}
     \hline
     \underline{Symbol} & \centerline{\underline{Description}}\\
-        $\alpha$ & Symbol of alpha \\
-        $\beta$ & \\
-        $\gamma$ & Gamma\\
+        $\mathcal{L}$ & Labeled training set: $\mathcal{L} = \{(x_i, y_i)\}_{i=1}^{2K}$ \\
+        $\mathcal{U}$ & Unlabeled training set: $\mathcal{U} = \{x_j\}_{j=1}^{M}$ \\
+        $\mathcal{T}$ & Test set: $\mathcal{T} = \{x_k\}_{k=1}^{N}$ \\
+        $K$ & Number of labeled examples per class in few-shot scenarios \\
+        $M$ & Number of unlabeled training instances \\
+        $N$ & Number of test instances \\
+        $x_i$ & News article feature representation \\
+        $y_i$ & Binary label: real news ($y = 0$) vs fake news ($y = 1$) \\
+        $f$ & Classifier function: $f: \mathcal{X} \rightarrow \{0, 1\}$ \\
     \hline
     \end{tabular}
   }
@@ -20,15 +27,97 @@
 \EmptyLine
 
 \InsertTable
-  [pos=bottom, nomtitle={List of common physics notations}]
+  [pos=top, nomtitle={Heterogeneous Graph Structure}]
   {
-    \begin{tabular}{C{0.2\textwidth} C{0.4\textwidth} C{0.35\textwidth}}
+    \begin{tabular}{C{0.15\textwidth} L{0.8\textwidth}}
     \hline
-    \underline{Symbol} & \underline{Meaning} & \underline{SI unit of measure} \\
-        $g$ & Standard gravity & $9.80665 m/s^2$ \\
-        $c$ & Speed of light & $\approx3.00\times108 m/s$  \\
-        $l$ & Length & meter (m) \\
- 	  \hline
+    \underline{Symbol} & \underline{Description}\\
+        $G$ & Heterogeneous graph: $G = (V, E, \mathcal{A}, \mathcal{R})$ \\
+        $V$ & Set of all nodes in the graph \\
+        $E$ & Set of all edges in the graph \\
+        $\mathcal{A}$ & Node types: $\mathcal{A} = \{\text{news}, \text{interaction}\}$ \\
+        $\mathcal{R}$ & Edge types: $\mathcal{R} = \{\text{similar\_to}, \text{interacts\_with}\}$ \\
+        $V_n$ & News nodes: $V_n = \{n_1, n_2, \ldots, n_{|\mathcal{L}| + |\mathcal{U}| + |\mathcal{T}|}\}$ \\
+        $V_i$ & Interaction nodes: $V_i = \{i_1, i_2, \ldots, i_{20 \times |V_n|}\}$ \\
+        $E_{nn}$ & News-to-news edges based on semantic similarity \\
+        $E_{ni}$ & News-to-interaction edges connecting articles to synthetic responses \\
+        $n_i$ & Individual news node $i$ \\
+        $i_j$ & Individual interaction node $j$ \\
+    \hline
+    \end{tabular}
+  }
+
+\EmptyLine
+
+\InsertTable
+  [pos=top, nomtitle={Node Features and Embeddings}]
+  {
+    \begin{tabular}{C{0.15\textwidth} L{0.8\textwidth}}
+    \hline
+    \underline{Symbol} & \underline{Description}\\
+        $\mathbf{x}_v$ & Node feature vector: $\mathbf{x}_v \in \mathbb{R}^{768}$ (DeBERTa embeddings) \\
+        $\mathbf{h}_i$ & Node representation for node $i$ \\
+        $\mathbf{h}_i^{(v)}$ & Node representation for view $v$ \\
+        $\mathbf{h}_i^{\phi}$ & Node representation for edge type $\phi$ \\
+        $d$ & Embedding dimension: $d = 768$ \\
+        $V$ & Number of views in multi-view architecture \\
+        $a_{ij}$ & Edge attribute encoding interaction tone: $a_{ij} \in \{0, 1, 2\}$ \\
+    \hline
+    \end{tabular}
+  }
+
+\EmptyLine
+
+\InsertTable
+  [pos=top, nomtitle={Multi-View Architecture and Interaction Generation}]
+  {
+    \begin{tabular}{C{0.15\textwidth} L{0.8\textwidth}}
+    \hline
+    \underline{Symbol} & \underline{Description}\\
+        $I_i$ & Set of generated interactions for news article $i$: $I_i = \{i_1, i_2, \ldots, i_{20}\}$ \\
+        $G^{(v)}$ & Graph structure for view $v$: $G^{(1)}, G^{(2)}, \ldots, G^{(V)}$ \\
+        $N_{train}$ & Set of training nodes: $N_{train} = N_{labeled} \cup N_{unlabeled}$ \\
+        $k$ & Number of nearest neighbors in KNN graph construction \\
+        $\phi$ & Edge type identifier \\
+    \hline
+    \end{tabular}
+  }
+
+\EmptyLine
+
+\InsertTable
+  [pos=top, nomtitle={Heterogeneous Attention Network (HAN) Parameters}]
+  {
+    \begin{tabular}{C{0.15\textwidth} L{0.8\textwidth}}
+    \hline
+    \underline{Symbol} & \underline{Description}\\
+        $\mathbf{W}_{\phi}$ & Edge-type-specific transformation matrix \\
+        $\mathbf{a}_{\phi}$ & Edge-type-specific attention vector \\
+        $\alpha_{ij}^{\phi}$ & Node-level attention weight between nodes $i$ and $j$ for edge type $\phi$ \\
+        $\beta_{\phi}$ & Semantic-level attention weight for edge type $\phi$ \\
+        $\mathbf{W}$ & Learnable weight matrix \\
+        $\mathbf{b}$ & Learnable bias vector \\
+        $q$ & Learnable attention parameter vector \\
+    \hline
+    \end{tabular}
+  }
+
+\EmptyLine
+
+\InsertTable
+  [pos=bottom, nomtitle={Training and Loss Function Parameters}]
+  {
+    \begin{tabular}{C{0.15\textwidth} L{0.8\textwidth}}
+    \hline
+    \underline{Symbol} & \underline{Description}\\
+        $\mathcal{L}_{ce\_smooth}$ & Cross-entropy loss with label smoothing \\
+        $\alpha$ & Label smoothing parameter: $\alpha = 0.1$ \\
+        $y_i^{smooth}(c)$ & Smoothed label: $y_i^{smooth}(c) = (1-\alpha)y_i(c) + \alpha/C$ \\
+        $C$ & Number of classes (2 for binary classification) \\
+        $f_\theta(G)[n_i]$ & Model prediction for news node $n_i$ \\
+        $\theta$ & Model parameters \\
+        $N_{unlabeled}$ & Number of unlabeled nodes: $N_{unlabeled} = 2K \times \text{factor}$ \\
+    \hline
     \end{tabular}
   }
 
