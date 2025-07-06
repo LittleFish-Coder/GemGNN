@@ -8,8 +8,8 @@ This thesis presents GemGNN (Generative Multi-view Interaction Graph Neural Netw
 
 The GemGNN framework constructs heterogeneous graphs containing news nodes and synthetic interaction nodes, connected through learned attention mechanisms in a Heterogeneous Graph Attention Network (HAN) architecture. The system operates under transductive learning where all nodes participate in message passing, but only labeled nodes contribute to loss computation. Empirical analysis demonstrates that standard cross-entropy loss achieves optimal performance, eliminating the need for complex loss engineering.
 
-Comprehensive experiments on FakeNewsNet datasets (PolitiFact and GossipCop) across K-shot configurations (K=3,4,8,16) demonstrate that GemGNN consistently outperforms baseline methods including traditional machine learning approaches, transformer-based models, large language models, and existing graph-based methods. The framework achieves superior F1-scores while maintaining computational efficiency and requiring no real social interaction data.
-
+Comprehensive experiments on FakeNewsNet datasets (PolitiFact and GossipCop) across K-shot configurations (K=3\textasciitilde16) demonstrate that GemGNN consistently outperforms baseline methods including traditional machine learning approaches, transformer-based models, large language models, and existing graph-based methods. The framework achieves superior F1-scores while maintaining computational efficiency and requiring no real social interaction data.
+ 
 The contributions establish a practical paradigm for privacy-preserving fake news detection that maintains competitive performance in few-shot scenarios through synthetic data generation and principled graph construction, making it suitable for real-world deployment where user behavior data is unavailable or restricted.
 
 % ------------------------------------------------

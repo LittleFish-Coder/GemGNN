@@ -6,7 +6,7 @@
 
 \textbf{Given:}
 \begin{itemize}
-    \item Labeled set: $\mathcal{L} = \{(x_i, y_i)\}_{i=1}^{2K}$ where $K$ examples per class
+    \item Labeled set: $\mathcal{L} = \{(x_i, y_i)\}_{i=1}^{2K}$, where $K$ examples per class
     \item Unlabeled set: $\mathcal{U} = \{x_j\}_{j=1}^{M}$ 
     \item Test set: $\mathcal{T} = \{x_k\}_{k=1}^{N}$
     \item Constraints: $K \ll M, N$
@@ -24,7 +24,7 @@
 
 \textbf{Key Challenges:}
 \begin{itemize}
-    \item \textcolor{red}{Extreme data scarcity}: $K \in \{3, 4, 8, 16\}$ labeled examples per class
+    \item \textcolor{red}{Extreme data scarcity}: $K \in \{3 \textasciitilde 16\}$ labeled examples per class
     \item \textcolor{blue}{Content-only constraint}: No user interaction or propagation data available
 \end{itemize}
 
@@ -35,7 +35,7 @@ This chapter formally defines the few-shot fake news detection problem and estab
 
 \textbf{Few-Shot Fake News Detection:} Given a small set of labeled news articles $\mathcal{L} = \{(x_i, y_i)\}_{i=1}^{2K}$ where $K$ represents the number of examples per class, and unlabeled news articles $\mathcal{U} = \{x_j\}_{j=1}^{M}$, learn a classifier $f: \mathcal{X} \rightarrow \{0,1\}$ that accurately predicts labels for test instances $\mathcal{T} = \{x_k\}_{k=1}^{N}$ where $K \ll M$ and $K \ll N$.
 
-The binary classification task distinguishes between real news ($y = 0$) and fake news ($y = 1$). In few-shot scenarios, $K \in \{3,4,8,16\}$ labeled examples per class are available for training, creating extreme data scarcity conditions that challenge traditional supervised learning approaches.
+The binary classification task distinguishes between real news ($y = 0$) and fake news ($y = 1$). In few-shot scenarios, $K \in \{3 \textasciitilde 16\}$ labeled examples per class are available for training, creating extreme data scarcity conditions that challenge traditional supervised learning approaches.
 
 \textbf{Privacy Constraints:} The problem explicitly excludes access to user propagation data, social network structures, or user interaction patterns. This constraint reflects real-world deployment scenarios where such data is unavailable due to privacy regulations, platform restrictions, or time-sensitive detection requirements.
 

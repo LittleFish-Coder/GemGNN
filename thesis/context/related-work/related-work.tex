@@ -296,185 +296,185 @@ where $W_s$ and $q$ are learnable parameters, and $P$ is the number of meta-path
 
 Table~\ref{tab:related_work_comparison} provides a systematic comparison of existing fake news detection methods across multiple dimensions, highlighting the unique contributions of our GemGNN framework. This comparison encompasses traditional approaches, recent graph-based methods, LLM-enhanced techniques, and our proposed approach.
 
-\begin{sidewaystable}[!htbp]
-\centering
-\setlength{\tabcolsep}{3pt}
-\renewcommand{\arraystretch}{1.2}
-\caption{Comprehensive comparison of fake news detection methods across different paradigms.}
-\label{tab:related_work_comparison}
-\begin{tabularx}{\linewidth}{%
-    >{\raggedright\arraybackslash}p{3.2cm}   % Method
-    >{\raggedright\arraybackslash}p{2.3cm}   % Category  
-    >{\centering\arraybackslash}p{1.8cm}     % Few-Shot
-    >{\centering\arraybackslash}p{1.5cm}     % Graph-Based
-    >{\centering\arraybackslash}p{1.5cm}     % Social Data Required
-    >{\centering\arraybackslash}p{1.5cm}     % Synthetic Data
-    >{\centering\arraybackslash}p{1.5cm}     % Multi-View
-    X                                        % Main Innovation
-}
-\toprule
-\textbf{Method} & \textbf{Category} & \textbf{Few-Shot Capable} & 
-\textbf{Graph-Based} & \textbf{Social Data Required} & \textbf{Synthetic Data} & 
-\textbf{Multi-View} & \textbf{Main Innovation} \\
-\midrule
+% \begin{sidewaystable}[!htbp]
+% \centering
+% \setlength{\tabcolsep}{3pt}
+% \renewcommand{\arraystretch}{1.2}
+% \caption{Comprehensive comparison of fake news detection methods across different paradigms.}
+% \label{tab:related_work_comparison}
+% \begin{tabularx}{\linewidth}{%
+%     >{\raggedright\arraybackslash}p{3.2cm}   % Method
+%     >{\raggedright\arraybackslash}p{2.3cm}   % Category  
+%     >{\centering\arraybackslash}p{1.8cm}     % Few-Shot
+%     >{\centering\arraybackslash}p{1.5cm}     % Graph-Based
+%     >{\centering\arraybackslash}p{1.5cm}     % Social Data Required
+%     >{\centering\arraybackslash}p{1.5cm}     % Synthetic Data
+%     >{\centering\arraybackslash}p{1.5cm}     % Multi-View
+%     X                                        % Main Innovation
+% }
+% \toprule
+% \textbf{Method} & \textbf{Category} & \textbf{Few-Shot Capable} & 
+% \textbf{Graph-Based} & \textbf{Social Data Required} & \textbf{Synthetic Data} & 
+% \textbf{Multi-View} & \textbf{Main Innovation} \\
+% \midrule
 
-\multicolumn{8}{l}{\textbf{Traditional Content-Based Methods}} \\
-\midrule
+% \multicolumn{8}{l}{\textbf{Traditional Content-Based Methods}} \\
+% \midrule
 
-TF-IDF + MLP \cite{perez2017automatic} & 
-  Traditional ML & 
-  $\times$ & 
-  $\times$ & 
-  $\times$ & 
-  $\times$ & 
-  $\times$ & 
-  Bag-of-words features with shallow neural networks \\
+% TF-IDF + MLP \cite{perez2017automatic} & 
+%   Traditional ML & 
+%   $\times$ & 
+%   $\times$ & 
+%   $\times$ & 
+%   $\times$ & 
+%   $\times$ & 
+%   Bag-of-words features with shallow neural networks \\
 
-LSTM/RNN \cite{ma2016detecting} & 
-  Sequential Model & 
-  $\times$ & 
-  $\times$ & 
-  $\times$ & 
-  $\times$ & 
-  $\times$ & 
-  Sequential modeling of text with recurrent architectures \\
+% LSTM/RNN \cite{ma2016detecting} & 
+%   Sequential Model & 
+%   $\times$ & 
+%   $\times$ & 
+%   $\times$ & 
+%   $\times$ & 
+%   $\times$ & 
+%   Sequential modeling of text with recurrent architectures \\
 
-BERT \cite{kaliyar2021fakebert} & 
-  Transformer & 
-  Limited & 
-  $\times$ & 
-  $\times$ & 
-  $\times$ & 
-  $\times$ & 
-  Pre-trained bidirectional encoder representations \\
+% BERT \cite{kaliyar2021fakebert} & 
+%   Transformer & 
+%   Limited & 
+%   $\times$ & 
+%   $\times$ & 
+%   $\times$ & 
+%   $\times$ & 
+%   Pre-trained bidirectional encoder representations \\
 
-\midrule
-\multicolumn{8}{l}{\textbf{Graph-Based Methods}} \\
-\midrule
+% \midrule
+% \multicolumn{8}{l}{\textbf{Graph-Based Methods}} \\
+% \midrule
 
-TextGCN \cite{yao2019graph} & 
-  Graph Neural Network & 
-  $\times$ & 
-  \checkmark & 
-  $\times$ & 
-  $\times$ & 
-  $\times$ & 
-  Document-word heterogeneous graphs with GCN \\
+% TextGCN \cite{yao2019graph} & 
+%   Graph Neural Network & 
+%   $\times$ & 
+%   \checkmark & 
+%   $\times$ & 
+%   $\times$ & 
+%   $\times$ & 
+%   Document-word heterogeneous graphs with GCN \\
 
-BertGCN \cite{lin2021bertgcn} & 
-  Hybrid GNN & 
-  Limited & 
-  \checkmark & 
-  $\times$ & 
-  $\times$ & 
-  $\times$ & 
-  BERT embeddings with graph convolution refinement \\
+% BertGCN \cite{lin2021bertgcn} & 
+%   Hybrid GNN & 
+%   Limited & 
+%   \checkmark & 
+%   $\times$ & 
+%   $\times$ & 
+%   $\times$ & 
+%   BERT embeddings with graph convolution refinement \\
 
-BREAK \cite{ji2023break} & 
-  Sequential GNN & 
-  Limited & 
-  \checkmark & 
-  \checkmark & 
-  $\times$ & 
-  $\times$ & 
-  Graph with sequence modeling for broad-range semantics \\
+% BREAK \cite{ji2023break} & 
+%   Sequential GNN & 
+%   Limited & 
+%   \checkmark & 
+%   \checkmark & 
+%   $\times$ & 
+%   $\times$ & 
+%   Graph with sequence modeling for broad-range semantics \\
 
-Less4FD \cite{zhang2023less4fd} & 
-  Meta-Learning GNN & 
-  \checkmark & 
-  \checkmark & 
-  Limited & 
-  $\times$ & 
-  $\times$ & 
-  Entity-aware self-supervised framework for few-shot detection \\
+% Less4FD \cite{zhang2023less4fd} & 
+%   Meta-Learning GNN & 
+%   \checkmark & 
+%   \checkmark & 
+%   Limited & 
+%   $\times$ & 
+%   $\times$ & 
+%   Entity-aware self-supervised framework for few-shot detection \\
 
-HeteroSGT \cite{wang2023heterosgt} & 
-  Heterogeneous GNN & 
-  Limited & 
-  \checkmark & 
-  \checkmark & 
-  $\times$ & 
-  $\times$ & 
-  Subgraph-level attention with heterogeneous modeling \\
+% HeteroSGT \cite{wang2023heterosgt} & 
+%   Heterogeneous GNN & 
+%   Limited & 
+%   \checkmark & 
+%   \checkmark & 
+%   $\times$ & 
+%   $\times$ & 
+%   Subgraph-level attention with heterogeneous modeling \\
 
-HAN \cite{wang2019han} & 
-  Heterogeneous GNN & 
-  Limited & 
-  \checkmark & 
-  \checkmark & 
-  $\times$ & 
-  $\times$ & 
-  Hierarchical attention for heterogeneous graphs \\
+% HAN \cite{wang2019han} & 
+%   Heterogeneous GNN & 
+%   Limited & 
+%   \checkmark & 
+%   \checkmark & 
+%   $\times$ & 
+%   $\times$ & 
+%   Hierarchical attention for heterogeneous graphs \\
 
-\midrule
-\multicolumn{8}{l}{\textbf{Large Language Model Approaches}} \\
-\midrule
+% \midrule
+% \multicolumn{8}{l}{\textbf{Large Language Model Approaches}} \\
+% \midrule
 
-LLaMA In-Context \cite{touvron2023llama} & 
-  LLM Prompting & 
-  \checkmark & 
-  $\times$ & 
-  $\times$ & 
-  $\times$ & 
-  $\times$ & 
-  Large-scale autoregressive language modeling with few-shot prompting \\
+% LLaMA In-Context \cite{touvron2023llama} & 
+%   LLM Prompting & 
+%   \checkmark & 
+%   $\times$ & 
+%   $\times$ & 
+%   $\times$ & 
+%   $\times$ & 
+%   Large-scale autoregressive language modeling with few-shot prompting \\
 
-Gemma Instruction \cite{team2024gemma} & 
-  LLM Prompting & 
-  \checkmark & 
-  $\times$ & 
-  $\times$ & 
-  $\times$ & 
-  $\times$ & 
-  Enhanced instruction following and safety training \\
+% Gemma Instruction \cite{team2024gemma} & 
+%   LLM Prompting & 
+%   \checkmark & 
+%   $\times$ & 
+%   $\times$ & 
+%   $\times$ & 
+%   $\times$ & 
+%   Enhanced instruction following and safety training \\
 
-GPT-4 CoT \cite{wei2023cot} & 
-  LLM Reasoning & 
-  \checkmark & 
-  $\times$ & 
-  $\times$ & 
-  $\times$ & 
-  $\times$ & 
-  Chain-of-thought reasoning for systematic analysis \\
+% GPT-4 CoT \cite{wei2023cot} & 
+%   LLM Reasoning & 
+%   \checkmark & 
+%   $\times$ & 
+%   $\times$ & 
+%   $\times$ & 
+%   $\times$ & 
+%   Chain-of-thought reasoning for systematic analysis \\
 
-\midrule
-\multicolumn{8}{l}{\textbf{LLM-Enhanced Graph Methods}} \\
-\midrule
+% \midrule
+% \multicolumn{8}{l}{\textbf{LLM-Enhanced Graph Methods}} \\
+% \midrule
 
-Let Silence Speak \cite{yang2023let} & 
-  LLM + Graph & 
-  Limited & 
-  \checkmark & 
-  $\times$ & 
-  \checkmark & 
-  $\times$ & 
-  LLM-generated comments for enhanced detection \\
+% Let Silence Speak \cite{yang2023let} & 
+%   LLM + Graph & 
+%   Limited & 
+%   \checkmark & 
+%   $\times$ & 
+%   \checkmark & 
+%   $\times$ & 
+%   LLM-generated comments for enhanced detection \\
 
-Enhanced Semantics \cite{zhang2023on} & 
-  LLM + Graph & 
-  Limited & 
-  \checkmark & 
-  Limited & 
-  \checkmark & 
-  $\times$ & 
-  LLM-enhanced semantic mining for graph construction \\
+% Enhanced Semantics \cite{zhang2023on} & 
+%   LLM + Graph & 
+%   Limited & 
+%   \checkmark & 
+%   Limited & 
+%   \checkmark & 
+%   $\times$ & 
+%   LLM-enhanced semantic mining for graph construction \\
 
-\midrule
-\multicolumn{8}{l}{\textbf{Our Approach}} \\
-\midrule
+% \midrule
+% \multicolumn{8}{l}{\textbf{Our Approach}} \\
+% \midrule
 
-\textbf{GemGNN (Ours)} & 
-  \textbf{Heterogeneous GNN + LLM} & 
-  \textbf{\checkmark} & 
-  \textbf{\checkmark} & 
-  \textbf{$\times$} & 
-  \textbf{\checkmark} & 
-  \textbf{\checkmark} & 
-  \textbf{Multi-view heterogeneous graphs with synthetic multi-tone interactions and test-isolated evaluation} \\
+% \textbf{GemGNN (Ours)} & 
+%   \textbf{Heterogeneous GNN + LLM} & 
+%   \textbf{\checkmark} & 
+%   \textbf{\checkmark} & 
+%   \textbf{$\times$} & 
+%   \textbf{\checkmark} & 
+%   \textbf{\checkmark} & 
+%   \textbf{Multi-view heterogeneous graphs with synthetic multi-tone interactions and test-isolated evaluation} \\
 
-\bottomrule
-\end{tabularx}
-\end{sidewaystable}
+% \bottomrule
+% \end{tabularx}
+% \end{sidewaystable}
 
 \textbf{Key Observations from the Comparison:}
 
