@@ -26,13 +26,13 @@
         "final_train_loss": 0.3085746765136719,
         "final_train_acc": 1.0,
         "final_train_f1": 1.0,
-        "final_val_loss": 0.29929080605506897,
+        "final_val_loss": 0.2992902994155884,
         "final_val_acc": 1.0,
         "final_val_f1": 1.0,
         "best_val_f1": 1.0,
         "best_epoch": 119,
         "total_epochs_run": 119,
-        "training_time_seconds": 5.8664772510528564
+        "training_time_seconds": 4.763251781463623
     },
     "final_test_metrics_on_target_node": {
         "accuracy": 0.8725490196078431,

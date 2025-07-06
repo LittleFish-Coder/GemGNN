@@ -1,12 +1,12 @@
 #!/bin/bash
 
 K_SHOTS=(8)
-DATASETS=("gossipcop")
+DATASETS=("politifact" "gossipcop")
 EMBEDDINGS=("deberta")
 EDGE_POLICIES=("knn_test_isolated")
 MULTI_VIEWS=(3)
 TONES_SELECTIONS=(0 1 2 3 4 5 6)
-MODELS=("HAN")
+MODELS=("HAN" "HGT")
 K_NEIGHBORS=5
 DATASET_CACHE_DIR="dataset_single"
 
@@ -35,7 +35,7 @@ for DATASET in "${DATASETS[@]}"; do
                         echo "----- Start building -----"
                         echo "[BUILD] ${DATASET} ${EMB} k-shot:${K_SHOT} edge_policy:${EDGE_POLICY} multiview:${MULTI_VIEW} tone_selection:${TONE_SELECTION}" | tee -a "${MASTER_LOG}"
 
-                        if ! python build_hetero_graph_tones.py \
+                        if ! python build_hetero_graph_multi_tones.py \
                             --dataset_name "${DATASET}" \
                             --k_shot "${K_SHOT}" \
                             --embedding_type "${EMB}" \

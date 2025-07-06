@@ -173,16 +173,20 @@ class HeteroGraphBuilder:
             return self._get_counted_tones(1, 2, 1)
         elif self.tones_selection == 11:  # 1 Neutral + 1 Affirmative + 2 Skeptical
             return self._get_counted_tones(1, 1, 2)
-        elif self.tones_selection == 12:  # 4 Neutral + 0 Affirmative + 0 Skeptical
+        elif self.tones_selection == 12:  # 2 Neutral + 0 Affirmative + 0 Skeptical
+            return self._get_counted_tones(2, 0, 0)
+        elif self.tones_selection == 13:  # 4 Neutral + 0 Affirmative + 0 Skeptical
             return self._get_counted_tones(4, 0, 0)
-        elif self.tones_selection == 13:  # 8 Neutral + 0 Affirmative + 0 Skeptical
+        elif self.tones_selection == 14:  # 8 Neutral + 0 Affirmative + 0 Skeptical
             return self._get_counted_tones(8, 0, 0)
-        elif self.tones_selection == 14:  # 12 Neutral + 0 Affirmative + 0 Skeptical
-            return self._get_counted_tones(12, 0, 0)
-        elif self.tones_selection == 15:  # 16 Neutral + 0 Affirmative + 0 Skeptical
-            return self._get_counted_tones(16, 0, 0)
-        elif self.tones_selection == 16:  # 20 Neutral + 0 Affirmative + 0 Skeptical
-            return self._get_counted_tones(20, 0, 0)
+        elif self.tones_selection == 15:  # 0 Neutral + 2 Affirmative + 0 Skeptical
+            return self._get_counted_tones(0, 2, 0)
+        elif self.tones_selection == 16:  # 0 Neutral + 4 Affirmative + 0 Skeptical
+            return self._get_counted_tones(0, 4, 0)
+        elif self.tones_selection == 17:  # 0 Neutral + 0 Skeptical + 2 Skeptical
+            return self._get_counted_tones(0, 0, 2)
+        elif self.tones_selection == 18:  # 0 Neutral + 0 Affirmative + 4 Skeptical
+            return self._get_counted_tones(0, 0, 4)
         else:
             raise ValueError(f"Invalid tones_selection: {self.tones_selection}. Must be 0-16.")
 
@@ -239,16 +243,20 @@ class HeteroGraphBuilder:
             return "_tones_1N_2A_1S"
         elif self.tones_selection == 11:  # 1 Neutral + 1 Affirmative + 2 Skeptical
             return "_tones_1N_1A_2S"
-        elif self.tones_selection == 12:  # 4 Neutral only
+        elif self.tones_selection == 12:  # 2 Neutral + 0 Affirmative + 0 Skeptical
+            return "_tones_2N_0A_0S"
+        elif self.tones_selection == 13:  # 4 Neutral + 0 Affirmative + 0 Skeptical
             return "_tones_4N_0A_0S"
-        elif self.tones_selection == 13:  # 8 Neutral only
+        elif self.tones_selection == 14:  # 8 Neutral + 0 Affirmative + 0 Skeptical
             return "_tones_8N_0A_0S"
-        elif self.tones_selection == 14:  # 12 Neutral only
-            return "_tones_12N_0A_0S"
-        elif self.tones_selection == 15:  # 16 Neutral only
-            return "_tones_16N_0A_0S"
-        elif self.tones_selection == 16:  # 20 Neutral only
-            return "_tones_20N_0A_0S"
+        elif self.tones_selection == 15:  # 0 Neutral + 2 Affirmative + 0 Skeptical
+            return "_tones_0N_2A_0S"
+        elif self.tones_selection == 16:  # 0 Neutral + 4 Affirmative + 0 Skeptical
+            return "_tones_0N_4A_0S"
+        elif self.tones_selection == 17:  # 0 Neutral + 0 Skeptical + 2 Skeptical
+            return "_tones_0N_0A_2S"
+        elif self.tones_selection == 18:  # 0 Neutral + 0 Affirmative + 4 Skeptical
+            return "_tones_0N_0A_4S"
         else:
             return ""
 
@@ -1692,7 +1700,7 @@ def parse_arguments():
     parser.add_argument("--interaction_embedding_field", type=str, default="interaction_embeddings_list", help="Field for interaction embeddings")
     parser.add_argument("--interaction_tone_field", type=str, default="interaction_tones_list", help="Field for interaction tones")
     parser.add_argument("--interaction_edge_mode", type=str, default=DEFAULT_INTERACTION_EDGE_MODE, choices=["edge_attr", "edge_type"], help="How to encode interaction tone: as edge type (edge_type) or as edge_attr (edge_attr)")
-    parser.add_argument("--tones_selection", type=int, default=DEFAULT_TONES_SELECTION, choices=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], help="Tone selection for ablation study: 0=all, 1=neutral, 2=affirmative, 3=skeptical, 4=neutral+affirmative, 5=neutral+skeptical, 6=affirmative+skeptical, 7=2N+1A+1S, 8=4N+2A+2S, 9=6N+3A+3S, 10=1N+2A+1S, 11=1N+1A+2S, 12-16=4,8,12,16,20 neutral only")
+    parser.add_argument("--tones_selection", type=int, default=DEFAULT_TONES_SELECTION, choices=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18], help="Tone selection for ablation study: 0=all, 1=neutral, 2=affirmative, 3=skeptical, 4=neutral+affirmative, 5=neutral+skeptical, 6=affirmative+skeptical, 7=2N+1A+1S, 8=4N+2A+2S, 9=6N+3A+3S, 10=1N+2A+1S, 11=1N+1A+2S, 12-18=2N,4N,8N,2A,4A,2S,4S only")
     parser.add_argument("--multi_tone_counts", type=str, default=DEFAULT_MULTI_TONE_COUNTS, help="Multi-tone count specification (format: 'neutral,affirmative,skeptical' e.g., '2,1,1'). Overrides tones_selection if provided.")
     
     # Output & Settings Args
@@ -1735,7 +1743,7 @@ def main() -> None:
     tones_map = {0: "All (N+A+S)", 1: "Neutral only", 2: "Affirmative only", 3: "Skeptical only", 
                  4: "Neutral+Affirmative", 5: "Neutral+Skeptical", 6: "Affirmative+Skeptical",
                  7: "2N+1A+1S", 8: "4N+2A+2S", 9: "6N+3A+3S", 10: "1N+2A+1S", 11: "1N+1A+2S",
-                 12: "4N only", 13: "8N only", 14: "12N only", 15: "16N only", 16: "20N only"}
+                 12: "2N only", 13: "4N only", 14: "8N only", 15: "2A only", 16: "4A only", 17: "2S only", 18: "4S only"}
     
     if args.multi_tone_counts:
         print(f"Multi-tone Counts: {args.multi_tone_counts} (overrides tones_selection)")
