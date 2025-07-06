@@ -1,0 +1,319 @@
+% ------------------------------------------------
+\StartChapter{Related Work}{chapter:related-work}
+% ------------------------------------------------
+
+This chapter reviews four research streams that form the technical backdrop of KAGNet:  
+graph neural network fundamentals (Section\,\ref{sec:gcn});  
+content-based detectors (Section\,\ref{sec:content});  
+LLM-boosted detectors (Section\,\ref{sec:llm});  
+and graph-based detectors specifically tailored to fake news (Section\,\ref{sec:graphfd}).  
+For methods whose contributions hinge on mathematical design, we reproduce one or two key equations to clarify their mechanics.
+
+% -------------------------------------------------------------
+\section{Graph Neural Network}\label{sec:gcn}
+Graph Neural Networks (GNNs) extend deep learning to graph-structured data, where
+nodes, edges, and their interdependencies encode rich relational information.
+By iteratively \textit{aggregating} and \textit{transforming} neighbour features, a GNN learns
+low-dimensional node representations that reflect both local neighbourhood context and
+global topological signals \cite{kipf2017semisupervised}.
+Such representations have driven advances in node classification, link prediction,
+recommender systems, molecular property prediction, and social-network analysis.
+In what follows, we review two canonical variants—GCN and RGCN—that underpin the
+architecture developed in this thesis.
+
+% -------------------------------------------------------------
+\subsection{GCN}\label{sec:gcn:gcn}
+The Graph Convolutional Network (GCN)\cite{kipf2017semisupervised} applies a Laplacian-smoothed
+convolution to propagate and mix features across adjacent vertices.
+Let $G=(\mathcal V,\mathcal E)$ be an undirected graph with $n=|\mathcal V|$
+nodes, adjacency matrix $A\in\mathbb R^{n\times n}$,
+and $\tilde A=A+I$ the self-loop-augmented adjacency.
+Define $\tilde D$ as the diagonal degree matrix of $\tilde A$.
+For layer $l$, the node-feature matrix $H^{(l)}\in\mathbb R^{n\times d_l}$
+is updated via
+\begin{equation}
+H^{(l+1)}
+   = \sigma\!\bigl(
+       \tilde D^{-\frac12}\,
+       \tilde A\,
+       \tilde D^{-\frac12}\,
+       H^{(l)}\,
+       W^{(l)}
+     \bigr),
+\label{eq:gcn_update}
+\end{equation}
+where $W^{(l)}\in\mathbb R^{d_l\times d_{l+1}}$ is a learnable weight matrix,
+and $\sigma(\cdot)$ is typically ReLU.
+Equation\,\eqref{eq:gcn_update} realises a first-order approximation of
+spectral graph convolution, ensuring that each node aggregates information
+from its immediate neighbours while preserving scale invariance via symmetric
+normalisation.
+Although GCNs excel on homogeneous graphs,
+they cannot distinguish multiple edge types—a key limitation for the
+heterogeneous relations in misinformation graphs.
+
+% -------------------------------------------------------------
+\subsection{RGCN}\label{sec:gcn:rgcn}
+Relational Graph Convolutional Networks (RGCNs) generalise GCNs to
+multi-relational settings, where each edge is associated with a relation
+type $r\in\mathcal R$ \cite{schlichtkrull2017rgcn}.
+For node $i$, the layer update becomes
+\begin{equation}
+h_{i}^{(l+1)}
+  = \sigma\!
+    \Bigl(
+      \sum_{r\in\mathcal R}
+        \sum_{j\in\mathcal N_i^{\,r}}
+          \frac{1}{c_{i,r}}\,
+          W_{r}^{(l)}\,h_{j}^{(l)}
+      \;+\;
+      W_{0}^{(l)}\,h_{i}^{(l)}
+    \Bigr),
+\label{eq:rgcn_update}
+\end{equation}
+where $\mathcal N_i^{\,r}$ denotes the neighbours of node $i$ connected by
+relation $r$, $c_{i,r}$ is a normalisation constant (commonly
+$c_{i,r}=|\mathcal N_i^{\,r}|$), $W_{r}^{(l)}$ is a relation-specific weight
+matrix, and $W_{0}^{(l)}$ handles self-loops.
+Maintaining a separate $W_{r}^{(l)}$ for every relation can be prohibitive
+when $|\mathcal R|$ is large, so \cite{schlichtkrull2018rgcn}
+introduce a \emph{basis-decomposition}:
+\begin{equation}
+W_{r}^{(l)}
+   = \sum_{b=1}^{B}
+        a_{r b}^{(l)}\,
+        V_{b}^{(l)},
+\label{eq:rgcn_basis}
+\end{equation}
+with $B\ll|\mathcal R|$ shared basis matrices $V_{b}^{(l)}$
+and scalar coefficients $a_{r b}^{(l)}$.
+This factorisation constrains the parameter count to
+$\mathcal O(B\,d_{l} d_{l+1} + |\mathcal R| B)$,
+mitigating over-fitting while preserving relation discrimination.
+
+Beyond parameter efficiency, RGCN captures heterogeneous semantics by
+allowing each relation to transform and propagate information along a unique
+channel.
+This property makes RGCN the backbone of modern fake-news detectors:
+news–entity–topic graphs typically feature six or more edge types
+(e.g.\ relevant\_to, irrelevant\_to, belongs\_to and their reverses),
+all of which require distinct treatment to avoid representation collapse.
+Later chapters build upon the machinery of
+Equations\,\eqref{eq:rgcn_update}–\eqref{eq:rgcn_basis},
+augmenting them with dual-view propagation and layer-wise attention to
+better exploit the contrast between relevant and irrelevant
+knowledge injected by large language models.
+
+% -------------------------------------------------------------
+\section{Content-Based Fake-News Detection}\label{sec:content}
+
+\subsection{Chain-of-Thought Prompting (CoT)}
+Chain-of-Thought prompting encourages an LLM to articulate step-by-step reasoning before emitting a final label \cite{wei2023cot}.  
+For detection tasks, CoT elicits intermediate plausibility checks (e.g., “Who reported this claim?”), which improves the model’s calibration but does not inject external facts; hallucinations therefore persist when the underlying parameters are outdated.
+
+\subsection{Bidirectional Encoder Representations from Transformers (BERT)}
+BERT fine-tunes a deep bidirectional Transformer on domain-specific corpora for veracity classification \cite{devlin-etal-2019-bert}.  
+Given an article token sequence $S$, the pooled representation $h_{\text{[CLS]}}$ feeds a softmax classifier
+\[
+p(y\mid S) = 
+   \text{softmax}\!\bigl(W\,h_{\text{[CLS]}} + b\bigr).
+\]
+Although BERT captures syntactic nuance and context better than earlier CNN/RNN models, it remains a purely text-internal signal, vulnerable to stylistically sophisticated fake articles.
+
+% -------------------------------------------------------------
+\section{LLM-Boosted Fake-News Detection}\label{sec:llm}
+
+\subsection{Retrieval-Augmented Generation (RAG)}
+RAG interleaves neural retrieval with sequence generation so that every generation step is grounded by retrieved passages \cite{lewis2020rag}.  
+In fake-news settings, queries are formed from claims, and the returned passages supply factual context.  
+RAG mitigates hallucination but inherits retrieval errors when misinformation itself dominates search results.
+
+\subsection{ReAct}\label{sec:llm:react}
+ReAct merges \textbf{Re}asoning traces with external \textbf{Act}ions so that an
+LLM can iteratively query tools while thinking \cite{yao2022react}.
+At each step $t$, the model chooses between
+\textsc{Think}\,$\rightarrow c_{t}$, which appends a chain-of-thought fragment
+$c_{t}$ to the scratch-pad state, and
+\textsc{Act}\,$\rightarrow o_{t}$, which calls a designated API
+(search engine, calculator, code executor) and records the returned
+observation $o_{t}$.
+The alternating sequence
+$\{(c_{1},o_{1}), (c_{2},o_{2}),\dots\}$ allows the model to refine its
+hypothesis in light of freshly acquired evidence, thereby reducing
+hallucination and enabling plug-and-play tool integration without
+re-tuning.
+Compared with single-pass prompting, ReAct exhibits higher factual
+consistency and better sample efficiency because it can abandon an
+unproductive reasoning path the moment contradictory observations
+arrive.
+
+% -------------------------------------------------------------
+\subsection{GenFEND}\label{sec:llm:genfend}
+GenFEND instructs an LLM to \textit{role-play} 30 user profiles
+spanning gender, age, and education, producing a set of synthetic
+comments for each news piece \cite{genfend_2024}.
+These comments are sliced into three demographic \textit{views}
+$V\!\in\!\{G,A,E\}$; within each view, semantic features
+$\{s_{p}^{V}\}_{p=1}^{m_{V}}$ are extracted for every subpopulation
+group~$p$.
+To adaptively weigh the importance of views, GenFEND employs a
+\emph{view gate} that factors in both news content $e_{o}$ and the
+diversity signal $d$ aggregated from intra-view KL divergences:
+\begin{equation}
+\mathbf a=\operatorname{Softmax}\!\bigl(
+        G\,(e_{o}\,\Vert\,d;\,\theta)
+      \bigr),
+\qquad
+\mathbf a=[a_{G},a_{A},a_{E}],
+\label{eq:genfend_gate}
+\end{equation}
+where $G(\cdot;\theta)$ is a two-layer feed-forward network and
+$\Vert$ denotes concatenation.
+The final comment representation is the convex combination
+$r=\sum_{V} a_{V}\,s_{V}$, which is later concatenated with the
+news embedding $e_{o}$ (and actual-comment features if available)
+for binary classification.
+By gating on demographic diversity, GenFEND captures complementary
+signals that content-only and actual-comment models may overlook,
+particularly in early-stage or low-comment scenarios.
+% -------------------------------------------------------------
+\section{Graph-Based Fake-News Detection}\label{sec:graphfd}
+
+\subsection{LESS4FD}\label{sec:graphfd:less4fd}
+LESS4FD converts a news–entity–topic graph into a propagation matrix $S$
+and learns a task-specific Generalised PageRank (GPR) coefficient vector $\gamma$ \cite{LESS4FD}.  
+The fused embedding is
+\begin{equation}
+H_{\text{fused}}
+    = \sum_{k=0}^{K} \gamma_k\,S^{k} X,
+\label{eq:less4fdgpr}
+\end{equation}
+where $X$ is the initial feature matrix.  
+A consistency loss aligns soft labels from local and global contexts:
+\[
+\mathcal L_{\text{CR}} 
+   = \bigl\| \text{Sharpen}(P_{\text{local}}) 
+          - \text{Sharpen}(P_{\text{global}}) \bigr\|_2^2 .
+\]
+LESS4FD reveals that multi-scale propagation is crucial for uncovering cross-topic cues.
+
+\subsection{KEHGNN-FD}\label{sec:graphfd:kehgnn}
+KEHGNN-FD enriches the news graph with Wikidata triples and employs relation-aware attention \cite{KEHGNN-FD}.  
+For edge $(i,r,j)$, the attention score is
+\begin{equation}
+\alpha_{ij}^{r}
+  = \frac{
+      \exp\!\bigl(
+        \bigl(q_i^{(l)}\bigr)^{\!\top}
+        W_r^{(l)} k_j^{(l)}
+      \bigr)}
+      {\sum_{m\in\mathcal N_i^{\,r}}
+       \exp\!\bigl(
+         \bigl(q_i^{(l)}\bigr)^{\!\top}
+         W_r^{(l)} k_m^{(l)}
+       \bigr)},
+\end{equation}
+where $q_i^{(l)}$ and $k_j^{(l)}$ are query and key projections.  
+The mechanism balances textual with knowledge-graph signals, helping disambiguate entity aliases and factual links.
+
+\subsection{HeteroSGT}\label{sec:graphfd:heterosgt}
+HeteroSGT reframes detection as subgraph classification \cite{heterosgt}.  
+For a news-centred subgraph $G_s$, a structural graph transformer computes
+\begin{equation}
+\text{Attention}(i,j)
+  = \text{softmax}\!
+    \Bigl(
+      \frac{
+        Q_i K_j^{\top}}{\sqrt d} 
+      + b_{\text{dist}}(d_{ij})
+    \Bigr) V_j ,
+\label{eq:heterosgt}
+\end{equation}
+where $b_{\text{dist}}$ modulates attention by random-walk distance $d_{ij}$.  
+This formulation lets the model focus on semantically related but multi-hop nodes that line-of-sight GNNs may miss.
+
+% -------------------------------------------------------------
+\section{Summary}
+Graph neural techniques excel at capturing multi-relational structure (Sections \ref{sec:gcn:gcn}–\ref{sec:gcn:rgcn}), whereas content-only or single-view LLM methods risk hallucination (Section \ref{sec:content}).  
+Hybrid solutions that couple external evidence with relational reasoning—LESS4FD, KEHGNN-FD, HeteroSGT, and the LLM pipelines in Section \ref{sec:llm}—collectively indicate that complementary perspectives and knowledge injection are key to robust fake-news detection.  
+KAGNet advances this trend by injecting LLM-generated relevant and irrelevant evidence into a dual-view RGCN augmented with layer-wise attention and complementary regularisers.
+
+% -------------------------------------------------------------
+% Place this sidewaystable at the end of Chapter 2 (Related Work).
+
+\begin{sidewaystable}[!htbp]
+  \centering
+  \setlength{\tabcolsep}{4pt}
+  \renewcommand{\arraystretch}{1.15}
+
+  \begin{tabularx}{\linewidth}{%
+      >{\raggedright\arraybackslash}p{3.5cm}   % Method (no wrap)
+      >{\raggedright\arraybackslash}p{2.5cm}   % Category
+      >{\centering\arraybackslash}p{2.2cm}     % External / Knowledge (two-line header)
+      >{\centering\arraybackslash}p{0.9cm}     % Node
+      >{\centering\arraybackslash}p{0.9cm}     % Edge
+      >{\centering\arraybackslash}p{1.5cm}     % Feature
+      X                                        % Main Innovation (auto wrap)
+    }
+    \toprule
+    \textbf{Method} & \textbf{Category} & \textbf{External Knowledge} &
+    \textbf{Node} & \textbf{Edge} & \textbf{Feature} &
+    \textbf{Main Innovation} \\\midrule
+
+    CoT \cite{wei2023cot} &
+      LLM prompt &
+      $\times$ &
+      $\times$ & $\times$ & \checkmark &
+      Forces the language model to reveal intermediate reasoning, exposing contradictions hidden in one-step prompts. \\[2pt]
+
+    RAG \cite{lewis2020rag} &
+      LLM-boosted &
+      \checkmark &
+      $\times$ & $\times$ & \checkmark &
+      Blends neural retrieval with generation so each token is conditioned on evidence passages, curbing hallucination during claim verification. \\[2pt]
+
+    ReAct \cite{yao2022react} &
+      LLM-boosted &
+      \checkmark &
+      $\times$ & $\times$ & \checkmark &
+      Alternates \textsc{Think} and \textsc{Act} steps, enabling on-the-fly tool calls (search, calculator, code) for self-correcting reasoning chains. \\[2pt]
+
+    GenFEND \cite{genfend_2024} &
+      LLM-boosted &
+      \checkmark &
+      $\times$ & $\times$ & \checkmark &
+      Generates 30 demographic-specific comments per news and aggregates them via a learned gating vector (Eq.\,\eqref{eq:genfend_gate}) to inject crowd intelligence. \\[2pt]
+
+    LESS4FD \cite{LESS4FD} &
+      Graph-based &
+      $\times$ &
+      \checkmark & \checkmark & \checkmark &
+      Uses learnable Generalised PageRank weights for multi-scale propagation and a consistency loss aligning local/global predictions. \\[2pt]
+
+    KEHGNN-FD \cite{KEHGNN-FD} &
+      Graph-based &
+      \checkmark &
+      \checkmark & \checkmark & \checkmark &
+      Augments the news graph with Wikidata triples and applies relation-aware attention to fuse textual and KG cues. \\[2pt]
+
+    HeteroSGT \cite{heterosgt} &
+      Graph-based &
+      \checkmark &
+      \checkmark & \checkmark & \checkmark &
+      Employs a graph transformer with random-walk distance bias to capture long-range dependencies within news-centred subgraphs. \\[2pt]
+
+    HGNNR4FD \cite{HGNNR4FD} &
+      Graph-based &
+      \checkmark &
+      \checkmark & \checkmark & \checkmark &
+      Integrates heterogeneous news graphs with auxiliary KG embeddings through cross-domain attention for enhanced entity disambiguation. \\
+
+    \bottomrule
+  \end{tabularx}
+  \caption{A survey of fake news detection}
+  \label{tab:survey_fnd}
+\end{sidewaystable}
+
+% ------------------------------------------------
+\EndChapter
+% ------------------------------------------------
