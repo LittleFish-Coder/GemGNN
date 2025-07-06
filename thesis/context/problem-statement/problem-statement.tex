@@ -4,6 +4,30 @@
 
 This chapter formally defines the few-shot fake news detection problem and establishes the key challenges that motivate our GemGNN approach.
 
+\textbf{Given:}
+\begin{itemize}
+    \item Labeled set: $\mathcal{L} = \{(x_i, y_i)\}_{i=1}^{2K}$ where $K$ examples per class
+    \item Unlabeled set: $\mathcal{U} = \{x_j\}_{j=1}^{M}$ 
+    \item Test set: $\mathcal{T} = \{x_k\}_{k=1}^{N}$
+    \item Constraints: $K \ll M, N$
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Objective:}
+\begin{itemize}
+    \item Learn classifier $f: \mathcal{X} \rightarrow \{0, 1\}$ that accurately predicts labels for $\mathcal{T}$
+    \item Binary classification: real news ($y = 0$) vs fake news ($y = 1$)
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Key Challenges:}
+\begin{itemize}
+    \item \textcolor{red}{Extreme data scarcity}: $K \in \{3 \sim 16\}$ labeled examples per class
+    \item \textcolor{blue}{Content-only constraint}: No user interaction or propagation data available
+\end{itemize}
+
 \section{Problem Definition}
 
 \textbf{Few-Shot Fake News Detection:} Given a small set of labeled news articles $\mathcal{L} = \{(x_i, y_i)\}_{i=1}^{2K}$ where $K$ represents the number of examples per class, and unlabeled news articles $\mathcal{U} = \{x_j\}_{j=1}^{M}$, learn a classifier $f: \mathcal{X} \rightarrow \{0,1\}$ that accurately predicts labels for test instances $\mathcal{T} = \{x_k\}_{k=1}^{N}$ where $K \ll M$ and $K \ll N$.
