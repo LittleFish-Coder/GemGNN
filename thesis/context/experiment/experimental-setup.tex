@@ -52,29 +52,19 @@ We conduct experiments on the FakeNewsNet benchmark \cite{shu2018fakenewsnet}, s
 
 \textbf{Multi-View Partitioning Strategy:} The 768-dimensional DeBERTa embeddings are systematically partitioned into multiple views (typically 3 views of 256 dimensions each), where each partition captures distinct semantic aspects of the content. This partitioning strategy leverages DeBERTa's internal attention structure to ensure that each view maintains discriminative power while focusing on different linguistic and semantic dimensions.
 
-\subsection{Heterogeneous Graph Construction Pipeline}
+\subsection{Graph Construction and Architecture}
 
-\textbf{Dual Node Type Architecture:} Our heterogeneous graph employs two fundamental node types: (1) news nodes representing actual articles with DeBERTa embeddings, and (2) interaction nodes containing LLM-generated synthetic user responses. This dual-node design captures both content semantics and social interpretation patterns within a unified graph structure.
+\textbf{Graph Structure:} Our approach constructs heterogeneous graphs with news nodes and interaction nodes to capture both content semantics and social patterns within a unified structure.
 
-\textbf{Synthetic Interaction Generation:} For each news article, we generate 20 synthetic user interactions using large language models, distributed across three distinct tones: 8 neutral (factual focus), 7 affirmative (supportive), and 5 skeptical (questioning) interactions. This distribution reflects natural user response patterns while providing controlled variation in user perspective signals.
+\textbf{Synthetic Interaction Generation:} For each news article, we generate 20 synthetic user interactions using large language models, distributed across three distinct tones: 8 neutral (factual focus), 7 affirmative (supportive), and 5 skeptical (questioning) interactions.
 
-\textbf{Edge Construction Strategies:} We implement two complementary edge construction approaches:
+\textbf{Edge Construction:} We implement KNN-based edge construction approaches with test-isolated connectivity to prevent information leakage during evaluation.
 
-\begin{itemize}
-\item \textbf{Traditional KNN:} All nodes connect based on semantic similarity regardless of data partition, maximizing performance by leveraging full dataset connectivity. This approach provides upper-bound performance estimates and serves for deployment scenarios where articles can cross-reference.
+\subsection{Neural Network Architecture}
 
-\item \textbf{Test-Isolated KNN:} Test nodes connect only to other test nodes, while training nodes connect within their partition. This strategy prevents information leakage during evaluation, ensuring realistic performance assessment that reflects actual deployment conditions.
-\end{itemize}
+\textbf{Heterogeneous Attention Networks (HAN):} We employ HAN architecture for processing heterogeneous graph structures through hierarchical attention mechanisms. HAN operates at node-level and semantic-level attention for information aggregation.
 
-\textbf{Multi-View Edge Construction:} Within each edge construction strategy, we create multiple graph views by partitioning DeBERTa embeddings and computing separate similarity graphs for each partition. This multi-view approach captures diverse semantic perspectives that are aggregated through learned attention mechanisms in the heterogeneous graph neural network.
-
-\subsection{Heterogeneous Graph Attention Network Architecture}
-
-\textbf{Heterogeneous Attention Networks (HAN):} We employ HAN as our primary architecture due to its sophisticated handling of heterogeneous graph structures through hierarchical attention mechanisms. HAN operates at two levels: node-level attention for aggregating information from neighboring nodes of different types, and semantic-level attention for combining information across different edge types and meta-paths.
-
-\textbf{Architecture Justification:} The selection of HAN is based on comprehensive empirical evaluation demonstrating superior performance compared to alternative heterogeneous graph neural network architectures. HAN's hierarchical attention mechanism proves particularly effective for fake news detection by enabling selective attention to relevant semantic relationships while maintaining computational efficiency in few-shot scenarios.
-
-\textbf{Cross-Entropy Loss with Label Smoothing:} Based on comprehensive evaluation of multiple loss function variants, we employ cross-entropy loss with label smoothing as our training objective. This approach prevents overconfident predictions in few-shot scenarios through a smoothing factor of 0.1, providing optimal balance between learning signal strength and regularization effectiveness.
+\textbf{Loss Function:} We employ cross-entropy loss with label smoothing as our training objective, using a smoothing factor of 0.1 for regularization in few-shot scenarios.
 
 \section{Baseline Methods and Comparative Framework}
 
@@ -120,11 +110,11 @@ Our baseline selection follows a systematic approach to cover the full spectrum 
 
 \textbf{Transductive Learning Framework:} Our evaluation employs transductive learning where all nodes (labeled training, unlabeled training, and test) participate in graph construction and message passing, but loss computation is restricted to labeled nodes. This paradigm maximizes the utility of available data while maintaining proper evaluation boundaries.
 
-\textbf{Statistical Robustness:} We conduct 10 independent experimental runs for each configuration using different random seeds for support set sampling. Performance is reported as mean ± 95% confidence intervals across runs, ensuring reliable statistical inference despite the high variance inherent in few-shot learning.
+\textbf{Statistical Robustness:} We conduct multiple independent experimental runs for each configuration using different random seeds for support set sampling. Performance is reported as mean values across runs, ensuring statistical validity in few-shot learning scenarios.
 
 \subsection{Performance Metrics and Statistical Analysis}
 
-\textbf{Primary Metric Selection:} We employ F1-score as our primary evaluation metric due to the class imbalance present in both datasets (PolitiFact: 2:1 real-to-fake; GossipCop: 4:1 real-to-fake). F1-score provides a balanced assessment of precision and recall, making it particularly suitable for imbalanced few-shot scenarios where overall accuracy may be misleading.
+\textbf{Primary Metric Selection:} We employ Macro F1-score as our primary evaluation metric due to the class imbalance present in both datasets (PolitiFact: 2:1 real-to-fake; GossipCop: 4:1 real-to-fake). Macro F1-score provides a balanced assessment of precision and recall across both classes, making it particularly suitable for imbalanced few-shot scenarios where overall accuracy may be misleading.
 
 \textbf{Comprehensive Metric Suite:} We report accuracy, precision, recall, and F1-score to provide complete performance characterization. This multi-metric approach reveals whether models exhibit class-specific biases and enables detailed analysis of failure modes.
 
@@ -138,22 +128,11 @@ Our baseline selection follows a systematic approach to cover the full spectrum 
 
 \textbf{Graph Construction Parameters:}
 \begin{itemize}
-\item K-nearest neighbors: k ∈ \{3, 5, 7\} (comprehensively evaluated across all configurations)
+\item K-nearest neighbors: k ∈ \{3, 5, 7\}
 \item Multi-view partitioning: Evaluated across \{0, 3, 6\} view configurations
-  \begin{itemize}
-  \item 0 views: Single-view mode using complete 768-dimensional DeBERTa embeddings
-  \item 3 views: Three-view mode with 256-dimensional partitions (256×3 = 768)
-  \item 6 views: Six-view mode with 128-dimensional partitions (128×6 = 768)
-  \end{itemize}
-\item Synthetic interaction distribution: 20 interactions per article distributed as:
-  \begin{itemize}
-  \item 8 neutral interactions (factual, objective tone)
-  \item 7 affirmative interactions (supportive, agreement tone)
-  \item 5 skeptical interactions (questioning, critical tone)
-  \end{itemize}
-\item Similarity metric: Cosine similarity for all edge construction across all views
-\item Unlabeled sampling factor: 5× (unlabeled nodes = \texttt{num\_classes} × \texttt{k\_shot} × 5)
-\item Edge construction policies: Both traditional KNN and test-isolated KNN evaluated
+\item Synthetic interaction distribution: 20 interactions per article (8 neutral, 7 affirmative, 5 skeptical)
+\item Similarity metric: Cosine similarity for edge construction
+\item Unlabeled sampling factor: 5×
 \end{itemize}
 
 \textbf{Neural Network Architecture:}
@@ -174,22 +153,6 @@ Our baseline selection follows a systematic approach to cover the full spectrum 
 \item Early stopping patience: 30 epochs
 \item Convergence criterion: Validation loss < 0.3 or no improvement for 30 epochs
 \end{itemize}
-
-\subsection{Computational Infrastructure and Reproducibility}
-
-\textbf{Hardware Configuration:} All experiments are conducted on NVIDIA A100 GPUs with 40GB memory, enabling efficient processing of large heterogeneous graphs and comprehensive hyperparameter exploration across 2,688 different parameter combinations.
-
-\textbf{Software Environment:}
-\begin{itemize}
-\item Python 3.8 with PyTorch 1.12 for deep learning framework
-\item PyTorch Geometric 2.1 for graph neural network implementations
-\item Transformers library 4.20 for DeBERTa and baseline language models
-\item CUDA 11.6 for GPU acceleration and optimization
-\end{itemize}
-
-\textbf{Reproducibility Measures:} We implement comprehensive reproducibility protocols including fixed random seeds for all stochastic processes (data sampling, model initialization, training), deterministic CUDA operations, and complete documentation of all hyperparameters, data splits, and experimental configurations.
-
-\textbf{Performance Characteristics:} Training time ranges from 15-30 minutes per experimental run depending on dataset size and graph complexity. Memory requirements are approximately 8-12GB GPU memory for GossipCop (the larger dataset), well within modern research hardware capabilities. The efficient implementation enables comprehensive experimentation across multiple random seeds and parameter configurations.
 
 This experimental setup ensures rigorous evaluation of GemGNN's architectural innovations while maintaining methodological integrity and enabling reliable comparison with existing approaches. The comprehensive parameter optimization and statistical analysis provide robust evidence for our framework's effectiveness in few-shot fake news detection.
 
