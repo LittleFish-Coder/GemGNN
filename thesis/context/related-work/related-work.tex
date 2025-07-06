@@ -2,509 +2,83 @@
 \StartChapter{Related Work}{chapter:related-work}
 % ------------------------------------------------
 
-This chapter provides a comprehensive review of existing approaches to fake news detection, with particular emphasis on methods relevant to few-shot learning scenarios. We organize the literature into five main categories: traditional feature-engineering approaches, deep learning methods, graph-based techniques, few-shot learning strategies, and identify key limitations that motivate our research.
+This chapter reviews existing approaches to fake news detection, with emphasis on methods relevant to few-shot learning scenarios. We organize the literature according to the evolution of detection paradigms and identify key limitations that motivate our research.
 
-\section{Traditional Fake News Detection Methods}
+\section{Few-Shot Learning Fundamentals}
 
-Early approaches to fake news detection relied primarily on hand-crafted features and traditional machine learning algorithms. These methods established the foundation for automated misinformation detection but suffer from significant limitations in capturing complex semantic relationships.
+\textbf{Definition:} Few-shot learning is a machine learning paradigm where models learn to make accurate predictions with minimal labeled training data. Formally, given a support set $\mathcal{S} = \{(x_i, y_i)\}_{i=1}^{K \times N}$ containing $K$ labeled examples for each of $N$ classes, the objective is to learn a classifier that can accurately predict labels for a query set with limited supervision.
 
-\subsection{Feature Engineering Approaches}
+\textbf{Core Challenges:} Few-shot learning presents fundamental challenges that differentiate it from conventional machine learning: (1) \emph{Limited training data} leads to high variance and overfitting, (2) \emph{Domain shift} where models trained on few examples fail to generalize to new patterns, and (3) \emph{Evaluation challenges} requiring careful experimental design to prevent information leakage.
 
-\textbf{TF-IDF + MLP:} The earliest computational approaches to fake news detection employed Term Frequency-Inverse Document Frequency (TF-IDF) representations combined with Multi-Layer Perceptrons (MLPs). These methods extract bag-of-words features and learn linear or shallow non-linear mappings to classify news authenticity \cite{perez2017automatic, wang2017liar}.
+In fake news detection, few-shot scenarios are particularly relevant because: (1) emerging misinformation patterns have limited labeled examples, (2) manual labeling is expensive and time-consuming, and (3) rapid response is needed for new threats before sufficient training data accumulates.
 
-While computationally efficient, TF-IDF approaches suffer from several critical limitations: (1) they ignore word order and contextual relationships, (2) they cannot capture semantic similarity between different words expressing similar concepts, and (3) they fail to model discourse-level patterns that characterize misinformation.
+\section{Traditional Machine Learning Approaches}
 
-\textbf{Linguistic Feature Analysis:} More sophisticated traditional approaches incorporated linguistic features such as sentiment analysis, readability scores, lexical diversity measures, and syntactic complexity \cite{horne2017just, rashkin2017truth}. These methods hypothesize that fake news exhibits distinct linguistic patterns, such as more emotional language, simpler sentence structures, or specific rhetorical devices.
+Early computational approaches to fake news detection relied on hand-crafted features and traditional machine learning algorithms.
 
-However, linguistic feature approaches face the fundamental challenge that sophisticated misinformation increasingly mimics legitimate journalism style, making surface-level linguistic indicators unreliable. Moreover, these features are often domain-specific and fail to generalize across different types of news content.
+\textbf{Feature Engineering Methods:} The earliest approaches employed Term Frequency-Inverse Document Frequency (TF-IDF) representations combined with Multi-Layer Perceptrons (MLPs) or Support Vector Machines \cite{perez2017automatic, wang2017liar}. These methods extract bag-of-words features and learn linear or shallow non-linear mappings to classify news authenticity.
 
-\subsection{Sequential Models}
+More sophisticated approaches incorporated linguistic features such as sentiment analysis, readability scores, lexical diversity measures, and syntactic complexity \cite{horne2017just, rashkin2017truth}. These methods hypothesize that fake news exhibits distinct linguistic patterns, such as more emotional language or simpler sentence structures.
 
-\textbf{LSTM/RNN Approaches:} To address the limitations of bag-of-words representations, researchers introduced sequential models that process news articles as ordered sequences of words. Long Short-Term Memory (LSTM) networks and Recurrent Neural Networks (RNNs) capture local contextual relationships and temporal dependencies within text \cite{ma2016detecting, yu2017convolutional}.
-
-These approaches show improvement over bag-of-words methods by modeling word order and local context. However, they struggle with long-range dependencies common in news articles and fail to capture global document structure. Additionally, RNN-based methods process each document independently, missing potential relationships between related news articles.
-
-\textbf{Attention Mechanisms:} Advanced sequential models incorporated attention mechanisms to focus on important words or phrases within documents \cite{wang2018eann, liu2018early}. These approaches aim to identify key textual elements that indicate misinformation, such as sensational headlines or unsupported claims.
-
-While attention-based sequential models improve interpretability and can highlight suspicious textual elements, they remain fundamentally limited by their document-level scope and inability to model inter-document relationships crucial for systematic misinformation detection.
+\textbf{Limitations:} Traditional approaches suffer from critical limitations: (1) they ignore contextual relationships and word order, (2) they cannot capture semantic similarity between different expressions of similar concepts, (3) they fail to model discourse-level patterns characteristic of misinformation, and (4) they perform poorly in few-shot scenarios due to sparse feature representations.
 
 \section{Deep Learning Approaches}
 
-The advent of deep learning revolutionized fake news detection by enabling more sophisticated semantic analysis and contextual understanding. However, most deep learning approaches still treat documents independently and struggle in few-shot scenarios.
+The advent of deep learning revolutionized fake news detection by enabling sophisticated semantic analysis, though most methods struggle in few-shot scenarios.
 
 \subsection{Transformer-based Models}
 
-\textbf{BERT and RoBERTa:} The introduction of transformer architectures, particularly BERT (Bidirectional Encoder Representations from Transformers)~\cite{devlin2018bert} and its variants like RoBERTa~\cite{liu2019roberta}, marked a significant advancement in content-based fake news detection \cite{kula2021survey, kaliyar2021fakebert}. These models provide rich contextual representations that capture bidirectional dependencies and complex semantic relationships within text.
+\textbf{BERT and Variants:} The introduction of BERT (Bidirectional Encoder Representations from Transformers) and its variants like RoBERTa marked significant advancement in content-based detection \cite{devlin2018bert, liu2019roberta, kaliyar2021fakebert}. These models provide rich contextual representations that capture bidirectional dependencies and complex semantic relationships.
 
-BERT-based approaches typically fine-tune pre-trained language models on fake news classification tasks, achieving strong performance on standard benchmarks. The bidirectional nature of BERT enables better understanding of context compared to sequential models, while the pre-training on large corpora provides general linguistic knowledge applicable to misinformation detection.
+BERT-based approaches typically fine-tune pre-trained language models on fake news classification tasks, achieving strong performance on standard benchmarks. However, they face significant challenges in few-shot scenarios: (1) they require substantial task-specific fine-tuning data, (2) they are prone to overfitting when labeled data is scarce, and (3) they treat each document independently, missing systematic patterns across related articles.
 
-However, transformer-based methods face significant challenges in few-shot scenarios: (1) they require substantial task-specific fine-tuning data, (2) they are prone to overfitting when labeled data is scarce, and (3) they treat each document independently, missing systematic patterns across related articles.
+\subsection{Large Language Models}
 
-\textbf{Domain Adaptation Strategies:} Researchers have explored domain adaptation techniques to improve BERT's performance on fake news detection \cite{wright2020domain, silva2021cross}. These approaches attempt to bridge the gap between general language understanding and domain-specific misinformation patterns through continued pre-training or transfer learning strategies.
+\textbf{In-Context Learning Approaches:} Recent work explores using large language models such as GPT-4, LLaMA, and Gemma for fake news detection through in-context learning \cite{touvron2023llama, team2024gemma}. These approaches provide few examples within the prompt and ask the model to classify new instances.
 
-While domain adaptation shows promise, these methods still require significant amounts of labeled data for effective adaptation and often fail to generalize to emerging misinformation patterns or new domains not seen during training.
+\textbf{Performance Limitations:} Despite impressive general language understanding capabilities, LLMs demonstrate surprisingly poor performance on fake news detection in few-shot scenarios. Key limitations include: (1) inconsistent prompt sensitivity where performance varies dramatically based on prompt formulation, (2) surface-level pattern reliance focusing on obvious linguistic markers rather than sophisticated misinformation patterns, (3) lack of systematic verification capabilities for factual claims, and (4) potential data contamination concerns where models may have seen test instances during training.
 
-\subsection{Large Language Models for Fake News Detection}
+Recent systematic evaluations show that LLMs consistently underperform specialized approaches in few-shot scenarios, often struggling to achieve accuracy above 65\% \cite{huang2023chatgpt, zhang2023can}.
 
-\subsection{Large Language Models for Fake News Detection}
+\section{Graph-based Approaches}
 
-\textbf{In-Context Learning Approaches:} Recent work has explored using large language models (LLMs) such as GPT-3~\cite{openai2023gpt4}, LLaMA~\cite{touvron2023llama}, and Google's Gemma models for fake news detection through in-context learning \cite{chen2023combating}. These approaches provide few examples of fake and real news within the prompt and ask the model to classify new instances.
+Graph-based methods represent a paradigm shift by modeling relationships between entities in the misinformation ecosystem, though they reveal critical limitations in few-shot contexts.
 
-\textbf{LLaMA Family Models:} Meta's LLaMA (Large Language Model Meta AI) series, including LLaMA-7B, LLaMA-13B, and LLaMA-65B, represent state-of-the-art open-source language models trained on diverse internet text \cite{touvron2023llama}. For fake news detection, researchers typically employ few-shot prompting strategies where 2-8 examples of labeled news articles are provided in the context, followed by the target article for classification.
+\subsection{Document-level Graph Methods}
 
-Despite LLaMA's impressive performance on general language understanding tasks, evaluation on fake news detection reveals significant limitations: (1) \emph{Inconsistent prompt sensitivity}: Performance varies dramatically based on prompt formulation, example selection, and ordering, making reliable deployment challenging; (2) \emph{Surface-level pattern reliance}: LLaMA models tend to focus on obvious linguistic markers (emotional language, grammatical errors) rather than sophisticated misinformation patterns that characterize modern fake news; (3) \emph{Limited context integration}: Even the larger LLaMA-65B model struggles to integrate multiple pieces of evidence and cross-reference information within news articles; and (4) \emph{Evaluation contamination concerns}: Given the broad web-scale training data, it is unclear whether models have been exposed to benchmark datasets during pre-training, potentially inflating reported performance.
+\textbf{Text-GCN and Variants:} Text Graph Convolutional Networks construct graphs where documents and words are nodes, with edges indicating document-word relationships and word co-occurrence patterns \cite{yao2019graph}. More recent BertGCN approaches combine BERT embeddings with graph convolutional networks to leverage both semantic representations and structural information \cite{lin2021bertgcn}.
 
-\textbf{Google's Gemma Models:} Google's Gemma family (Gemma-2B, Gemma-7B) represents another approach to open-source language modeling with enhanced safety training and instruction following capabilities \cite{team2024gemma}. For fake news detection, Gemma models demonstrate superior instruction following compared to base LLaMA models, enabling more reliable prompt-based classification.
+While these approaches effectively leverage graph structure, they face fundamental challenges in few-shot scenarios: (1) document-word graphs require substantial vocabulary coverage problematic with few labeled documents, (2) word co-occurrence patterns become unreliable with limited training data, and (3) semantic similarity graphs become less reliable when based on limited examples.
 
-However, Gemma models exhibit similar fundamental limitations for fake news detection: (1) \emph{Lack of systematic verification}: Gemma models cannot verify factual claims against external knowledge sources, limiting their ability to detect sophisticated misinformation that requires fact-checking; (2) \emph{Domain adaptation challenges}: While instruction-tuned, Gemma models lack specialized training for misinformation patterns and often fail on domain-specific fake news (medical misinformation, political manipulation, etc.); (3) \emph{Few-shot learning brittleness}: Performance degrades significantly in true few-shot scenarios (3-4 examples) compared to the larger context windows used in many evaluations; and (4) \emph{Computational overhead}: The inference cost and latency of large Gemma models make them impractical for real-time fake news detection systems that require rapid response.
+\textbf{BREAK - Sequential Graph Modeling:} BREAK (Broad-Range Semantic Modeling) represents advancement in combining graph neural networks with sequential processing \cite{ji2023break}. The method constructs heterogeneous graphs incorporating multiple entity types while applying sequence modeling to capture temporal dynamics and textual patterns.
 
-\textbf{Comparative Analysis of LLM Approaches:} Recent systematic evaluations comparing GPT-4, Claude-3, LLaMA-2, and Gemma models on fake news detection benchmarks reveal consistent patterns: (1) All models significantly underperform specialized approaches in few-shot scenarios; (2) Performance is highly dependent on the specific type of misinformation, with models struggling particularly on subtle manipulation and sophisticated propaganda; (3) Models show strong bias toward classifying any controversial or emotional content as "fake," leading to high false positive rates; and (4) None of the models demonstrate robust performance across different domains (political, health, science) without domain-specific fine-tuning.
-
-While LLMs demonstrate impressive general language understanding capabilities, their performance on fake news detection is surprisingly poor in few-shot scenarios. This limitation stems from several factors: (1) potential data contamination where models may have seen test instances during training, (2) lack of task-specific optimization for misinformation patterns, and (3) difficulty in handling domain-specific knowledge required for fact verification.
-
-\textbf{Prompt Engineering Strategies:} Researchers have developed sophisticated prompt engineering techniques to improve LLM performance on fake news detection \cite{wang2023survey}. These approaches design carefully crafted prompts that provide context, examples, and specific instructions for identifying misinformation.
-
-Despite extensive prompt engineering efforts, LLMs continue to underperform compared to specialized approaches in few-shot fake news detection, highlighting the need for task-specific architectures rather than general-purpose language models.
-
-\section{Graph-based Fake News Detection}
-
-Graph-based approaches represent a significant paradigm shift by modeling relationships between different entities in the misinformation ecosystem. While these methods demonstrate superior performance in data-rich scenarios, they reveal critical limitations when applied to few-shot learning contexts where labeled examples are severely constrained.
-
-\subsection{Document-level Graph Classification}
-
-\textbf{Text-GCN and Variants:} Text Graph Convolutional Networks construct graphs where both documents and words are represented as nodes, with edges indicating document-word relationships and word co-occurrence patterns \cite{yao2019graph, liu2020early}. These approaches apply graph convolutional networks to learn document representations through message passing between document and word nodes.
-
-While Text-GCN approaches effectively leverage graph structure for text classification, they face fundamental challenges in few-shot scenarios: (1) document-word graphs require substantial vocabulary coverage to establish meaningful connections, which is problematic when only a few labeled documents are available; (2) word co-occurrence patterns become unreliable with limited training data, leading to sparse and potentially misleading graph structures; and (3) the transductive nature of these models requires careful design to prevent information leakage between training and test sets in few-shot evaluation protocols.
-
-\textbf{BertGCN Integration:} More recent work combines BERT embeddings with graph convolutional networks to leverage both rich semantic representations and structural information \cite{lin2021bertgcn}. These hybrid approaches use BERT to initialize node features and GCNs to refine representations through graph structure.
-
-BertGCN approaches show improvement over pure BERT methods by incorporating structural information, but their effectiveness diminishes dramatically in few-shot scenarios. The semantic similarity graphs constructed through BERT embeddings become less reliable when based on limited training examples, and the models struggle to generalize graph structural patterns from few labeled instances to unseen test data. Additionally, these approaches often employ unrealistic evaluation protocols that allow test instances to connect to each other, artificially inflating performance estimates.
+BREAK demonstrates strong performance by effectively leveraging both structural and sequential information. However, it faces limitations in few-shot scenarios: (1) the dual-stream architecture requires substantial training data to learn coordination between graph and sequence processing, (2) partial reliance on user interaction data, and (3) complexity makes it prone to overfitting with scarce labeled examples.
 
 \subsection{User Propagation-based Methods}
 
-\textbf{Social Network Analysis:} Many state-of-the-art fake news detection systems model how misinformation spreads through social networks by analyzing user sharing patterns, temporal dynamics, and network topology \cite{shu2017fake, zhou2020survey}. These approaches construct graphs where users and news articles are nodes, with edges representing sharing, commenting, or other interaction behaviors.
+Many state-of-the-art systems model misinformation spread through social networks by analyzing user sharing patterns and network topology \cite{shu2017fake, zhou2020survey}. These methods often achieve high performance by exploiting differential propagation patterns between fake and real news.
 
-Propagation-based methods often achieve high performance by exploiting the fact that fake news tends to spread through different network patterns compared to legitimate news. However, these approaches have fundamental limitations: (1) they require extensive user behavior data that is often unavailable due to privacy constraints, (2) they are vulnerable to adversarial manipulation where malicious actors can artificially create legitimate-looking propagation patterns, and (3) they cannot handle breaking news scenarios where propagation patterns have not yet developed.
+However, propagation-based approaches have fundamental limitations: (1) they require extensive user behavior data often unavailable due to privacy constraints, (2) they are vulnerable to adversarial manipulation, and (3) they cannot handle breaking news scenarios where propagation patterns have not developed.
 
-\textbf{Temporal Dynamics Modeling:} Advanced propagation-based approaches incorporate temporal dynamics to model how misinformation spreads over time \cite{ma2016detecting, liu2018early}. These methods analyze features such as propagation velocity, user engagement patterns, and temporal clustering to identify suspicious spreading patterns.
+\textbf{Less4FD - Few-Shot Entity-Aware Detection:} Less4FD specifically addresses few-shot learning through a meta-learning framework incorporating entity awareness \cite{zhang2023less4fd}. The approach constructs heterogeneous graphs using primarily content-based features with minimal social signals, making it applicable in privacy-constrained scenarios.
 
-While temporal modeling provides additional signal for misinformation detection, these approaches still suffer from the fundamental dependency on user interaction data and the assumption that temporal patterns reliably distinguish fake from real news.
+The core innovation lies in entity-aware graph construction where named entities serve as bridge nodes connecting semantically related content. This enables capturing relationships beyond simple text similarity, particularly important for detecting misinformation involving factual manipulation.
 
-\subsection{Heterogeneous Graph Neural Networks}
-
-\textbf{Heterogeneous Graph Attention Networks (HAN):} HAN introduces a hierarchical attention mechanism specifically designed for heterogeneous graphs with multiple node and edge types \cite{wang2019han}. The architecture employs node-level attention to aggregate information from neighbors of the same type, and semantic-level attention to combine information across different meta-paths, enabling effective modeling of complex entity relationships.
-
-\textbf{Heterogeneous Graph Transformers (HGT):} HGT extends the transformer architecture to heterogeneous graphs by introducing type-dependent parameters and multi-head attention mechanisms \cite{hu2020heterogeneous}. Each attention head is parameterized by node and edge types, allowing the model to learn specialized attention patterns for different relationship types in the heterogeneous structure.
-
-\textbf{Applications to Fake News Detection:} Recent work has applied heterogeneous graph methods to fake news detection by modeling multiple entity types such as users, news articles, topics, publishers, and social interactions \cite{dou2021user, lu2020gcan, silva2021embracing}. These approaches construct heterogeneous graphs where different node types represent distinct aspects of the misinformation ecosystem, enabling more comprehensive modeling of fake news propagation and characteristics.
-
-% Comment: Current heterogeneous approaches show significant promise but remain limited by their dependency on social network data and poor few-shot performance
-
-\textbf{Critical Few-Shot Learning Limitations:} Despite their architectural sophistication, existing heterogeneous graph methods face severe limitations in few-shot scenarios that fundamentally constrain their applicability: (1) \emph{Meta-path sparsity}: With only k examples per class, the heterogeneous graph structures become extremely sparse, making it difficult to establish meaningful meta-paths between different node types; (2) \emph{Attention mechanism instability}: The hierarchical attention mechanisms in HAN and HGT require substantial training data to learn stable importance weights across different entity types and relationships; (3) \emph{Social data dependency}: Most approaches still fundamentally rely on user behavior data and social network structures, limiting applicability in privacy-constrained scenarios where such data is unavailable; and (4) \emph{Evaluation protocol limitations}: Existing evaluations often employ unrealistic protocols that allow information sharing between test instances, masking the true challenges of few-shot deployment scenarios.
-
-\textbf{BREAK - Graph with Sequence Modeling:} BREAK (Broad-Range Semantic Modeling for Fake News Detection) represents a significant advancement in combining graph neural networks with sequential processing for comprehensive semantic understanding \cite{ji2023break}. The key innovation lies in modeling news articles through both graph structure and sequential patterns, enabling capture of both local contextual information and global semantic relationships.
-
-BREAK constructs heterogeneous graphs that incorporate multiple entity types (news articles, users, publishers) while applying sequence modeling techniques to capture temporal dynamics and textual patterns. The method employs a dual-stream architecture where graph neural networks capture structural relationships while recurrent networks process sequential content. This combination enables BREAK to model both immediate local contexts and broader semantic patterns across related articles.
-
-The approach demonstrates strong performance on standard benchmarks by effectively leveraging both structural and sequential information. However, BREAK faces limitations in few-shot scenarios: (1) the dual-stream architecture requires substantial training data to learn coordination between graph and sequence processing, (2) the method still relies partially on user interaction data for optimal performance, and (3) the complexity of the combined architecture makes it prone to overfitting when labeled examples are scarce.
-
-\textbf{Less4FD - Entity-Aware Few-Shot Detection:} Less4FD (Learning with Entity-aware Self-Supervised Framework for Fake News Detection) specifically addresses few-shot learning challenges through a meta-learning framework that incorporates entity awareness for improved generalization \cite{zhang2023less4fd}. The approach constructs heterogeneous graphs using primarily content-based features with minimal social signals, making it more applicable in privacy-constrained scenarios.
-
-The core innovation of Less4FD lies in its entity-aware graph construction strategy, where named entities extracted from news articles serve as bridge nodes connecting semantically related content. This entity-centric approach enables the model to capture semantic relationships that extend beyond simple text similarity, particularly important for detecting misinformation that involves factual manipulation or entity substitution.
-
-Less4FD employs a two-phase training strategy: (1) a self-supervised pre-training phase that learns general entity relationship patterns from unlabeled data, and (2) a meta-learning fine-tuning phase that adapts to specific fake news detection tasks with few examples. The meta-learning component enables rapid adaptation to new domains or emerging misinformation patterns with minimal labeled data.
-
-While Less4FD represents significant progress toward few-shot fake news detection, several limitations remain: (1) entity extraction quality heavily influences performance, making the approach vulnerable to errors in named entity recognition, (2) the meta-learning framework requires substantial computational resources and careful hyperparameter tuning, and (3) evaluation protocols do not always ensure proper test isolation, potentially overestimating few-shot performance.
-
-\textbf{HeteroSGT and Advanced Heterogeneous Methods:} HeteroSGT introduces subgraph-level attention for better scalability and reduced social dependency \cite{wang2023heterosgt}. The method represents progress toward content-centric fake news detection by focusing on subgraph patterns rather than requiring extensive social network data.
-
-These approaches represent substantial progress toward content-centric fake news detection, but they still face fundamental challenges in few-shot learning scenarios. While the reduced social dependency helps with privacy constraints, the core issue of learning effective heterogeneous representations from severely limited labeled data remains largely unresolved. Additionally, their evaluation protocols often lack the rigor necessary to assess true few-shot performance in realistic deployment scenarios where test instances cannot reference each other.
-
-\textbf{Generative Enhancement for Graph Construction:} An emerging direction involves using large language models to generate auxiliary data for graph construction. Recent work explores using LLMs to generate synthetic news articles, user comments, or social interactions that can augment limited training data \cite{yang2023let, zhang2023enhancing}. However, these approaches have not been systematically integrated with heterogeneous graph architectures or rigorously evaluated in few-shot learning scenarios with proper test isolation protocols.
-
-While these approaches represent progress toward content-centric fake news detection, they still suffer from limitations in graph construction strategies and evaluation protocols that allow information leakage between training and test sets.
-
-\section{Large Language Models and Graph Enhancement}
-
-The emergence of large language models (LLMs) has opened new possibilities for enhancing graph-based fake news detection through synthetic data generation and improved semantic understanding.
-
-\subsection{LLM-Enhanced Graph Construction}
-
-\section{Large Language Models and Graph Enhancement}
-
-The emergence of large language models has opened new possibilities for enhancing graph-based fake news detection through synthetic data generation and improved semantic understanding. Rather than using LLMs as direct detection systems, recent research explores their potential as auxiliary components for addressing data scarcity challenges in few-shot learning scenarios.
-
-\subsection{LLM-Enhanced Graph Construction}
-
-\textbf{Synthetic Interaction Generation with Gemini:} A promising direction involves leveraging Google's Gemini LLM to generate synthetic user interactions that simulate realistic social media responses to news articles \cite{yang2023let, zhang2023on}. This approach addresses the fundamental limitation of propagation-based fake news detection methods that require real user interaction data, which is often unavailable due to privacy constraints or platform access restrictions.
-
-The Gemini-based generation process employs carefully designed prompts that instruct the model to produce diverse user responses with controlled characteristics: \emph{neutral interactions} that focus on factual discussion, \emph{affirmative interactions} that express support or agreement, and \emph{skeptical interactions} that question or challenge the news content. This controlled generation enables the creation of heterogeneous graph structures that incorporate social context without requiring real user data.
-
-The advantage of Gemini-generated interactions lies in their controllability and diversity. Unlike real social media data, synthetic interactions can be generated with specific characteristics (e.g., skeptical tone, neutral stance, affirmative support) and do not suffer from privacy constraints or platform access limitations. However, the challenge lies in ensuring that generated interactions capture realistic patterns and do not introduce systematic biases that could mislead the detection model.
-
-\textbf{Multi-tone Interaction Synthesis:} Our approach extends basic LLM interaction generation by implementing a structured multi-tone strategy that produces 20 interactions per news article across three distinct emotional categories. This systematic approach ensures comprehensive coverage of potential user response patterns while maintaining consistency in the synthetic data generation process.
-
-The multi-tone generation strategy addresses a critical limitation of existing LLM-enhanced approaches: most prior work generates interactions without systematic control over their emotional characteristics or diversity. By explicitly prompting Gemini to produce interactions with specific tones (neutral: 8, affirmative: 7, skeptical: 5), we create more realistic synthetic social media ecosystems that better reflect the distribution of user responses observed in real platforms.
-
-\textbf{Semantic Edge Enhancement:} Beyond interaction generation, LLMs can improve edge construction in graph-based methods by providing richer semantic similarity measures beyond simple embedding cosine similarity \cite{liu2023large, chen2023llm}. These approaches use LLMs to assess semantic relationships between news articles, potentially identifying subtle connections that traditional similarity metrics might miss.
-
-However, empirical evaluation reveals that LLM-based semantic edge enhancement provides minimal improvement over well-tuned embedding-based similarity measures while significantly increasing computational overhead. Our experiments demonstrate that DeBERTa embeddings combined with cosine similarity provide robust semantic edge construction without the latency and cost associated with LLM-based similarity assessment.
-
-\subsection{LLM Direct Detection Approaches}
-
-\subsection{LLM Direct Detection Approaches}
-
-\textbf{Prompt-Based Detection with Modern LLMs:} Several studies explore using state-of-the-art LLMs directly for fake news detection through carefully designed prompts \cite{chen2023chatgpt, bang2023multitask}. These approaches typically present news articles to LLMs along with instructions to classify them as real or fake, sometimes including few-shot examples in the prompt context.
-
-\textbf{LLaMA Prompt Engineering Strategies:} Researchers have developed sophisticated prompting strategies for LLaMA models, including chain-of-thought reasoning where the model is instructed to analyze specific aspects of news articles (source credibility, factual claims, logical consistency) before making classification decisions. Multi-step prompting approaches break down the task into subtasks: (1) identifying key claims, (2) assessing evidence quality, (3) evaluating source reliability, and (4) making final authenticity judgments.
-
-Despite extensive prompt engineering, LLaMA models exhibit several critical limitations: (1) \emph{Reasoning inconsistency}: The same model may provide contradictory reasoning for similar articles depending on prompt variations; (2) \emph{Overconfidence in incorrect predictions}: LLaMA models often express high certainty in wrong classifications, making error detection difficult; (3) \emph{Limited factual grounding}: Without access to external knowledge sources, LLaMA cannot verify specific factual claims, relying instead on patterns learned during pre-training; and (4) \emph{Susceptibility to adversarial examples}: Subtle modifications to article text can dramatically change LLaMA's classification decisions.
-
-\textbf{Gemma Instruction-Following for Detection:} Google's Gemma models, designed with enhanced instruction-following capabilities, enable more structured approaches to fake news detection. Researchers employ detailed instructions that specify evaluation criteria, such as "Assess this news article for factual accuracy, source credibility, and logical consistency. Provide your analysis and classification."
-
-However, evaluation shows that even instruction-tuned Gemma models struggle with fake news detection: (1) \emph{Template dependency}: Performance varies significantly based on instruction templates, indicating brittleness in task understanding; (2) \emph{Knowledge cutoff limitations}: Gemma models cannot access information beyond their training cutoff, limiting effectiveness on recent misinformation topics; (3) \emph{Context length constraints}: While Gemma supports longer contexts, processing very long news articles or multiple articles simultaneously leads to degraded performance; and (4) \emph{Hallucination issues}: Gemma models sometimes generate plausible but false information when attempting to verify claims, potentially misleading human users.
-
-Recent comprehensive evaluations comparing GPT-4, Claude-3.5, LLaMA-2-70B, and Gemma-7B on standardized fake news benchmarks reveal consistent underperformance compared to specialized models, often struggling to achieve accuracy above 65\% in few-shot scenarios \cite{huang2023chatgpt, zhang2023can}. LLMs tend to be overconfident in their predictions and may rely on superficial textual patterns rather than deep semantic understanding of misinformation characteristics.
-
-% Comment: This motivates our approach of using LLMs for auxiliary data generation rather than direct detection
-
-\textbf{Fundamental Limitations of Direct LLM Approaches:} Despite extensive prompt engineering efforts and the sophistication of models like LLaMA-2-70B and Gemma-7B, LLMs continue to underperform compared to specialized graph-based approaches in few-shot fake news detection scenarios. Key limitations include: (1) \emph{Surface-level pattern focus}: LLMs tend to rely on obvious linguistic features (emotional language, grammatical errors) rather than deeper semantic relationships and contextual inconsistencies that characterize sophisticated misinformation; (2) \emph{Lack of systematic training}: Unlike specialized models, LLMs lack focused training on misinformation detection tasks, limiting their understanding of subtle manipulation techniques; (3) \emph{Structural relationship blindness}: LLMs process articles independently and cannot leverage structural relationships between related news articles that might reveal coordinated misinformation campaigns; and (4) \emph{Cross-domain inconsistency}: Performance varies dramatically across different types of misinformation (political, medical, scientific), with no single prompting strategy proving robust across domains.
-
-These fundamental limitations highlight the potential of using LLMs as auxiliary components for data generation and graph enhancement rather than as primary detection models. This insight motivates our approach of integrating LLM-generated synthetic interactions within specialized graph neural network architectures, leveraging the strengths of both paradigms while avoiding their individual weaknesses.
-
-\section{Few-Shot Learning in NLP}
-
-Few-shot learning has emerged as a critical research area in natural language processing, representing a paradigm shift from traditional machine learning approaches that require extensive labeled datasets. In few-shot scenarios, models must achieve strong performance with minimal supervision, making them particularly relevant for real-world applications where labeling is expensive or impractical.
-
-\subsection{Few-Shot Learning Fundamentals}
-
-\textbf{Formal Definition:} Few-shot learning is a machine learning framework where an AI model learns to make accurate predictions by training on a very small number of labeled examples per class. Formally, given a support set $\mathcal{S} = \{(x_i, y_i)\}_{i=1}^{K \times N}$ containing $K$ labeled examples for each of $N$ classes, the objective is to learn a classifier $f: \mathcal{X} \rightarrow \mathcal{Y}$ that can accurately predict labels for a query set $\mathcal{Q} = \{x_j\}_{j=1}^{M}$.
-
-\textbf{N-way K-shot Classification:} The standard formulation for few-shot learning is N-way K-shot classification, where $N$ represents the number of classes and $K$ denotes the number of labeled examples per class. In fake news detection tasks, researchers typically focus on 2-way K-shot learning with $K \in \{3, 4, 8, 16\}$, where the two classes represent real and fake news respectively.
-
-\textbf{Core Challenges:} Few-shot learning presents several fundamental challenges that differentiate it from conventional machine learning:
-
-\begin{itemize}
-\item \textbf{Limited Training Data:} Traditional deep learning requires thousands of labeled examples per class to achieve good performance. In few-shot scenarios with only 3-16 examples per class, models are highly prone to overfitting and struggle to learn generalizable patterns.
-\item \textbf{High Variance:} The limited sample size leads to high variance in performance estimates. Small changes in the support set can dramatically affect model performance, making robust evaluation protocols crucial for reliable results.
-\item \textbf{Domain Shift:} Models trained on few examples from specific domains often fail to generalize to new domains or emerging patterns not represented in the limited training data.
-\item \textbf{Evaluation Challenges:} Proper evaluation of few-shot learning systems requires careful experimental design to avoid information leakage and ensure that performance estimates reflect real-world deployment scenarios.
-\end{itemize}
-
-\subsection{Meta-Learning Approaches}
-
-\textbf{Model-Agnostic Meta-Learning (MAML):} MAML and its variants learn initialization parameters that can be quickly adapted to new tasks with minimal data \cite{finn2017model, bansal2020self}. In the context of fake news detection, meta-learning approaches attempt to learn general misinformation detection capabilities that can transfer to new domains or topics with few examples.
-
-The key insight is to learn how to learn rather than learning specific task solutions. However, meta-learning approaches typically require extensive meta-training data from multiple related tasks, which may not be available for fake news detection. Additionally, these methods often struggle with the high variability in misinformation patterns across different domains and topics.
-
-\textbf{Prototypical Networks:} Prototypical networks learn to classify examples based on their distance to class prototypes computed from support examples \cite{snell2017prototypical, gao2019fewrel}. These approaches show promise for few-shot text classification by learning meaningful embedding spaces where similar examples cluster together.
-
-Metric learning approaches learn embedding spaces where examples from the same class are close together and examples from different classes are far apart. Classification is performed by comparing query examples to support set prototypes. While prototypical approaches avoid the need for extensive meta-training, they still struggle with the high dimensionality and semantic complexity of news articles, often failing to learn discriminative prototypes from few examples.
-
-\subsection{Contrastive Learning and Data Augmentation}
-
-\textbf{SimCLR and Variants:} Contrastive learning approaches learn representations by maximizing similarity between positive pairs and minimizing similarity between negative pairs \cite{chen2020simple, gao2021simcse}. In fake news detection, these methods attempt to learn representations where real news articles are similar to each other and different from fake news articles.
-
-Contrastive approaches show promise for learning robust representations from limited data. However, they require careful design of positive and negative pair generation strategies, which is challenging for fake news where the boundaries between real and fake can be subtle and context-dependent.
-
-\textbf{Data Augmentation Strategies:} Various data augmentation techniques have been explored for few-shot fake news detection, including back-translation, paraphrasing, and adversarial perturbations \cite{longpre2020effective, kumar2020data}. These approaches attempt to increase the effective size of the training set by generating synthetic examples.
-
-While data augmentation can help address data scarcity, synthetic examples may not capture the full complexity of real misinformation patterns and can sometimes introduce biases that hurt generalization performance.
-
-\section{Graph Neural Networks for Fake News Detection}
-
-Graph Neural Networks have emerged as a powerful paradigm for modeling structured data, with particular success in text classification tasks where relationships between documents provide valuable signal for classification. In the context of fake news detection, GNNs enable modeling of complex relationships between news articles, user interactions, and other entities.
-
-\subsection{Message Passing Framework}
-
-\textbf{Core Principle:} GNNs operate on the message passing framework where nodes iteratively update their representations by aggregating information from neighboring nodes. This process enables the model to capture both local neighborhood information and global graph structure through multiple iterations.
-
-\textbf{General Formulation:} The message passing framework can be described through three key operations:
-
-1. \textbf{Message Function:} $m_{ij}^{(l+1)} = M^{(l)}(h_i^{(l)}, h_j^{(l)}, e_{ij})$ computes messages between connected nodes, where $h_i^{(l)}$ represents the feature vector of node $i$ at layer $l$, and $e_{ij}$ represents edge features.
-
-2. \textbf{Aggregation Function:} $a_i^{(l+1)} = A^{(l)}(\{m_{ij}^{(l+1)} : j \in \mathcal{N}(i)\})$ aggregates messages from all neighbors $\mathcal{N}(i)$ of node $i$.
-
-3. \textbf{Update Function:} $h_i^{(l+1)} = U^{(l)}(h_i^{(l)}, a_i^{(l+1)})$ updates the node representation based on its current state and aggregated messages.
-
-\textbf{Multi-Layer Architecture:} Multiple message passing layers enable nodes to receive information from increasingly distant neighbors, allowing the model to capture both local patterns and global graph structure.
-
-\subsection{Heterogeneous Graph Neural Networks}
-
-Real-world data often exhibits heterogeneous structure with multiple node types and edge types, requiring specialized architectures beyond homogeneous graph neural networks. Heterogeneous graphs provide richer modeling capabilities for complex domains like fake news detection where multiple entity types interact.
-
-\textbf{Heterogeneous Graph Definition:} A heterogeneous graph $G = (V, E, \mathcal{A}, \mathcal{R})$ consists of:
-\begin{itemize}
-\item Node set $V$ with node type mapping $\phi: V \rightarrow \mathcal{A}$
-\item Edge set $E$ with edge type mapping $\psi: E \rightarrow \mathcal{R}$  
-\item Node type set $\mathcal{A}$ with $|\mathcal{A}| > 1$
-\item Edge type set $\mathcal{R}$ with $|\mathcal{R}| > 1$
-\end{itemize}
-
-where nodes and edges of the same type share similar properties and semantic meanings.
-
-\textbf{Meta-Path Concept:} A meta-path $P$ is a path defined on the graph schema and describes a composite relation between node types. For example, in a fake news detection graph, a meta-path "News $\rightarrow$ Interaction $\rightarrow$ News" captures how news articles relate through shared interaction patterns.
-
-\subsection{Heterogeneous Graph Attention Networks}
-
-Heterogeneous Graph Attention Networks (HAN) address the challenges of modeling heterogeneous graphs through a hierarchical attention mechanism that operates at both node and semantic levels \cite{wang2019han}.
-
-\textbf{Node-Level Attention:} For each meta-path $\Phi_i$, HAN computes attention weights between connected nodes to identify important neighbors:
-\begin{equation}
-e_{ij}^{\Phi_i} = \text{att}_{\text{node}}(Wh_i, Wh_j)
-\end{equation}
-\begin{equation}
-\alpha_{ij}^{\Phi_i} = \text{softmax}_j(e_{ij}^{\Phi_i}) = \frac{\exp(e_{ij}^{\Phi_i})}{\sum_{k \in \mathcal{N}_i^{\Phi_i}} \exp(e_{ik}^{\Phi_i})}
-\end{equation}
-
-where $W$ is a type-specific transformation matrix, and $\mathcal{N}_i^{\Phi_i}$ represents the neighbors of node $i$ under meta-path $\Phi_i$.
-
-\textbf{Semantic-Level Attention:} HAN then applies semantic-level attention to combine information across different meta-paths:
-\begin{equation}
-w_i^{\Phi_i} = \frac{1}{|\mathcal{V}|} \sum_{i \in \mathcal{V}} q^T \tanh(W_s \mathbf{z}_i^{\Phi_i} + b_s)
-\end{equation}
-\begin{equation}
-\beta^{\Phi_i} = \text{softmax}(w^{\Phi_i}) = \frac{\exp(w^{\Phi_i})}{\sum_{j=1}^P \exp(w^{\Phi_j})}
-\end{equation}
-
-where $W_s$ and $q$ are learnable parameters, and $P$ is the number of meta-paths.
-
-\textbf{Final Node Representation:} The complete node representation combines information from all meta-paths:
-\begin{equation}
-\mathbf{z}_i = \sum_{j=1}^P \beta^{\Phi_j} \mathbf{z}_i^{\Phi_j}
-\end{equation}
-
-\textbf{Advantages of HAN Architecture:} The hierarchical attention mechanism provides several key advantages for fake news detection:
-\begin{enumerate}
-\item \textbf{Flexible Relationship Modeling:} Can capture different types of relationships (content similarity, social interactions, temporal patterns) through appropriate meta-path design
-\item \textbf{Interpretability:} Attention weights provide insights into which neighbors and relationship types are most important for classification decisions  
-\item \textbf{Scalability:} The architecture can efficiently handle large heterogeneous graphs with many node and edge types
-\item \textbf{Adaptability:} The framework can be easily extended to incorporate new node types or relationship types as they become available
-\end{enumerate}
-
-\subsection{Graph Construction Strategies}
-
-\textbf{Document Graphs:} For text classification, documents are typically represented as nodes in a graph, with edges indicating various types of relationships such as semantic similarity, citation links, or co-occurrence patterns.
-
-\textbf{Similarity-Based Construction:} The most common approach constructs edges between documents based on content similarity measures such as cosine similarity of embedding vectors. Documents with similarity above a threshold or among the top-k nearest neighbors are connected.
-
-\textbf{Heterogeneous Graphs:} More sophisticated approaches construct heterogeneous graphs that include multiple node types (documents, words, authors, topics) and edge types (document-document, document-word, word-word), enabling richer modeling of text relationships.
-
-\textbf{Dynamic Graph Construction:} Advanced methods adapt graph structure during training or inference, allowing the model to learn optimal connectivity patterns rather than relying on fixed similarity measures.
-
-\section{Comprehensive Comparison of Fake News Detection Methods}
-
-Table~\ref{tab:related_work_comparison} provides a systematic comparison of existing fake news detection methods across multiple dimensions, highlighting the unique contributions of our GemGNN framework. This comparison encompasses traditional approaches, recent graph-based methods, LLM-enhanced techniques, and our proposed approach.
-
-% \begin{sidewaystable}[!htbp]
-% \centering
-% \setlength{\tabcolsep}{3pt}
-% \renewcommand{\arraystretch}{1.2}
-% \caption{Comprehensive comparison of fake news detection methods across different paradigms.}
-% \label{tab:related_work_comparison}
-% \begin{tabularx}{\linewidth}{%
-%     >{\raggedright\arraybackslash}p{3.2cm}   % Method
-%     >{\raggedright\arraybackslash}p{2.3cm}   % Category  
-%     >{\centering\arraybackslash}p{1.8cm}     % Few-Shot
-%     >{\centering\arraybackslash}p{1.5cm}     % Graph-Based
-%     >{\centering\arraybackslash}p{1.5cm}     % Social Data Required
-%     >{\centering\arraybackslash}p{1.5cm}     % Synthetic Data
-%     >{\centering\arraybackslash}p{1.5cm}     % Multi-View
-%     X                                        % Main Innovation
-% }
-% \toprule
-% \textbf{Method} & \textbf{Category} & \textbf{Few-Shot Capable} & 
-% \textbf{Graph-Based} & \textbf{Social Data Required} & \textbf{Synthetic Data} & 
-% \textbf{Multi-View} & \textbf{Main Innovation} \\
-% \midrule
-
-% \multicolumn{8}{l}{\textbf{Traditional Content-Based Methods}} \\
-% \midrule
-
-% TF-IDF + MLP \cite{perez2017automatic} & 
-%   Traditional ML & 
-%   $\times$ & 
-%   $\times$ & 
-%   $\times$ & 
-%   $\times$ & 
-%   $\times$ & 
-%   Bag-of-words features with shallow neural networks \\
-
-% LSTM/RNN \cite{ma2016detecting} & 
-%   Sequential Model & 
-%   $\times$ & 
-%   $\times$ & 
-%   $\times$ & 
-%   $\times$ & 
-%   $\times$ & 
-%   Sequential modeling of text with recurrent architectures \\
-
-% BERT \cite{kaliyar2021fakebert} & 
-%   Transformer & 
-%   Limited & 
-%   $\times$ & 
-%   $\times$ & 
-%   $\times$ & 
-%   $\times$ & 
-%   Pre-trained bidirectional encoder representations \\
-
-% \midrule
-% \multicolumn{8}{l}{\textbf{Graph-Based Methods}} \\
-% \midrule
-
-% TextGCN \cite{yao2019graph} & 
-%   Graph Neural Network & 
-%   $\times$ & 
-%   \checkmark & 
-%   $\times$ & 
-%   $\times$ & 
-%   $\times$ & 
-%   Document-word heterogeneous graphs with GCN \\
-
-% BertGCN \cite{lin2021bertgcn} & 
-%   Hybrid GNN & 
-%   Limited & 
-%   \checkmark & 
-%   $\times$ & 
-%   $\times$ & 
-%   $\times$ & 
-%   BERT embeddings with graph convolution refinement \\
-
-% BREAK \cite{ji2023break} & 
-%   Sequential GNN & 
-%   Limited & 
-%   \checkmark & 
-%   \checkmark & 
-%   $\times$ & 
-%   $\times$ & 
-%   Graph with sequence modeling for broad-range semantics \\
-
-% Less4FD \cite{zhang2023less4fd} & 
-%   Meta-Learning GNN & 
-%   \checkmark & 
-%   \checkmark & 
-%   Limited & 
-%   $\times$ & 
-%   $\times$ & 
-%   Entity-aware self-supervised framework for few-shot detection \\
-
-% HeteroSGT \cite{wang2023heterosgt} & 
-%   Heterogeneous GNN & 
-%   Limited & 
-%   \checkmark & 
-%   \checkmark & 
-%   $\times$ & 
-%   $\times$ & 
-%   Subgraph-level attention with heterogeneous modeling \\
-
-% HAN \cite{wang2019han} & 
-%   Heterogeneous GNN & 
-%   Limited & 
-%   \checkmark & 
-%   \checkmark & 
-%   $\times$ & 
-%   $\times$ & 
-%   Hierarchical attention for heterogeneous graphs \\
-
-% \midrule
-% \multicolumn{8}{l}{\textbf{Large Language Model Approaches}} \\
-% \midrule
-
-% LLaMA In-Context \cite{touvron2023llama} & 
-%   LLM Prompting & 
-%   \checkmark & 
-%   $\times$ & 
-%   $\times$ & 
-%   $\times$ & 
-%   $\times$ & 
-%   Large-scale autoregressive language modeling with few-shot prompting \\
-
-% Gemma Instruction \cite{team2024gemma} & 
-%   LLM Prompting & 
-%   \checkmark & 
-%   $\times$ & 
-%   $\times$ & 
-%   $\times$ & 
-%   $\times$ & 
-%   Enhanced instruction following and safety training \\
-
-% GPT-4 CoT \cite{wei2023cot} & 
-%   LLM Reasoning & 
-%   \checkmark & 
-%   $\times$ & 
-%   $\times$ & 
-%   $\times$ & 
-%   $\times$ & 
-%   Chain-of-thought reasoning for systematic analysis \\
-
-% \midrule
-% \multicolumn{8}{l}{\textbf{LLM-Enhanced Graph Methods}} \\
-% \midrule
-
-% Let Silence Speak \cite{yang2023let} & 
-%   LLM + Graph & 
-%   Limited & 
-%   \checkmark & 
-%   $\times$ & 
-%   \checkmark & 
-%   $\times$ & 
-%   LLM-generated comments for enhanced detection \\
-
-% Enhanced Semantics \cite{zhang2023on} & 
-%   LLM + Graph & 
-%   Limited & 
-%   \checkmark & 
-%   Limited & 
-%   \checkmark & 
-%   $\times$ & 
-%   LLM-enhanced semantic mining for graph construction \\
-
-% \midrule
-% \multicolumn{8}{l}{\textbf{Our Approach}} \\
-% \midrule
-
-% \textbf{GemGNN (Ours)} & 
-%   \textbf{Heterogeneous GNN + LLM} & 
-%   \textbf{\checkmark} & 
-%   \textbf{\checkmark} & 
-%   \textbf{$\times$} & 
-%   \textbf{\checkmark} & 
-%   \textbf{\checkmark} & 
-%   \textbf{Multi-view heterogeneous graphs with synthetic multi-tone interactions and test-isolated evaluation} \\
-
-% \bottomrule
-% \end{tabularx}
-% \end{sidewaystable}
-
-\textbf{Key Observations from the Comparison:}
-
-\textbf{Few-Shot Learning Capability:} Most traditional graph-based methods struggle in few-shot scenarios due to sparse graph structures and insufficient training data. While LLMs show some few-shot capability through in-context learning, they lack the structural modeling advantages of graph approaches. Our GemGNN uniquely combines few-shot effectiveness with sophisticated graph modeling.
-
-\textbf{Social Data Dependency:} A critical limitation of many high-performing methods is their reliance on social propagation data, user interaction patterns, or network structures. This dependency severely limits real-world applicability due to privacy constraints and platform access restrictions. Our approach achieves strong performance using only content-based features augmented with synthetic interactions.
-
-\textbf{Synthetic Data Utilization:} Most existing approaches rely exclusively on real data, missing opportunities to address data scarcity through controlled synthetic data generation. Our systematic multi-tone interaction synthesis provides consistent performance improvements while maintaining privacy and avoiding platform dependencies.
-
-\textbf{Multi-View Learning:} The ability to capture different semantic perspectives within the same content is largely unexplored in existing work. Our multi-view DeBERTa embedding partitioning enables the model to focus on complementary linguistic and semantic aspects, improving robustness and generalization.
-
-\textbf{Test Isolation:} Existing graph-based methods often employ unrealistic evaluation protocols that allow information leakage between test instances. Our test-isolated KNN approach ensures authentic performance assessment that reflects realistic deployment constraints.
+Less4FD employs two-phase training: (1) self-supervised pre-training learning general entity relationship patterns from unlabeled data, and (2) meta-learning fine-tuning adapting to specific tasks with few examples. While representing significant progress, limitations remain: (1) entity extraction quality heavily influences performance, (2) meta-learning requires substantial computational resources, and (3) evaluation protocols do not always ensure proper test isolation.
 
 \section{Limitations of Existing Methods}
 
-Our comprehensive review and comparison reveal several fundamental limitations that motivate our research:
+Our comprehensive review reveals fundamental limitations that motivate our research:
 
-\textbf{Dependency on User Behavior Data:} Most high-performing fake news detection systems rely on user interaction patterns, social network structures, or propagation dynamics. This dependency severely limits their applicability in scenarios where such data is unavailable due to privacy constraints, platform restrictions, or real-time detection requirements.
+\textbf{Social Data Dependency:} Most high-performing systems rely on user interaction patterns or social network structures, severely limiting applicability where such data is unavailable due to privacy constraints or platform restrictions.
 
-\textbf{Poor Few-Shot Performance:} Traditional deep learning approaches, including state-of-the-art transformer models, suffer from significant performance degradation in few-shot scenarios. These methods require extensive labeled training data and are prone to overfitting when supervision is limited.
+\textbf{Poor Few-Shot Performance:} Traditional deep learning approaches, including state-of-the-art transformer models, suffer significant performance degradation in few-shot scenarios due to overfitting and limited generalization.
 
-\textbf{Information Leakage in Evaluation:} Many existing few-shot learning approaches for fake news detection suffer from unrealistic evaluation protocols that allow information sharing between test instances, leading to overly optimistic performance estimates that do not reflect real-world deployment conditions.
+\textbf{Information Leakage in Evaluation:} Many approaches employ unrealistic evaluation protocols allowing information sharing between test instances, leading to overly optimistic performance estimates that do not reflect deployment conditions.
 
-\textbf{Limited Structural Modeling:} Pure content-based approaches treat each document independently, missing important structural relationships between related news articles that could provide valuable signal for misinformation detection.
+\textbf{Limited Structural Modeling:} Content-based approaches treat documents independently, missing important structural relationships between related articles that could provide valuable detection signals.
 
-\textbf{Domain Specificity:} Many approaches show strong performance on specific domains or datasets but fail to generalize to new topics, emerging misinformation patterns, or different types of fake news content.
-
-\textbf{Lack of Synthetic Data Utilization:} While some approaches explore data augmentation, there has been limited exploration of using large language models to generate synthetic auxiliary data that could enhance few-shot learning performance.
-
-These limitations highlight the need for novel approaches that can achieve strong performance in few-shot scenarios while maintaining realistic evaluation protocols and avoiding dependency on user behavior data. Our GemGNN framework directly addresses these limitations through content-based graph neural networks enhanced with generative auxiliary data and rigorous test isolation constraints.
+These limitations highlight the need for approaches that achieve strong few-shot performance while maintaining realistic evaluation protocols and avoiding dependency on user behavior data. Our GemGNN framework directly addresses these challenges through content-based heterogeneous graph neural networks enhanced with synthetic interaction generation and rigorous test isolation protocols.
 
 % ------------------------------------------------
 \EndChapter

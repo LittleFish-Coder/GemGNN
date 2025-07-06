@@ -2,116 +2,37 @@
 \StartChapter{Problem Statement}{chapter:problem-statement}
 % ------------------------------------------------
 
-\vspace{0.3cm}
+This chapter formally defines the few-shot fake news detection problem and establishes the key challenges that motivate our GemGNN approach.
 
-\textbf{Given:}
-\begin{itemize}
-    \item Labeled set: $\mathcal{L} = \{(x_i, y_i)\}_{i=1}^{2K}$, where $K$ examples per class
-    \item Unlabeled set: $\mathcal{U} = \{x_j\}_{j=1}^{M}$ 
-    \item Test set: $\mathcal{T} = \{x_k\}_{k=1}^{N}$
-    \item Constraints: $K \ll M, N$
-\end{itemize}
-
-\vspace{0.3cm}
-
-\textbf{Objective:}
-\begin{itemize}
-    \item Learn classifier $f: \mathcal{X} \rightarrow \{0, 1\}$ that accurately predicts labels for $\mathcal{T}$
-    \item Binary classification: real news ($y = 0$) vs fake news ($y = 1$)
-\end{itemize}
-
-\vspace{0.3cm}
-
-\textbf{Key Challenges:}
-\begin{itemize}
-    \item \textcolor{red}{Extreme data scarcity}: $K \in \{3 \textasciitilde 16\}$ labeled examples per class
-    \item \textcolor{blue}{Content-only constraint}: No user interaction or propagation data available
-\end{itemize}
-
-
-This chapter formally defines the few-shot fake news detection problem and establishes the mathematical framework for our GemGNN approach. We present the fundamental challenges and constraints that motivate our heterogeneous graph-based solution.
-
-\section{Problem Formulation}
+\section{Problem Definition}
 
 \textbf{Few-Shot Fake News Detection:} Given a small set of labeled news articles $\mathcal{L} = \{(x_i, y_i)\}_{i=1}^{2K}$ where $K$ represents the number of examples per class, and unlabeled news articles $\mathcal{U} = \{x_j\}_{j=1}^{M}$, learn a classifier $f: \mathcal{X} \rightarrow \{0,1\}$ that accurately predicts labels for test instances $\mathcal{T} = \{x_k\}_{k=1}^{N}$ where $K \ll M$ and $K \ll N$.
 
-The binary classification task distinguishes between real news ($y = 0$) and fake news ($y = 1$). In few-shot scenarios, $K \in \{3 \textasciitilde 16\}$ labeled examples per class are available for training, creating extreme data scarcity conditions that challenge traditional supervised learning approaches.
+The binary classification task distinguishes between real news ($y = 0$) and fake news ($y = 1$). In few-shot scenarios, $K \in \{3, 4, 5, ..., 16\}$ labeled examples per class are available for training, creating extreme data scarcity conditions.
 
-\textbf{Privacy Constraints:} The problem explicitly excludes access to user propagation data, social network structures, or user interaction patterns. This constraint reflects real-world deployment scenarios where such data is unavailable due to privacy regulations, platform restrictions, or time-sensitive detection requirements.
+\section{Key Challenges}
 
-\section{Heterogeneous Graph Formulation}
+\textbf{Data Scarcity:} With only 3-16 labeled examples per class, traditional supervised learning approaches suffer from severe overfitting and poor generalization. Standard deep learning models require thousands of examples for reliable performance.
 
-We formulate the problem as node classification on a heterogeneous graph $G = (V, E, \mathcal{A}, \mathcal{R})$ where:
+\textbf{Privacy Constraints:} The problem explicitly excludes access to user propagation data, social network structures, or user interaction patterns. This constraint reflects real-world deployment scenarios where such data is unavailable due to privacy regulations or platform restrictions.
 
-\textbf{Node Types:} $\mathcal{A} = \{\text{news}, \text{interaction}\}$ represents two node types:
+\textbf{Evaluation Integrity:} Existing graph-based approaches often allow information leakage between test instances during edge construction, leading to unrealistic performance estimates that do not reflect deployment conditions.
+
+\textbf{Content-Only Detection:} Without social signals, the system must rely solely on textual content to distinguish fake from real news, requiring sophisticated semantic understanding and relationship modeling.
+
+\section{Research Objectives}
+
+Our research aims to develop a few-shot fake news detection system that:
+
 \begin{itemize}
-\item News nodes $V_n = \{n_1, n_2, \ldots, n_{|\mathcal{L}| + |\mathcal{U}| + |\mathcal{T}|}\}$ representing all articles
-\item Interaction nodes $V_i = \{i_1, i_2, \ldots, i_{20 \times |V_n|}\}$ representing synthetic user responses
+\item Achieves reliable performance with minimal labeled data ($K \leq 16$)
+\item Operates without user interaction or social network data
+\item Maintains realistic evaluation protocols that prevent information leakage
+\item Leverages structural relationships between news articles for improved detection
+\item Integrates synthetic data generation to address data scarcity challenges
 \end{itemize}
 
-\textbf{Edge Types:} $\mathcal{R} = \{\text{similar\_to}, \text{interacts\_with}\}$ includes:
-\begin{itemize}
-\item News-to-news edges based on semantic similarity: $(n_i, n_j) \in E_{nn}$
-\item News-to-interaction edges connecting articles to synthetic responses: $(n_i, i_j) \in E_{ni}$
-\end{itemize}
-
-\textbf{Node Features:} Each node has feature representation $\mathbf{x}_v \in \mathbb{R}^{768}$ derived from DeBERTa embeddings for news content and interaction text.
-
-\section{Synthetic Data Generation}
-
-To address the absence of real user data, we generate synthetic user interactions using Large Language Models:
-
-\textbf{Interaction Generation:} For each news article $n_i$, generate 20 synthetic user interactions $I_i = \{i_1^{(i)}, i_2^{(i)}, \ldots, i_{20}^{(i)}\}$ with tone distribution:
-\begin{itemize}
-\item 8 neutral interactions focusing on factual content
-\item 7 affirmative interactions expressing agreement or support  
-\item 5 skeptical interactions questioning or challenging content
-\end{itemize}
-
-This synthetic data creates heterogeneous graph structure without privacy concerns while providing social context signals for improved classification.
-
-\section{Edge Construction Strategies}
-
-\textbf{Test-Isolated KNN:} To prevent information leakage in evaluation, we implement test-isolated edge construction where test nodes connect only to other test nodes and training/validation nodes connect only within their respective partitions. This ensures realistic evaluation conditions that reflect deployment scenarios.
-
-\textbf{Traditional KNN:} For performance comparison, we also implement traditional KNN where all nodes can connect based on similarity regardless of partition. While this may create evaluation bias, it provides upper bound performance estimates.
-
-The edge construction strategy significantly impacts both performance and evaluation validity, representing a fundamental trade-off in graph-based few-shot learning systems.
-
-\section{Multi-View Graph Construction}
-
-To capture diverse semantic perspectives, we partition DeBERTa embeddings into multiple views:
-
-\textbf{Embedding Partitioning:} The 768-dimensional DeBERTa embedding is divided into $V$ views, each containing $768/V$ dimensions. Each view captures different semantic aspects of the content.
-
-\textbf{View-Specific Graphs:} For each view $v \in \{1, 2, \ldots, V\}$, construct a separate similarity graph using cosine similarity on the corresponding embedding partition. This creates $V$ complementary graph structures.
-
-\textbf{Attention-Based Fusion:} The Heterogeneous Graph Attention Network learns to combine information from all views through learned attention weights, enabling the model to emphasize the most informative semantic perspectives.
-
-\section{Learning Objective and Constraints}
-
-\textbf{Transductive Learning:} All nodes participate in message passing, but loss computation is restricted to labeled nodes:
-\begin{equation}
-\mathcal{L} = \frac{1}{|\mathcal{L}|} \sum_{(n_i, y_i) \in \mathcal{L}} \text{CrossEntropy}(f_\theta(G)[n_i], y_i)
-\end{equation}
-
-where $f_\theta(G)[n_i]$ represents the model's prediction for news node $n_i$.
-
-\textbf{Evaluation Metrics:} Performance is assessed using:
-\begin{itemize}
-\item F1-score (primary metric for few-shot scenarios)
-\item Accuracy, Precision, and Recall (for comprehensive evaluation)
-\end{itemize}
-
-\textbf{Key Constraints:}
-\begin{itemize}
-\item No access to real user propagation data
-\item Limited labeled examples per class ($K \leq 16$)
-\item Computational efficiency requirements for practical deployment
-\item Evaluation protocols that prevent information leakage
-\end{itemize}
-
-This formulation establishes the mathematical foundation for our GemGNN approach, which addresses these challenges through synthetic data generation, heterogeneous graph modeling, and specialized attention mechanisms detailed in the methodology chapter.
+These objectives drive the design of our GemGNN framework, which addresses data scarcity through synthetic interaction generation, models structural relationships via heterogeneous graphs, and ensures evaluation integrity through test-isolated edge construction strategies detailed in the methodology chapter.
 
 % ------------------------------------------------
 \EndChapter
