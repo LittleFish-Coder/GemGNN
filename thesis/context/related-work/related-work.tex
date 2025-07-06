@@ -102,9 +102,23 @@ While temporal modeling provides additional signal for misinformation detection,
 
 \textbf{Critical Few-Shot Learning Limitations:} Despite their architectural sophistication, existing heterogeneous graph methods face severe limitations in few-shot scenarios that fundamentally constrain their applicability: (1) \emph{Meta-path sparsity}: With only k examples per class, the heterogeneous graph structures become extremely sparse, making it difficult to establish meaningful meta-paths between different node types; (2) \emph{Attention mechanism instability}: The hierarchical attention mechanisms in HAN and HGT require substantial training data to learn stable importance weights across different entity types and relationships; (3) \emph{Social data dependency}: Most approaches still fundamentally rely on user behavior data and social network structures, limiting applicability in privacy-constrained scenarios where such data is unavailable; and (4) \emph{Evaluation protocol limitations}: Existing evaluations often employ unrealistic protocols that allow information sharing between test instances, masking the true challenges of few-shot deployment scenarios.
 
-\textbf{Content-Focused Heterogeneous Methods:} More recent approaches like Less4FD and HeteroSGT attempt to reduce dependency on social features while maintaining heterogeneous modeling advantages \cite{zhang2023less4fd, wang2023heterosgt}. Less4FD constructs heterogeneous graphs using primarily content-based features with minimal social signals, while HeteroSGT introduces subgraph-level attention for better scalability and reduced social dependency.
+\textbf{BREAK - Graph with Sequence Modeling:} BREAK (Broad-Range Semantic Modeling for Fake News Detection) represents a significant advancement in combining graph neural networks with sequential processing for comprehensive semantic understanding \cite{ji2023break}. The key innovation lies in modeling news articles through both graph structure and sequential patterns, enabling capture of both local contextual information and global semantic relationships.
 
-These approaches represent progress toward content-centric fake news detection, but they still suffer from the fundamental few-shot learning challenges outlined above. The reduced social dependency helps with privacy constraints, but the core issue of learning effective heterogeneous representations from severely limited labeled data remains unresolved. Additionally, their evaluation protocols often lack the rigor necessary to assess true few-shot performance in realistic deployment scenarios.
+BREAK constructs heterogeneous graphs that incorporate multiple entity types (news articles, users, publishers) while applying sequence modeling techniques to capture temporal dynamics and textual patterns. The method employs a dual-stream architecture where graph neural networks capture structural relationships while recurrent networks process sequential content. This combination enables BREAK to model both immediate local contexts and broader semantic patterns across related articles.
+
+The approach demonstrates strong performance on standard benchmarks by effectively leveraging both structural and sequential information. However, BREAK faces limitations in few-shot scenarios: (1) the dual-stream architecture requires substantial training data to learn coordination between graph and sequence processing, (2) the method still relies partially on user interaction data for optimal performance, and (3) the complexity of the combined architecture makes it prone to overfitting when labeled examples are scarce.
+
+\textbf{Less4FD - Entity-Aware Few-Shot Detection:} Less4FD (Learning with Entity-aware Self-Supervised Framework for Fake News Detection) specifically addresses few-shot learning challenges through a meta-learning framework that incorporates entity awareness for improved generalization \cite{zhang2023less4fd}. The approach constructs heterogeneous graphs using primarily content-based features with minimal social signals, making it more applicable in privacy-constrained scenarios.
+
+The core innovation of Less4FD lies in its entity-aware graph construction strategy, where named entities extracted from news articles serve as bridge nodes connecting semantically related content. This entity-centric approach enables the model to capture semantic relationships that extend beyond simple text similarity, particularly important for detecting misinformation that involves factual manipulation or entity substitution.
+
+Less4FD employs a two-phase training strategy: (1) a self-supervised pre-training phase that learns general entity relationship patterns from unlabeled data, and (2) a meta-learning fine-tuning phase that adapts to specific fake news detection tasks with few examples. The meta-learning component enables rapid adaptation to new domains or emerging misinformation patterns with minimal labeled data.
+
+While Less4FD represents significant progress toward few-shot fake news detection, several limitations remain: (1) entity extraction quality heavily influences performance, making the approach vulnerable to errors in named entity recognition, (2) the meta-learning framework requires substantial computational resources and careful hyperparameter tuning, and (3) evaluation protocols do not always ensure proper test isolation, potentially overestimating few-shot performance.
+
+\textbf{HeteroSGT and Advanced Heterogeneous Methods:} HeteroSGT introduces subgraph-level attention for better scalability and reduced social dependency \cite{wang2023heterosgt}. The method represents progress toward content-centric fake news detection by focusing on subgraph patterns rather than requiring extensive social network data.
+
+These approaches represent substantial progress toward content-centric fake news detection, but they still face fundamental challenges in few-shot learning scenarios. While the reduced social dependency helps with privacy constraints, the core issue of learning effective heterogeneous representations from severely limited labeled data remains largely unresolved. Additionally, their evaluation protocols often lack the rigor necessary to assess true few-shot performance in realistic deployment scenarios where test instances cannot reference each other.
 
 \textbf{Generative Enhancement for Graph Construction:} An emerging direction involves using large language models to generate auxiliary data for graph construction. Recent work explores using LLMs to generate synthetic news articles, user comments, or social interactions that can augment limited training data \cite{yang2023let, zhang2023enhancing}. However, these approaches have not been systematically integrated with heterogeneous graph architectures or rigorously evaluated in few-shot learning scenarios with proper test isolation protocols.
 
@@ -278,9 +292,205 @@ where $W_s$ and $q$ are learnable parameters, and $P$ is the number of meta-path
 
 \textbf{Dynamic Graph Construction:} Advanced methods adapt graph structure during training or inference, allowing the model to learn optimal connectivity patterns rather than relying on fixed similarity measures.
 
+\section{Comprehensive Comparison of Fake News Detection Methods}
+
+Table~\ref{tab:related_work_comparison} provides a systematic comparison of existing fake news detection methods across multiple dimensions, highlighting the unique contributions of our GemGNN framework. This comparison encompasses traditional approaches, recent graph-based methods, LLM-enhanced techniques, and our proposed approach.
+
+\begin{sidewaystable}[!htbp]
+\centering
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.2}
+\caption{Comprehensive comparison of fake news detection methods across different paradigms.}
+\label{tab:related_work_comparison}
+\begin{tabularx}{\linewidth}{%
+    >{\raggedright\arraybackslash}p{3.2cm}   % Method
+    >{\raggedright\arraybackslash}p{2.3cm}   % Category  
+    >{\centering\arraybackslash}p{1.8cm}     % Few-Shot
+    >{\centering\arraybackslash}p{1.5cm}     % Graph-Based
+    >{\centering\arraybackslash}p{1.5cm}     % Social Data Required
+    >{\centering\arraybackslash}p{1.5cm}     % Synthetic Data
+    >{\centering\arraybackslash}p{1.5cm}     % Multi-View
+    X                                        % Main Innovation
+}
+\toprule
+\textbf{Method} & \textbf{Category} & \textbf{Few-Shot Capable} & 
+\textbf{Graph-Based} & \textbf{Social Data Required} & \textbf{Synthetic Data} & 
+\textbf{Multi-View} & \textbf{Main Innovation} \\
+\midrule
+
+\multicolumn{8}{l}{\textbf{Traditional Content-Based Methods}} \\
+\midrule
+
+TF-IDF + MLP \cite{perez2017automatic} & 
+  Traditional ML & 
+  $\times$ & 
+  $\times$ & 
+  $\times$ & 
+  $\times$ & 
+  $\times$ & 
+  Bag-of-words features with shallow neural networks \\
+
+LSTM/RNN \cite{ma2016detecting} & 
+  Sequential Model & 
+  $\times$ & 
+  $\times$ & 
+  $\times$ & 
+  $\times$ & 
+  $\times$ & 
+  Sequential modeling of text with recurrent architectures \\
+
+BERT \cite{kaliyar2021fakebert} & 
+  Transformer & 
+  Limited & 
+  $\times$ & 
+  $\times$ & 
+  $\times$ & 
+  $\times$ & 
+  Pre-trained bidirectional encoder representations \\
+
+\midrule
+\multicolumn{8}{l}{\textbf{Graph-Based Methods}} \\
+\midrule
+
+TextGCN \cite{yao2019graph} & 
+  Graph Neural Network & 
+  $\times$ & 
+  \checkmark & 
+  $\times$ & 
+  $\times$ & 
+  $\times$ & 
+  Document-word heterogeneous graphs with GCN \\
+
+BertGCN \cite{lin2021bertgcn} & 
+  Hybrid GNN & 
+  Limited & 
+  \checkmark & 
+  $\times$ & 
+  $\times$ & 
+  $\times$ & 
+  BERT embeddings with graph convolution refinement \\
+
+BREAK \cite{ji2023break} & 
+  Sequential GNN & 
+  Limited & 
+  \checkmark & 
+  \checkmark & 
+  $\times$ & 
+  $\times$ & 
+  Graph with sequence modeling for broad-range semantics \\
+
+Less4FD \cite{zhang2023less4fd} & 
+  Meta-Learning GNN & 
+  \checkmark & 
+  \checkmark & 
+  Limited & 
+  $\times$ & 
+  $\times$ & 
+  Entity-aware self-supervised framework for few-shot detection \\
+
+HeteroSGT \cite{wang2023heterosgt} & 
+  Heterogeneous GNN & 
+  Limited & 
+  \checkmark & 
+  \checkmark & 
+  $\times$ & 
+  $\times$ & 
+  Subgraph-level attention with heterogeneous modeling \\
+
+HAN \cite{wang2019han} & 
+  Heterogeneous GNN & 
+  Limited & 
+  \checkmark & 
+  \checkmark & 
+  $\times$ & 
+  $\times$ & 
+  Hierarchical attention for heterogeneous graphs \\
+
+\midrule
+\multicolumn{8}{l}{\textbf{Large Language Model Approaches}} \\
+\midrule
+
+LLaMA In-Context \cite{touvron2023llama} & 
+  LLM Prompting & 
+  \checkmark & 
+  $\times$ & 
+  $\times$ & 
+  $\times$ & 
+  $\times$ & 
+  Large-scale autoregressive language modeling with few-shot prompting \\
+
+Gemma Instruction \cite{team2024gemma} & 
+  LLM Prompting & 
+  \checkmark & 
+  $\times$ & 
+  $\times$ & 
+  $\times$ & 
+  $\times$ & 
+  Enhanced instruction following and safety training \\
+
+GPT-4 CoT \cite{wei2023cot} & 
+  LLM Reasoning & 
+  \checkmark & 
+  $\times$ & 
+  $\times$ & 
+  $\times$ & 
+  $\times$ & 
+  Chain-of-thought reasoning for systematic analysis \\
+
+\midrule
+\multicolumn{8}{l}{\textbf{LLM-Enhanced Graph Methods}} \\
+\midrule
+
+Let Silence Speak \cite{yang2023let} & 
+  LLM + Graph & 
+  Limited & 
+  \checkmark & 
+  $\times$ & 
+  \checkmark & 
+  $\times$ & 
+  LLM-generated comments for enhanced detection \\
+
+Enhanced Semantics \cite{zhang2023on} & 
+  LLM + Graph & 
+  Limited & 
+  \checkmark & 
+  Limited & 
+  \checkmark & 
+  $\times$ & 
+  LLM-enhanced semantic mining for graph construction \\
+
+\midrule
+\multicolumn{8}{l}{\textbf{Our Approach}} \\
+\midrule
+
+\textbf{GemGNN (Ours)} & 
+  \textbf{Heterogeneous GNN + LLM} & 
+  \textbf{\checkmark} & 
+  \textbf{\checkmark} & 
+  \textbf{$\times$} & 
+  \textbf{\checkmark} & 
+  \textbf{\checkmark} & 
+  \textbf{Multi-view heterogeneous graphs with synthetic multi-tone interactions and test-isolated evaluation} \\
+
+\bottomrule
+\end{tabularx}
+\end{sidewaystable}
+
+\textbf{Key Observations from the Comparison:}
+
+\textbf{Few-Shot Learning Capability:} Most traditional graph-based methods struggle in few-shot scenarios due to sparse graph structures and insufficient training data. While LLMs show some few-shot capability through in-context learning, they lack the structural modeling advantages of graph approaches. Our GemGNN uniquely combines few-shot effectiveness with sophisticated graph modeling.
+
+\textbf{Social Data Dependency:} A critical limitation of many high-performing methods is their reliance on social propagation data, user interaction patterns, or network structures. This dependency severely limits real-world applicability due to privacy constraints and platform access restrictions. Our approach achieves strong performance using only content-based features augmented with synthetic interactions.
+
+\textbf{Synthetic Data Utilization:} Most existing approaches rely exclusively on real data, missing opportunities to address data scarcity through controlled synthetic data generation. Our systematic multi-tone interaction synthesis provides consistent performance improvements while maintaining privacy and avoiding platform dependencies.
+
+\textbf{Multi-View Learning:} The ability to capture different semantic perspectives within the same content is largely unexplored in existing work. Our multi-view DeBERTa embedding partitioning enables the model to focus on complementary linguistic and semantic aspects, improving robustness and generalization.
+
+\textbf{Test Isolation:} Existing graph-based methods often employ unrealistic evaluation protocols that allow information leakage between test instances. Our test-isolated KNN approach ensures authentic performance assessment that reflects realistic deployment constraints.
+
 \section{Limitations of Existing Methods}
 
-Our review of existing literature reveals several fundamental limitations that motivate our research:
+Our comprehensive review and comparison reveal several fundamental limitations that motivate our research:
 
 \textbf{Dependency on User Behavior Data:} Most high-performing fake news detection systems rely on user interaction patterns, social network structures, or propagation dynamics. This dependency severely limits their applicability in scenarios where such data is unavailable due to privacy constraints, platform restrictions, or real-time detection requirements.
 
