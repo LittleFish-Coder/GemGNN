@@ -42,29 +42,39 @@ Recent systematic evaluations show that LLMs consistently underperform specializ
 
 \section{Graph-based Approaches}
 
-Graph-based methods represent a paradigm shift by modeling relationships between entities in the misinformation ecosystem, though they reveal critical limitations in few-shot contexts.
+Graph-based methods represent a paradigm shift by modeling relationships between entities in the misinformation ecosystem. These approaches can be categorized based on their learning paradigm and the type of graph-level predictions they make.
 
-\subsection{Document-level Graph Methods}
+\subsection{Graph Classification Methods}
+
+\textbf{BREAK - Graph with Sequence Modeling:} BREAK (Broad-Range Semantic Modeling for Fake News Detection) represents a graph classification approach that treats each news article and its associated social context as a complete graph structure \cite{ji2023break}. The method constructs heterogeneous graphs incorporating multiple entity types (news content, users, topics) and applies dual-stream processing combining graph neural networks with sequential modeling to capture both structural relationships and temporal dynamics.
+
+BREAK's innovation lies in treating fake news detection as a graph-level classification task where the entire social context graph is classified as containing real or fake news. The dual-stream architecture processes graph structure through GNNs while simultaneously modeling sequential patterns in textual content, enabling comprehensive analysis of both relational and temporal signals.
+
+However, BREAK faces significant limitations in few-shot scenarios: (1) the dual-stream architecture requires substantial training data to learn effective coordination between graph and sequence processing components, (2) graph classification requires diverse graph structures that may not be available with limited training examples, and (3) the complex architecture is prone to overfitting when training data is scarce.
+
+\subsection{Node Classification Methods without Social Propagation}
+
+\textbf{Less4FD - Entity-Aware Content-Based Detection:} Less4FD addresses few-shot fake news detection through entity-aware heterogeneous graph construction that focuses purely on content-based relationships without relying on social propagation patterns \cite{zhang2023less4fd}. The method treats fake news detection as a node classification task where individual news articles (nodes) are classified based on their content and entity relationships.
+
+The core innovation lies in entity-aware graph construction where named entities serve as bridge nodes connecting semantically related news content. This approach constructs graphs using content similarity and entity co-occurrence patterns, enabling the model to capture relationships beyond simple text similarity. The method is particularly valuable for detecting misinformation involving factual manipulation where entity relationships provide crucial signals.
+
+Less4FD employs a meta-learning framework with two-phase training: (1) self-supervised pre-training on entity relationship patterns from unlabeled data, and (2) meta-learning fine-tuning for few-shot adaptation. The approach demonstrates that effective fake news detection can be achieved without social propagation data, making it applicable in privacy-constrained scenarios where user behavior data is unavailable.
+
+Limitations include: (1) heavy dependence on entity extraction quality, which can significantly impact performance, (2) computational overhead of meta-learning components, and (3) potential for overfitting in extremely low-resource scenarios despite few-shot design.
+
+\subsection{Node Classification Methods with Social Propagation}
+
+\textbf{DECOR and Propagation-Based Approaches:} Traditional propagation-based methods model misinformation spread through social networks by analyzing user sharing patterns and network topology \cite{shu2017fake, zhou2020survey}. These approaches treat fake news detection as node classification where individual news articles are classified based on how they propagate through social networks.
+
+DECOR and similar methods leverage the observation that fake and real news exhibit different propagation patterns in social networks. They construct graphs where news articles and users are nodes, with edges representing sharing, commenting, or other interaction behaviors. The classification is performed at the news node level, using propagation features derived from the social network structure.
+
+These propagation-based approaches often achieve high performance by exploiting differential spreading patterns, user credibility signals, and temporal dynamics of information flow. However, they have fundamental limitations: (1) they require extensive user behavior data often unavailable due to privacy constraints, (2) they are vulnerable to adversarial manipulation where malicious actors can artificially create propagation patterns, and (3) they cannot handle breaking news scenarios where propagation patterns have not yet developed.
+
+\subsection{Document-Level Graph Methods}
 
 \textbf{Text-GCN and Variants:} Text Graph Convolutional Networks construct graphs where documents and words are nodes, with edges indicating document-word relationships and word co-occurrence patterns \cite{yao2019graph}. More recent BertGCN approaches combine BERT embeddings with graph convolutional networks to leverage both semantic representations and structural information \cite{lin2021bertgcn}.
 
-While these approaches effectively leverage graph structure, they face fundamental challenges in few-shot scenarios: (1) document-word graphs require substantial vocabulary coverage problematic with few labeled documents, (2) word co-occurrence patterns become unreliable with limited training data, and (3) semantic similarity graphs become less reliable when based on limited examples.
-
-\textbf{BREAK - Sequential Graph Modeling:} BREAK (Broad-Range Semantic Modeling) represents advancement in combining graph neural networks with sequential processing \cite{ji2023break}. The method constructs heterogeneous graphs incorporating multiple entity types while applying sequence modeling to capture temporal dynamics and textual patterns.
-
-BREAK demonstrates strong performance by effectively leveraging both structural and sequential information. However, it faces limitations in few-shot scenarios: (1) the dual-stream architecture requires substantial training data to learn coordination between graph and sequence processing, (2) partial reliance on user interaction data, and (3) complexity makes it prone to overfitting with scarce labeled examples.
-
-\subsection{User Propagation-based Methods}
-
-Many state-of-the-art systems model misinformation spread through social networks by analyzing user sharing patterns and network topology \cite{shu2017fake, zhou2020survey}. These methods often achieve high performance by exploiting differential propagation patterns between fake and real news.
-
-However, propagation-based approaches have fundamental limitations: (1) they require extensive user behavior data often unavailable due to privacy constraints, (2) they are vulnerable to adversarial manipulation, and (3) they cannot handle breaking news scenarios where propagation patterns have not developed.
-
-\textbf{Less4FD - Few-Shot Entity-Aware Detection:} Less4FD specifically addresses few-shot learning through a meta-learning framework incorporating entity awareness \cite{zhang2023less4fd}. The approach constructs heterogeneous graphs using primarily content-based features with minimal social signals, making it applicable in privacy-constrained scenarios.
-
-The core innovation lies in entity-aware graph construction where named entities serve as bridge nodes connecting semantically related content. This enables capturing relationships beyond simple text similarity, particularly important for detecting misinformation involving factual manipulation.
-
-Less4FD employs two-phase training: (1) self-supervised pre-training learning general entity relationship patterns from unlabeled data, and (2) meta-learning fine-tuning adapting to specific tasks with few examples. While representing significant progress, limitations remain: (1) entity extraction quality heavily influences performance, (2) meta-learning requires substantial computational resources, and (3) evaluation protocols do not always ensure proper test isolation.
+While these approaches effectively leverage graph structure for document classification, they face fundamental challenges in few-shot scenarios: (1) document-word graphs require substantial vocabulary coverage problematic with few labeled documents, (2) word co-occurrence patterns become unreliable with limited training data, and (3) semantic similarity graphs become less reliable when based on limited examples.
 
 \section{Limitations of Existing Methods}
 
