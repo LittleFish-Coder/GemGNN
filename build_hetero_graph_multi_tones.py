@@ -276,6 +276,9 @@ class HeteroGraphBuilder:
         """Filter interactions by specific counts for each tone type."""
         import random
         
+        # Use the same seed for reproducibility  
+        random.seed(42)
+        
         # Group interactions by tone
         tone_groups = {'neutral': [], 'affirmative': [], 'skeptical': []}
         
@@ -289,9 +292,15 @@ class HeteroGraphBuilder:
         filtered_tones = []
         
         for tone_type, count in tone_counts.items():
-            if count > 0 and tone_groups[tone_type]:
-                # Randomly sample up to 'count' interactions of this tone type
+            if count > 0:
+                if not tone_groups[tone_type]:
+                    print(f"Warning: No {tone_type} interactions available, requested {count}")
+                    continue
+                    
                 available = tone_groups[tone_type]
+                if len(available) < count:
+                    print(f"Warning: Only {len(available)} {tone_type} interactions available, requested {count}")
+                
                 sampled = random.sample(available, min(count, len(available)))
                 
                 for embedding, tone in sampled:
@@ -1232,7 +1241,10 @@ class HeteroGraphBuilder:
                 print(f"Warning: Interaction node count mismatch! Expected {num_interaction_nodes}, Got {data['interaction'].num_nodes}")
         else:
             # No interactions after filtering - create empty tensor
-            print(f"Warning: No interactions remain after tone filtering with selection {self.tones_selection}")
+            selection_desc = f"tones_selection={self.tones_selection}"
+            if self.multi_tone_counts:
+                selection_desc += f" with multi_tone_counts='{self.multi_tone_counts}'"
+            print(f"Warning: No interactions remain after tone filtering with {selection_desc}")
             data['interaction'].x = torch.empty((0, 768), dtype=torch.float)  # Assuming 768-dim embeddings
             data['interaction'].num_nodes = 0
             
@@ -1356,7 +1368,10 @@ class HeteroGraphBuilder:
                 data['interaction', 'rev_has_interaction', 'news'].edge_attr = torch.tensor(all_interaction_tones, dtype=torch.long)
         else:
             # No interactions after filtering - create empty structures
-            print(f"Warning: No interactions remain after tone filtering with selection {self.tones_selection}")
+            selection_desc = f"tones_selection={self.tones_selection}"
+            if self.multi_tone_counts:
+                selection_desc += f" with multi_tone_counts='{self.multi_tone_counts}'"
+            print(f"Warning: No interactions remain after tone filtering with {selection_desc}")
             data['interaction'].x = torch.empty((0, 768), dtype=torch.float)  # Assuming 768-dim embeddings
             data['interaction'].num_nodes = 0
             # Create empty edge indices
