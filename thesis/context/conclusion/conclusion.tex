@@ -6,173 +6,61 @@ This thesis presents GemGNN (Generative Multi-view Interaction Graph Neural Netw
 
 \section{Summary of Contributions}
 
-Our work establishes several key methodological and technical contributions that collectively advance the state-of-the-art in few-shot fake news detection and establish new paradigms for content-based misinformation detection:
+Our work establishes several key methodological and technical contributions that advance the state-of-the-art in few-shot fake news detection:
 
-\textbf{Heterogeneous Graph Framework Innovation:} We introduce the first systematic application of heterogeneous graph neural networks to few-shot fake news detection, creating a unified framework that models both content similarity and synthetic social interactions. This represents a paradigm shift from homogeneous content-based graphs to rich heterogeneous structures that capture multiple facets of the misinformation ecosystem without requiring real user data.
+\textbf{Heterogeneous Graph Framework:} We introduce the first systematic application of heterogeneous graph neural networks to few-shot fake news detection, creating a unified framework that models both content similarity and synthetic social interactions without requiring real user data.
 
-\textbf{Generative User Interaction Simulation:} We develop a novel approach to systematically synthesize realistic user interactions using Large Language Models, creating controllable synthetic social signals that enhance content-based detection while maintaining complete privacy protection. Our method generates diverse user responses across multiple semantic tones (neutral, affirmative, skeptical) that capture different user perspectives and emotional responses to news content.
+\textbf{Generative User Interaction Simulation:} We develop a novel approach to synthesize realistic user interactions using Large Language Models, creating controllable synthetic social signals across multiple semantic tones (neutral, affirmative, skeptical) while maintaining complete privacy protection.
 
-\textbf{Test-Isolated Evaluation Methodology:} We establish rigorous evaluation protocols that prevent information leakage while maintaining transductive learning benefits. Our test-isolated KNN approach ensures that evaluation reflects realistic constraints where new articles cannot reference each other, providing authentic performance assessment for few-shot scenarios.
+\textbf{Test-Isolated Evaluation Methodology:} We establish rigorous evaluation protocols that prevent information leakage while maintaining transductive learning benefits, ensuring realistic performance assessment for few-shot scenarios.
 
-\textbf{Multi-View DeBERTa Architecture:} We leverage DeBERTa's disentangled attention mechanism to create embeddings with superior partitioning properties, enabling meaningful multi-view learning where each view captures distinct linguistic and semantic aspects while maintaining discriminative power. This architectural choice fundamentally enables our multi-view approach to achieve robust performance.
+\textbf{Multi-View DeBERTa Architecture:} We leverage DeBERTa's disentangled attention mechanism to create embeddings with superior partitioning properties, enabling multi-view learning where each view captures distinct linguistic and semantic aspects.
 
-\textbf{Cross-Entropy Loss Optimization:} Through empirical evaluation, we demonstrate that cross-entropy loss with label smoothing provides optimal performance for few-shot fake news detection. This finding highlights that effective few-shot learning can be achieved through architectural innovations rather than complex loss engineering, with simple yet well-regularized objectives proving most effective when combined with sophisticated graph structures.
+\textbf{Comprehensive Framework Validation:} We demonstrate the effectiveness of our approach through extensive experiments across multiple few-shot configurations, showing consistent improvements over baseline methods including traditional machine learning, transformer-based models, and existing graph-based approaches.
 
-\textbf{Comprehensive Component Validation:} We provide detailed ablation studies demonstrating the individual contribution of each architectural component, revealing that heterogeneous graph structure (-0.09 impact), test isolation (-0.07), synthetic interactions (-0.05), and multi-view learning (-0.03) all contribute meaningfully to overall performance.
+\section{Key Findings}
 
-\section{Key Findings and Research Insights}
+Our experimental evaluation reveals several important insights about few-shot fake news detection:
 
-Our comprehensive experimental evaluation reveals several important insights about few-shot fake news detection and the mechanisms underlying effective content-based misinformation identification:
+\textbf{Heterogeneous Graph Superiority:} Heterogeneous graph structures provide substantial benefits over independent document processing by enabling specialized attention mechanisms that capture complementary information from different node and edge types.
 
-\textbf{Heterogeneous Graph Architecture Superiority:} Heterogeneous graph structures provide substantial benefits over independent document processing in few-shot scenarios. The ability to model different node types (news articles vs. synthetic interactions) and edge types (content similarity vs. tone-specific interactions) enables specialized attention mechanisms that capture complementary information sources unavailable to homogeneous approaches.
+\textbf{Synthetic Interaction Effectiveness:} LLM-generated user interactions provide meaningful signal for fake news detection, with skeptical interactions showing particularly high discriminative power and the combination of all three tones achieving optimal performance.
 
-\textbf{Synthetic Interaction Effectiveness:} LLM-generated user interactions provide meaningful signal for fake news detection, with different interaction tones contributing complementary information. Skeptical interactions demonstrate the highest discriminative power (-0.08 when removed), while the combination of all three tones (neutral, affirmative, skeptical) achieves optimal performance through comprehensive perspective coverage.
+\textbf{Multi-View Learning Benefits:} DeBERTa embedding partitioning captures diverse semantic perspectives, with each view focusing on distinct linguistic aspects that improve model robustness when combined through learned attention mechanisms.
 
-\textbf{Multi-View Learning Benefits:} DeBERTa embedding partitioning captures diverse semantic perspectives that improve model robustness and generalization. Our analysis reveals that each view focuses on distinct linguistic aspects: lexical semantics (View 1), syntactic patterns (View 2), and stylistic elements (View 3). The learned attention mechanism successfully combines these complementary perspectives for enhanced detection capability.
+\textbf{Evaluation Methodology Impact:} Our test-isolated approach provides conservative but realistic performance estimates that better reflect actual deployment scenarios compared to traditional KNN methods.
 
-\textbf{Evaluation Methodology Impact:} The comparison between traditional KNN (4.0% higher performance) and test-isolated KNN (methodologically sound) reveals a fundamental trade-off in graph-based few-shot learning evaluation. Our test-isolated approach provides conservative but realistic performance estimates that better reflect actual deployment scenarios where new articles cannot reference each other.
+\section{Limitations}
 
-\textbf{Transductive Learning Advantages:} The transductive paradigm effectively leverages unlabeled data to improve feature representation in few-shot scenarios. Including all nodes in message passing while restricting loss computation to labeled nodes maximizes information utilization, particularly beneficial when labeled examples are severely limited (K=3-4 shots).
+Despite significant advances, several limitations remain:
 
-\textbf{Cross-Domain Generalization:} Consistent relative performance improvements across different news domains (political vs. entertainment) and class distributions (2:1 vs. 4:1 real-to-fake ratios) demonstrate that our approach captures domain-invariant misinformation patterns rather than dataset-specific artifacts.
+\textbf{Embedding Dependency:} Performance is fundamentally limited by the quality of underlying DeBERTa embeddings, which may miss subtle domain-specific indicators.
 
-\section{Implications for Misinformation Detection Research}
+\textbf{Static Graph Structure:} Current approach constructs static graphs that may not capture dynamic relationships as new information becomes available.
 
-Our work has several important implications for the broader field of misinformation detection and content authenticity verification:
-
-\textbf{Privacy-Preserving Detection Paradigm:} By eliminating dependency on user behavior data and social propagation patterns, our approach enables effective fake news detection under strict privacy constraints. This capability addresses growing concerns about user privacy and data access restrictions while maintaining high detection accuracy.
-
-\textbf{Early-Stage Misinformation Identification:} The content-based nature of our approach enables detection of misinformation before it spreads widely through social networks. This early identification capability is crucial for preventing viral spread of false information and reducing societal impact.
-
-\textbf{Few-Shot Learning Applicability:} Strong performance in extremely few-shot scenarios (K=3-4) makes our approach practical for detecting misinformation about emerging topics, novel events, or rapidly evolving news stories where extensive labeled data is unavailable.
-
-\textbf{Synthetic Data Integration Framework:} Our successful integration of LLM-generated auxiliary data establishes a paradigm for incorporating synthetic information to enhance detection systems while maintaining evaluation integrity and avoiding overfitting to generated content.
-
-\textbf{Methodological Rigor in Graph-Based Learning:} Our test-isolated evaluation protocol addresses a fundamental methodological issue in graph-based few-shot learning, providing guidance for authentic performance assessment that better reflects real-world constraints.
-
-\section{Limitations and Challenges}
-
-Despite the significant advances presented in this work, several limitations and challenges remain:
-
-\textbf{Embedding Dependency:} Our approach's performance is fundamentally limited by the quality of the underlying DeBERTa embeddings. While these representations capture rich semantic information, they may miss subtle linguistic patterns or domain-specific indicators that human fact-checkers would recognize.
-
-\textbf{Sophisticated Misinformation:} Highly sophisticated fake news that closely mimics legitimate journalism style can still challenge our approach, particularly when the content contains accurate peripheral information with subtle factual distortions that are difficult to detect through content analysis alone.
-
-\textbf{LLM Generation Costs:} While the one-time cost of generating user interactions can be amortized across multiple experiments, the computational expense of LLM inference may limit scalability to very large datasets or frequent retraining scenarios.
-
-\textbf{Static Graph Limitation:} Our current approach constructs static graphs based on pre-computed embeddings, which may not capture dynamic relationships that evolve as new information becomes available or as the understanding of news events develops.
-
-\textbf{Evaluation Dataset Size:} The relatively small size of available fake news datasets limits our ability to conduct more extensive few-shot experiments with larger support sets or more diverse evaluation scenarios.
-
-\textbf{Interpretability Challenges:} While our approach provides some interpretability through attention mechanisms, understanding exactly how the model makes decisions remains challenging, particularly for the complex interactions between multiple graph views and heterogeneous node types.
+\textbf{Sophisticated Misinformation:} Highly sophisticated fake news that closely mimics legitimate journalism style can still challenge the approach.
 
 \section{Future Research Directions}
 
-Our work opens several promising avenues for future research that could further advance few-shot fake news detection and establish new paradigms for misinformation detection:
+Based on our findings, we identify three key directions for future research:
 
-\subsection{Advanced Graph Architecture Research}
+\subsection{Inductive Learning}
 
-\textbf{Dynamic Heterogeneous Graphs:} Developing temporal graph construction methods that can model the evolution of news stories and user reactions over time. This includes investigating online learning algorithms that update graph structure as new information becomes available and temporal attention mechanisms that weight recent interactions more heavily while preserving historical context patterns.
+\textbf{Test Node Information Isolation:} Develop methods to completely disable fetching test node information during the training process, moving from transductive to fully inductive learning. This would enable the model to generalize to completely unseen nodes without any structural information, making it more applicable to real-world scenarios where new articles arrive continuously.
 
-\textbf{Hierarchical Multi-Scale Graphs:} Extending heterogeneous graph structures to include additional semantic levels such as topic hierarchies, entity relationships, and factual claim networks. This multi-scale approach could capture more comprehensive representations of the misinformation ecosystem while maintaining computational efficiency through hierarchical attention mechanisms.
+\subsection{Topic and Entity Integration for Richer Feature Augmentation}
 
-\textbf{Adaptive Edge Construction:} Investigating learned edge construction strategies that can automatically adapt connectivity patterns based on content type, domain characteristics, or temporal context. This includes exploring reinforcement learning approaches for optimizing graph topology and neural architecture search methods for discovering effective connectivity patterns.
+\textbf{Diverse Topic Modeling:} Create sophisticated topic extraction and entity recognition systems to establish diverse topics and entities for enhanced node connections. This would involve integrating knowledge graphs, topic models, and named entity recognition to create richer semantic relationships beyond simple content similarity.
 
-\textbf{Cross-Modal Graph Integration:} Extending the framework to incorporate multi-modal information including images, videos, and metadata within the heterogeneous graph structure. This could involve developing specialized attention mechanisms for different modalities and investigating how visual-textual consistency patterns contribute to misinformation detection.
+\textbf{Knowledge-Enhanced Graphs:} Incorporate external knowledge sources to create more informed node representations and edge construction policies based on factual relationships and semantic hierarchies.
 
-\subsection{Enhanced Few-Shot Learning Methodologies}
+\subsection{Domain-Shifted Detection Application}
 
-\textbf{Meta-Learning for Heterogeneous Graphs:} Exploring meta-learning approaches specifically designed for heterogeneous graph structures, including model-agnostic meta-learning (MAML) variants that can quickly adapt to new misinformation domains with minimal examples. This research direction could enable rapid adaptation to emerging misinformation tactics and novel content domains.
+\textbf{Plug-and-Play Framework:} Develop GemGNN as a general-purpose plug-and-play solution for various anomaly detection problems beyond fake news. This includes adapting the framework for fraud detection, spam identification, and other content authenticity verification tasks.
 
-\textbf{Active Learning with Graph Structure:} Developing active learning strategies that consider graph connectivity when selecting examples for labeling, potentially improving few-shot performance by intelligently choosing support set examples that maximize information propagation. This includes investigating uncertainty-aware selection criteria and diversity-based sampling strategies.
+\textbf{Cross-Domain Transfer:} Investigate how models trained on news detection can transfer to other domains with minimal adaptation, establishing GemGNN as a versatile foundation for content-based anomaly detection across diverse applications.
 
-\textbf{Continual Learning Capabilities:} Implementing continual learning mechanisms that can adapt to emerging misinformation patterns without catastrophic forgetting of previously learned detection capabilities. This addresses the challenge of rapidly evolving misinformation tactics and the need for systems that remain effective over time.
-
-\textbf{Transfer Learning Across Domains:} Investigating how models trained on one domain (e.g., political news) can transfer to other domains (e.g., health misinformation) with minimal additional supervision. This includes developing domain adaptation techniques specifically designed for heterogeneous graph structures.
-
-\subsection{Advanced Generative Enhancement}
-
-\textbf{Sophisticated Interaction Generation:} Advancing beyond simple tone-based generation to create more nuanced synthetic interactions that consider user persona modeling, temporal dynamics, and contextual conversation threads. This could involve developing specialized language models trained on social media interaction patterns or implementing persona-consistent generation strategies.
-
-\textbf{Cross-Lingual Synthetic Data Generation:} Exploring the generation of synthetic interactions in multiple languages to enable cross-lingual fake news detection and improve generalization across different linguistic contexts and cultural patterns of misinformation expression.
-
-\textbf{Multi-Modal Interaction Synthesis:} Investigating the generation of multi-modal synthetic interactions that include not only textual responses but also visual reactions, sharing patterns, and engagement metrics. This could provide richer synthetic social signals while maintaining privacy protection.
-
-\textbf{Adversarial Interaction Generation:} Developing adversarial generation strategies that create challenging synthetic interactions to improve model robustness. This includes generating interactions that might fool current detection systems and using them for adversarial training.
-
-\subsection{Robustness and Security Research}
-
-\textbf{Adversarial Robustness:} Enhancing robustness against adversarial attacks specifically designed to fool graph-based detection systems, including graph structure attacks, node feature perturbations, and coordinated manipulation attempts. This research should investigate both defensive mechanisms and evaluation protocols for adversarial scenarios.
-
-\textbf{AI-Generated Content Detection:} Developing specialized detection capabilities for AI-generated fake news, which may require different modeling approaches than human-created misinformation. This includes investigating how AI-generated content interacts with our LLM-generated interaction simulation component and developing countermeasures.
-
-\textbf{Interpretability and Explainability:} Advancing interpretability mechanisms beyond attention visualization to provide actionable explanations for researchers and content moderators. This includes developing natural language explanation generation capabilities and counterfactual analysis tools.
-
-\textbf{Uncertainty Quantification:} Implementing principled uncertainty quantification methods that can provide reliable confidence estimates for detection decisions. This includes developing ensemble methods that combine multiple graph views and calibration techniques for few-shot scenarios.
-
-\subsection{Theoretical Foundations}
-
-\textbf{Graph Neural Network Theory:} Developing theoretical foundations for understanding when and why heterogeneous graph neural networks are effective for few-shot learning. This includes analyzing the expressiveness of different graph architectures and establishing theoretical guarantees for generalization performance.
-
-\textbf{Information-Theoretic Analysis:} Investigating the information-theoretic properties of multi-view graph construction and synthetic interaction generation. This could provide theoretical guidance for optimal view partitioning strategies and interaction generation policies.
-
-\textbf{Sample Complexity Analysis:} Establishing theoretical bounds on the sample complexity of few-shot fake news detection using heterogeneous graphs. This research could provide guidance on the minimum number of labeled examples required for effective detection under different graph construction strategies.
-
-\section{Domain Adaptation and Broader Applicability}
-
-Our GemGNN framework demonstrates strong potential for adaptation across diverse domains beyond news content, making it a versatile foundation for misinformation detection in various contexts. The content-based nature of our approach, combined with synthetic interaction generation, provides fundamental advantages for cross-domain transfer.
-
-\subsection{Medical and Health Misinformation}
-
-\textbf{Domain-Specific Adaptations:} Medical misinformation presents unique challenges that our framework is well-positioned to address: (1) \emph{Technical terminology modeling}: DeBERTa's robust vocabulary and our multi-view embedding partitioning can effectively capture medical terminology and complex treatment descriptions; (2) \emph{Authority signal synthesis}: LLM-generated interactions can simulate responses from different expertise levels (medical professionals, patients, concerned citizens), providing richer social context signals; and (3) \emph{Fact-checking integration}: The graph structure enables incorporation of medical knowledge bases and professional guidelines as additional node types.
-
-\textbf{Regulatory Compliance:} Healthcare applications require strict privacy protection, making our social-data-free approach particularly valuable. The synthetic interaction generation eliminates patient privacy concerns while maintaining detection effectiveness through controlled simulation of user response patterns.
-
-\subsection{Scientific Misinformation and Academic Integrity}
-
-\textbf{Research Publication Analysis:} Our heterogeneous graph approach can model relationships between research papers, author networks, and citation patterns to detect predatory publications and fake research. The multi-view learning component can capture different aspects of scientific writing (methodology, results, discussion) that are crucial for credibility assessment.
-
-\textbf{Preprint and Social Media Science:} The framework can adapt to detect misinformation about scientific findings circulating on social media platforms, where technical concepts are often oversimplified or misrepresented. The synthetic interaction generation can simulate responses from different stakeholder groups (researchers, science communicators, general public).
-
-\subsection{Financial and Economic Misinformation}
-
-\textbf{Market Manipulation Detection:} Financial misinformation detection requires understanding complex relationships between market entities, news events, and investor sentiment. Our heterogeneous graph structure can model these relationships while synthetic interactions simulate different types of investor responses (institutional, retail, expert analysis).
-
-\textbf{Cryptocurrency and Digital Assets:} The rapidly evolving cryptocurrency domain presents constant new misinformation patterns. Our few-shot learning capabilities enable rapid adaptation to emerging schemes and manipulation tactics with minimal labeled examples.
-
-\subsection{Educational Content and Academic Resources}
-
-\textbf{Educational Material Verification:} Academic and educational content requires specialized detection approaches that can identify subtle inaccuracies in teaching materials, textbooks, and online courses. Our multi-view approach can capture different pedagogical aspects (conceptual accuracy, methodological soundness, factual correctness).
-
-\textbf{Multilingual Educational Content:} The framework's language-agnostic graph structure enables adaptation to educational misinformation across different languages and cultural contexts, particularly important for global educational platforms.
-
-\subsection{Emergency and Crisis Information}
-
-\textbf{Real-Time Crisis Communication:} During emergencies, rapid detection of misinformation is critical for public safety. Our few-shot capabilities enable quick adaptation to crisis-specific misinformation patterns without requiring extensive historical training data from similar emergencies.
-
-\textbf{Public Health Emergencies:} As demonstrated during the COVID-19 pandemic, public health emergencies generate novel misinformation patterns that require immediate detection capabilities. Our synthetic interaction approach can quickly simulate public response patterns without waiting for real social media data to accumulate.
-
-\subsection{Framework Generalization Strategies}
-
-\textbf{Domain-Adaptive Embedding Selection:} While DeBERTa provides strong general-purpose embeddings, domain-specific adaptation can be achieved through continued pre-training or domain-specific fine-tuning of the embedding component while maintaining the graph architecture.
-
-\textbf{Interaction Tone Adaptation:} The three-tone interaction strategy (neutral, affirmative, skeptical) provides a universal framework, but specific tone distributions can be optimized for different domains based on domain-specific user behavior patterns.
-
-\textbf{Knowledge Integration Pathways:} The heterogeneous graph structure enables seamless integration of domain-specific knowledge sources as additional node types (medical databases, scientific literature, regulatory guidelines, financial instruments).
-
-\textbf{Cross-Domain Transfer Learning:} Models trained on one domain can provide initialization for others, with the graph structure enabling transfer of relational reasoning capabilities while the synthetic interaction component can be adapted to domain-specific response patterns.
-
-\subsection{Implementation Considerations for Domain Adaptation}
-
-\textbf{Evaluation Protocol Adaptation:} Each domain requires carefully designed evaluation protocols that reflect realistic few-shot scenarios within that domain. Our test-isolated evaluation approach provides a template that can be adapted to domain-specific constraints.
-
-\textbf{Computational Scalability:} Different domains may have varying computational requirements and real-time constraints. Our framework's modular design enables scaling the interaction generation component and graph complexity based on domain-specific needs.
-
-\textbf{Regulatory and Ethical Considerations:} Each domain presents unique regulatory requirements (HIPAA for healthcare, financial regulations for markets, educational standards for academic content). Our privacy-preserving approach through synthetic data generation provides a foundation for compliant implementations.
-
-The demonstrated effectiveness of GemGNN across political and entertainment news domains, combined with its privacy-preserving design and few-shot capabilities, positions it as a versatile foundation for misinformation detection across diverse domains. The content-based approach eliminates domain-specific social network dependencies, while the synthetic interaction generation provides adaptable social context simulation for any domain requiring credibility assessment.
-
-In conclusion, this thesis presents a significant advancement in few-shot fake news detection through the novel GemGNN framework. By establishing new paradigms for content-based detection through heterogeneous graph learning and synthetic interaction simulation, our work provides a foundation for more effective misinformation detection systems across diverse domains. The insights and methodologies developed here not only advance the current state-of-the-art but also demonstrate clear pathways for adaptation to critical domains including healthcare, finance, education, and emergency response, opening numerous directions for future research that can further enhance our ability to combat misinformation in digital media through principled machine learning approaches.
+In conclusion, this thesis presents a significant advancement in few-shot fake news detection through the novel GemGNN framework. By establishing new paradigms for content-based detection through heterogeneous graph learning and synthetic interaction simulation, our work provides a foundation for more effective misinformation detection systems and opens clear pathways for broader applications in content authenticity verification.
 
 % ------------------------------------------------
 \EndChapter
