@@ -27,9 +27,11 @@ DeBERTa & 0.221 & 0.221 & 0.221 & 0.221 & 0.221 & 0.221 & 0.221 & 0.221 & 0.221 
 Llama & \underline{0.742} & \underline{0.737} & \underline{0.786} & \underline{0.765} & \underline{0.755} & \underline{0.755} & \underline{0.788} & \underline{0.765} & \underline{0.737} & \underline{0.729} & \underline{0.729} & \underline{0.719} & \underline{0.72} & \underline{0.7} \\
 Gemma & 0.713 & 0.717 & 0.703 & 0.699 & 0.691 & 0.647 & 0.618 & 0.546 & 0.657 & 0.636 & 0.625 & 0.635 & 0.618 & 0.606 \\
 \midrule
+\multicolumn{15}{l}{\textbf{LLM Generation}} \\
+GenFEND & 0.394 & 0.385 & 0.374 & 0.373 & 0.398 & 0.392 & 0.360 & 0.367 & 0.385 & 0.398 & 0.394 & 0.382 & 0.386 & 0.376 \\
+\midrule
 \multicolumn{15}{l}{\textbf{Graph Models}} \\
 Less4FD & 0.467 & 0.447 & 0.398 & 0.382 & 0.481 & 0.496 & 0.369 & 0.412 & 0.453 & 0.499 & 0.484 & 0.395 & 0.430 & 0.402 \\
-GenFEND & 0.394 & 0.385 & 0.374 & 0.373 & 0.398 & 0.392 & 0.360 & 0.367 & 0.385 & 0.398 & 0.394 & 0.382 & 0.386 & 0.376 \\
 HeteroSGT & 0.302 & 0.298 & 0.293 & 0.289 & 0.311 & 0.310 & 0.285 & 0.297 & 0.306 & 0.314 & 0.310 & 0.294 & 0.298 & 0.288 \\
 \midrule
 \multicolumn{15}{l}{\textbf{Our Method}} \\
@@ -65,9 +67,11 @@ DeBERTa & 0.294 & 0.294 & 0.294 & 0.294 & 0.294 & 0.294 & 0.294 & 0.294 & 0.294 
 Llama & \underline{0.652} & \underline{0.638} & \underline{0.645} & \underline{0.651} & \underline{0.658} & \underline{0.662} & \underline{0.665} & \underline{0.668} & \underline{0.671} & \underline{0.674} & \underline{0.676} & \underline{0.678} & \underline{0.680} & \underline{0.682} \\
 Gemma & 0.541 & 0.548 & 0.554 & 0.559 & 0.564 & 0.568 & 0.572 & 0.575 & 0.578 & 0.581 & 0.583 & 0.585 & 0.587 & 0.589 \\
 \midrule
+\multicolumn{15}{l}{\textbf{LLM Generation}} \\
+GenFEND & 0.371 & 0.363 & 0.352 & 0.355 & 0.383 & 0.385 & 0.391 & 0.387 & 0.380 & 0.381 & 0.390 & 0.366 & 0.372 & 0.360 \\
+\midrule
 \multicolumn{15}{l}{\textbf{Graph Models}} \\
 Less4FD & 0.414 & 0.402 & 0.386 & 0.392 & 0.441 & 0.462 & 0.476 & 0.453 & 0.435 & 0.438 & 0.468 & 0.420 & 0.427 & 0.408 \\
-GenFEND & 0.371 & 0.363 & 0.352 & 0.355 & 0.383 & 0.385 & 0.391 & 0.387 & 0.380 & 0.381 & 0.390 & 0.366 & 0.372 & 0.360 \\
 HeteroSGT & 0.294 & 0.289 & 0.285 & 0.288 & 0.301 & 0.306 & 0.310 & 0.306 & 0.299 & 0.301 & 0.308 & 0.292 & 0.295 & 0.288 \\
 \midrule
 \multicolumn{15}{l}{\textbf{Our Method}} \\
@@ -177,17 +181,32 @@ We conduct detailed analysis of how different interaction tones affect model per
 \label{tab:ablation_tones_politifact}
 \begin{tabular}{lccc}
 \toprule
-\textbf{Interaction Configuration} & \textbf{Average F1-Score} & \textbf{Δ Performance} \\
+\textbf{Interaction Combinations} & \textbf{F1-Score} & \textbf{Δ Performance} \\
 \midrule
-    All Tones (8 Neutral + 7 Affirmative + 5 Skeptical) & 0.8382 & \- \\
+All Tones (8N + 7A + 5S) & 0.8382 & \- \\
 \midrule
-Neutral Only (8 interactions) & 0.7277 & -0.1105 \\
-Affirmative Only (7 interactions) & 0.7481 & -0.0901 \\
-Skeptical Only (5 interactions) & 0.8598 & +0.0216 \\
+Neutral Only (8) & 0.7277 & -0.1105 \\
+Affirmative Only (7) & 0.7481 & -0.0901 \\
+Skeptical Only (5) & \textbf{0.8598} & \textbf{+0.0216} \\
 \midrule
-Neutral + Affirmative & 0.8133 & -0.0249 \\
-Neutral + Skeptical & 0.8417 & +0.0035 \\
-Affirmative + Skeptical & 0.8343 & -0.0039 \\
+8 Neutral + 7 Affirmative & 0.8133 & -0.0249 \\
+8 Neutral + 5 Skeptical & \textbf{0.8417} & \textbf{+0.0035} \\
+7 Affirmative + 5 Skeptical & 0.8343 & -0.0039 \\
+\midrule
+2N + 1A + 1S & 0.8450 & +0.0068 \\
+1N + 2A + 1S & 0.8277 & -0.0173 \\
+1N + 1A + 2S & 0.8507 & +0.0125 \\
+\midrule
+4N + 2A + 2S & 0.8347 & -0.0035 \\
+6N + 3A + 3S & 0.8523 & +0.0141 \\
+\midrule
+2 Neutreal & 0.8278 & -0.0102 \\
+4 Neutreal & 0.8212 & -0.0068 \\
+8 Neutreal & 0.8174 & -0.0036 \\ 
+2 Affirmative & 0.7833 & -0.0349 \\
+4 Affirmative & 0.7578 & -0.0704 \\
+2 Skeptical & \textbf{0.8451} & \textbf{+0.0069} \\
+4 Skeptical & \textbf{0.8661} & \textbf{+0.0279} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -198,17 +217,32 @@ Affirmative + Skeptical & 0.8343 & -0.0039 \\
 \label{tab:ablation_tones_gossipcop}
 \begin{tabular}{lccc}
 \toprule
-\textbf{Interaction Configuration} & \textbf{Average F1-Score} & \textbf{Δ Performance} \\
+\textbf{Interaction Combinations} & \textbf{F1-Score} & \textbf{Δ Performance} \\
 \midrule
-    All Tones (8 Neutral + 7 Affirmative + 5 Skeptical) & 0.5826 & \- \\
+All Tones (8N + 7A + 5S) & 0.5826 & \- \\
 \midrule
-Neutral Only (8 interactions) & 0.5783 & -0.0043 \\
-Affirmative Only (7 interactions) & 0.5726 & -0.0100 \\
-Skeptical Only (5 interactions) & 0.5958 & +0.0034 \\
+Neutral Only (8) & 0.5783 & -0.0043 \\
+Affirmative Only (7) & 0.5726 & -0.0100 \\
+Skeptical Only (5) & \textbf{0.5958} & \textbf{+0.0034} \\
 \midrule
-Neutral + Affirmative & 0.5792 & -0.0043 \\
-Neutral + Skeptical & 0.5845 & +0.0019 \\
-Affirmative + Skeptical & 0.5851 & -0.0025 \\
+8 Neutral + 7 Affirmative & 0.5792 & -0.0043 \\
+8 Neutral + 5 Skeptical & \textbf{0.5845} & \textbf{+0.0019} \\
+7 Affirmative + 5 Skeptical & \textbf{0.5851} & \textbf{-0.0025} \\
+\midrule
+2N + 1A + 1S & 0.5717 & -0.0109 \\
+1N + 2A + 1S & 0.5729 & -0.0097 \\
+1N + 1A + 2S & 0.5746 & -0.0080 \\
+\midrule
+4N + 2A + 2S & 0.5823 & -0.0003 \\
+6N + 3A + 3S & 0.5819 & -0.0007 \\
+\midrule
+2 Neutreal & 0.5611 & -0.0215 \\
+4 Neutreal & 0.5761 & -0.0065 \\
+8 Neutreal & 0.5786 & -0.0040 \\ 
+2 Affirmative & 0.5576 & -0.0250 \\
+4 Affirmative & 0.5693 & -0.0133 \\
+2 Skeptical & \textbf{0.6053} & \textbf{+0.0227} \\
+4 Skeptical & \textbf{0.6157} & \textbf{+0.0331} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -218,29 +252,6 @@ The results reveal that skeptical interactions provide the most discriminative s
 \subsection{Synthetic Interaction Analysis}
 
 We conduct detailed analysis of how different synthetic interaction configurations affect model performance, providing insights into the mechanisms underlying our approach's effectiveness.
-
-Table~\ref{tab:hyperparameter_interaction_politifact} demonstrates the impact of different interaction tone combinations on overall performance.
-
-\begin{table}[htbp]
-\centering
-\caption{Impact of different interaction tones on performance (PolitiFact).}
-\label{tab:hyperparameter_interaction_politifact}
-\begin{tabular}{lccc}
-\toprule
-\textbf{Interaction Configuration} & \textbf{Average F1-Score} & \textbf{Δ Performance} \\
-\midrule
-All Tones (8 Neutral + 7 Affirmative + 5 Skeptical) & 0.83 & \- \\
-\midrule
-Neutral Only (8 interactions) & 0.79 & -0.04 \\
-Affirmative Only (7 interactions) & 0.77 & -0.02 \\
-Skeptical Only (5 interactions) & 0.75 & -0.02 \\
-\midrule
-Neutral + Affirmative & 0.81 & -0.02 \\
-Neutral + Skeptical & 0.82 & -0.01 \\
-Affirmative + Skeptical & 0.78 & -0.04 \\
-\bottomrule
-\end{tabular}
-\end{table}
 
 \textbf{Tone Distribution Analysis:} The results reveal a clear hierarchy in discriminative power: skeptical interactions provide the strongest signal for fake news detection (-0.08 when used alone), followed by affirmative (-0.06) and neutral (-0.04) interactions. This pattern aligns with psychological research showing that suspicious content naturally elicits more questioning and critical responses.
 
@@ -294,7 +305,7 @@ Table~\ref{tab:hyperparameter_multi_view_politifact} shows how varying the numbe
 \label{tab:hyperparameter_multi_view_politifact}
 \begin{tabular}{lccc}
 \toprule
-\textbf{Multi-View Configuration} & \textbf{Average F1-Score} & \textbf{Δ Performance} \\
+\textbf{Multi-View} & \textbf{F1-Score} & \textbf{Δ Performance} \\
 \midrule
 0 & 0.7832 & \- \\
 3 & 0.7729 & \- \\
@@ -311,7 +322,7 @@ Table~\ref{tab:hyperparameter_multi_view_gossipcop} shows how varying the number
 \label{tab:hyperparameter_multi_view_gossipcop}
 \begin{tabular}{lccc}
 \toprule
-\textbf{Multi-View Configuration} & \textbf{Average F1-Score} & \textbf{Δ Performance} \\
+\textbf{Multi-View} & \textbf{F1-Score} & \textbf{Δ Performance} \\
 \midrule
 0 & 0.5901 & \- \\
 3 & 0.5928 & \textbf{Best} \\
