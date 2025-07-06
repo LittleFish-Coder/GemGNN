@@ -138,11 +138,22 @@ Our baseline selection follows a systematic approach to cover the full spectrum 
 
 \textbf{Graph Construction Parameters:}
 \begin{itemize}
-\item K-nearest neighbors: k = 5 (optimized through grid search on {3, 5, 7, 10})
-\item Multi-view partitioning: 3 views of 256 dimensions each from 768-dimensional DeBERTa embeddings
-\item Synthetic interaction distribution: 20 interactions per article (8 neutral, 7 affirmative, 5 skeptical)
-\item Similarity metric: Cosine similarity for all edge construction
-\item Unlabeled sampling factor: 5x (unlabeled nodes = \texttt{num\_classes} $\times$ \texttt{k\_shot} $\times$ 5)
+\item K-nearest neighbors: k ∈ \{3, 5, 7\} (comprehensively evaluated across all configurations)
+\item Multi-view partitioning: Evaluated across \{0, 3, 6\} view configurations
+  \begin{itemize}
+  \item 0 views: Single-view mode using complete 768-dimensional DeBERTa embeddings
+  \item 3 views: Three-view mode with 256-dimensional partitions (256×3 = 768)
+  \item 6 views: Six-view mode with 128-dimensional partitions (128×6 = 768)
+  \end{itemize}
+\item Synthetic interaction distribution: 20 interactions per article distributed as:
+  \begin{itemize}
+  \item 8 neutral interactions (factual, objective tone)
+  \item 7 affirmative interactions (supportive, agreement tone)
+  \item 5 skeptical interactions (questioning, critical tone)
+  \end{itemize}
+\item Similarity metric: Cosine similarity for all edge construction across all views
+\item Unlabeled sampling factor: 5× (unlabeled nodes = \texttt{num\_classes} × \texttt{k\_shot} × 5)
+\item Edge construction policies: Both traditional KNN and test-isolated KNN evaluated
 \end{itemize}
 
 \textbf{Neural Network Architecture:}
