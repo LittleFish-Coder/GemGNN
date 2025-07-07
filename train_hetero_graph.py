@@ -12,7 +12,7 @@ from argparse import ArgumentParser
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 from torch.optim import Adam
 from torch_geometric.data import HeteroData
-from torch_geometric.nn import HGTConv, HANConv, Linear, SAGEConv, GATv2Conv, to_hetero, RGCNConv
+from torch_geometric.nn import HGTConv, HANConv, Linear, SAGEConv, GATv2Conv, to_hetero, RGCNConv, HeteroConv
 
 # Constants
 DEFAULT_MODEL = "HAN"   # HGT, HAN, HANv2, SAGE, GATv2
@@ -378,31 +378,165 @@ class HANv2Model(nn.Module):
         return self.out_lin(x_dict[self.target_node_type])
 
 
-class HeteroGATModel(nn.Module):
-    """Simple Heterogeneous GAT Model"""
+class GATv2Model(nn.Module):
+    """Standard (homogeneous) GATv2 model for single node/edge type graphs"""
     def __init__(self, data: HeteroData, hidden_channels: int, out_channels: int,
-                 heads: int, target_node_type: str, dropout_rate: float):
+                 num_layers: int, heads: int, target_node_type: str, dropout_rate: float):
         super().__init__()
         self.target_node_type = target_node_type
         self.dropout_rate = dropout_rate
+        self.num_layers = num_layers
+        self.heads = heads
+
+        # Initial feature transformation
+        in_channels = data[target_node_type].num_features
+        self.lin_in = Linear(in_channels, hidden_channels)
+
+        # Stack of GATv2Conv layers
+        self.convs = nn.ModuleList()
+        for i in range(num_layers):
+            in_ch = hidden_channels * heads if i > 0 else hidden_channels
+            self.convs.append(GATv2Conv(
+                in_channels=in_ch,
+                out_channels=hidden_channels,
+                heads=heads,
+                dropout=dropout_rate
+            ))
+
+        # Output layer
+        self.out_lin = Linear(hidden_channels * heads, out_channels)
+
+    def forward(self, x_dict, edge_index_dict):
+        # Assume homogeneous: use only the target node type and its edges
+        x = x_dict[self.target_node_type]
+        edge_index = None
+        # Find the edge_index for (target, _, target)
+        for et, ei in edge_index_dict.items():
+            if et[0] == self.target_node_type and et[2] == self.target_node_type:
+                edge_index = ei
+                break
+        if edge_index is None:
+            raise ValueError(f"No self-edge found for node type {self.target_node_type}")
+
+        x = self.lin_in(x)
+        x = F.elu(x)
+        x = F.dropout(x, p=self.dropout_rate, training=self.training)
+        for conv in self.convs:
+            x = conv(x, edge_index)
+            x = F.elu(x)
+            x = F.dropout(x, p=self.dropout_rate, training=self.training)
+        return self.out_lin(x)
+
+
+class RGCNModel(nn.Module):
+    """Relational Graph Convolutional Network (RGCN) for heterogeneous graphs"""
+    def __init__(self, data: HeteroData, hidden_channels: int, out_channels: int,
+                 num_layers: int, target_node_type: str, dropout_rate: float):
+        super().__init__()
+        self.target_node_type = target_node_type
+        self.dropout_rate = dropout_rate
+        self.num_layers = num_layers
 
         # Initial feature transformation for each node type
         self.lins = nn.ModuleDict()
         for node_type in data.node_types:
             self.lins[node_type] = Linear(data[node_type].num_features, hidden_channels)
 
-        # GAT layers for each edge type
-        self.convs = nn.ModuleDict()
-        for edge_type in data.edge_types:
-            edge_key = f"{edge_type[0]}_{edge_type[1]}_{edge_type[2]}"
-            self.convs[edge_key] = GATv2Conv(
-                in_channels=(-1, -1),  # Let GATv2Conv infer input dimensions
+        # RGCNConv layers (shared across all edge types)
+        self.convs = nn.ModuleList()
+        for _ in range(num_layers):
+            conv = RGCNConv(
+                in_channels=hidden_channels,
                 out_channels=hidden_channels,
-                heads=heads,
-                dropout=dropout_rate
+                num_relations=len(data.edge_types),
+                num_bases=None
             )
+            self.convs.append(conv)
 
-        # Final output layer
+        # Output layer for classification
+        self.out_lin = Linear(hidden_channels, out_channels)
+
+        # Map edge type tuple to integer relation id
+        self.edge_type_to_id = {et: i for i, et in enumerate(data.edge_types)}
+
+    def forward(self, x_dict, edge_index_dict):
+        # Initial feature transformation
+        x = {}
+        for node_type, feats in x_dict.items():
+            x[node_type] = self.lins[node_type](feats)
+            x[node_type] = F.relu(x[node_type])
+            x[node_type] = F.dropout(x[node_type], p=self.dropout_rate, training=self.training)
+
+        # Merge all node features into a single tensor and build mapping
+        node_offset = {}
+        all_x = []
+        count = 0
+        for node_type in x:
+            node_offset[node_type] = count
+            all_x.append(x[node_type])
+            count += x[node_type].size(0)
+        x_cat = torch.cat(all_x, dim=0)
+
+        # Build global edge_index and edge_type tensors
+        edge_indices = []
+        edge_types = []
+        for et, edge_index in edge_index_dict.items():
+            src_type, rel_type, dst_type = et
+            rel_id = self.edge_type_to_id[et]
+            src_offset = node_offset[src_type]
+            dst_offset = node_offset[dst_type]
+            edge_indices.append(torch.stack([
+                edge_index[0] + src_offset,
+                edge_index[1] + dst_offset
+            ], dim=0))
+            edge_types.append(torch.full((edge_index.size(1),), rel_id, dtype=torch.long, device=edge_index.device))
+        edge_index = torch.cat(edge_indices, dim=1)
+        edge_type = torch.cat(edge_types, dim=0)
+
+        # RGCN layers
+        h = x_cat
+        for conv in self.convs:
+            h = conv(h, edge_index, edge_type)
+            h = F.relu(h)
+            h = F.dropout(h, p=self.dropout_rate, training=self.training)
+
+        # Extract target node features
+        tgt_offset = node_offset[self.target_node_type]
+        tgt_count = x[self.target_node_type].size(0)
+        h_target = h[tgt_offset:tgt_offset + tgt_count]
+        return self.out_lin(h_target)
+
+
+class HeteroGATv2Model(nn.Module):
+    """Proper heterogeneous GATv2 using HeteroConv and GATv2Conv for each edge type"""
+    def __init__(self, data: HeteroData, hidden_channels: int, out_channels: int,
+                 num_layers: int, heads: int, target_node_type: str, dropout_rate: float):
+        super().__init__()
+        self.target_node_type = target_node_type
+        self.dropout_rate = dropout_rate
+        self.num_layers = num_layers
+        self.heads = heads
+
+        # Initial feature transformation for each node type
+        self.lins = nn.ModuleDict()
+        for node_type in data.node_types:
+            self.lins[node_type] = Linear(data[node_type].num_features, hidden_channels)
+
+        # Stack of HeteroConv layers
+        self.convs = nn.ModuleList()
+        for _ in range(num_layers):
+            conv = HeteroConv({
+                edge_type: GATv2Conv(
+                    in_channels=hidden_channels,
+                    out_channels=hidden_channels,
+                    heads=heads,
+                    dropout=dropout_rate,
+                    add_self_loops=False
+                ) for edge_type in data.edge_types
+            }, aggr='sum')
+            self.convs.append(conv)
+
+        # Output layer for classification
         self.out_lin = Linear(hidden_channels * heads, out_channels)
 
     def forward(self, x_dict, edge_index_dict):
@@ -412,18 +546,14 @@ class HeteroGATModel(nn.Module):
             x_dict[node_type] = F.elu(x_dict[node_type])
             x_dict[node_type] = F.dropout(x_dict[node_type], p=self.dropout_rate, training=self.training)
 
-        # Process each edge type separately
-        for edge_type, edge_index in edge_index_dict.items():
-            src_type, rel_type, dst_type = edge_type
-            edge_key = f"{src_type}_{rel_type}_{dst_type}"
-            x_dict[dst_type] = self.convs[edge_key](
-                (x_dict[src_type], x_dict[dst_type]),
-                edge_index
-            )
-            x_dict[dst_type] = F.elu(x_dict[dst_type])
-            x_dict[dst_type] = F.dropout(x_dict[dst_type], p=self.dropout_rate, training=self.training)
+        # Stacked HeteroConv layers
+        for conv in self.convs:
+            x_dict = conv(x_dict, edge_index_dict)
+            for node_type in x_dict:
+                x_dict[node_type] = F.elu(x_dict[node_type])
+                x_dict[node_type] = F.dropout(x_dict[node_type], p=self.dropout_rate, training=self.training)
 
-        # Get features for target node type
+        # Output for target node type
         x = x_dict[self.target_node_type]
         return self.out_lin(x)
 
@@ -514,6 +644,38 @@ def get_model(model_name: str, data: HeteroData, args: ArgumentParser) -> nn.Mod
             target_node_type=args.target_node_type,
             dropout_rate=args.dropout_rate,
             num_layers=args.han_layers
+        )
+    elif model_name == "RGCN":
+        print("Using RGCN (Relational Graph Convolutional Network)")
+        model = RGCNModel(
+            data=data,
+            hidden_channels=args.hidden_channels,
+            out_channels=num_classes,
+            num_layers=args.hgt_layers,
+            target_node_type=args.target_node_type,
+            dropout_rate=args.dropout_rate
+        )
+    elif model_name == "GATv2":
+        print("Using standard GATv2 (homogeneous, single node/edge type)")
+        model = GATv2Model(
+            data=data,
+            hidden_channels=args.hidden_channels,
+            out_channels=num_classes,
+            num_layers=args.hgt_layers,
+            heads=args.heads,
+            target_node_type=args.target_node_type,
+            dropout_rate=args.dropout_rate
+        )
+    elif model_name == "HeteroGATv2":
+        print("Using HeteroGATv2 (HeteroConv + GATv2Conv for each edge type)")
+        model = HeteroGATv2Model(
+            data=data,
+            hidden_channels=args.hidden_channels,
+            out_channels=num_classes,
+            num_layers=args.hgt_layers,
+            heads=args.heads,
+            target_node_type=args.target_node_type,
+            dropout_rate=args.dropout_rate
         )
     else:
         raise ValueError(f"Unknown model type: {model_name}")
@@ -750,7 +912,7 @@ def save_results(history: dict, final_metrics: dict, args: ArgumentParser, outpu
 def parse_arguments() -> ArgumentParser:
     parser = ArgumentParser(description="Train Heterogeneous Graph Neural Networks for Fake News Detection")
     parser.add_argument("--graph_path", type=str, required=True, help="Path to the preprocessed HeteroData graph (.pt file)")
-    parser.add_argument("--model", type=str, default=DEFAULT_MODEL, choices=["HGT", "HAN", "HANv2", "RGCN", "HeteroGAT"], help="Heterogeneous GNN model type")
+    parser.add_argument("--model", type=str, default=DEFAULT_MODEL, choices=["HGT", "HAN", "HANv2", "RGCN", "HeteroGAT", "GATv2", "HeteroGATv2"], help="Heterogeneous GNN model type")
     parser.add_argument("--loss_fn", type=str, default=DEFAULT_LOSS_FN, choices=["ce", "focal", "enhanced", "ce_smooth", "robust"], help="Loss function")
     parser.add_argument("--target_node_type", type=str, default=DEFAULT_TARGET_NODE_TYPE, help="Target node type for classification")
     parser.add_argument("--dropout_rate", type=float, default=DEFAULT_DROPOUT, help="Dropout rate")

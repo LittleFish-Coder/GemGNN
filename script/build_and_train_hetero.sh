@@ -1,10 +1,10 @@
 #!/bin/bash
 
-K_SHOTS=(3 4 5 6 7 8 9 10 11 12 13 14 15 16)
+K_SHOTS=(8)
 DATASETS=("politifact" "gossipcop")
 EMBEDDINGS=("deberta")
 EDGE_POLICIES=("knn_test_isolated")
-MULTI_VIEWS=(3 6 9 12)
+MULTI_VIEWS=(2 3 4 6 8 12)
 MODELS=("HAN" "HGT")
 K_NEIGHBORS=5
 DATASET_CACHE_DIR="dataset_single"
