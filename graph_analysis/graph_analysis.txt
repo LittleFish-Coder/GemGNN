@@ -1,0 +1,51 @@
+============================================================
+     Heterogeneous Graph Analysis Report
+============================================================
+
+--- Node Types ---
+Node Type: 'news'
+  - Num Nodes: 198
+  - Features Dim: 768
+  - Label Distribution: {0: 136, 1: 62}
+  - train_labeled_mask: 16 nodes (8.1% of 'news')
+  - train_unlabeled_mask: 80 nodes (40.4% of 'news')
+  - test_mask: 102 nodes (51.5% of 'news')
+Node Type: 'interaction'
+  - Num Nodes: 3960
+  - Features Dim: 768
+
+Total Nodes (all types): 4158
+
+--- Edge Types ---
+[*] Edge Type: news -> has_interaction -> interaction
+  - Num Edges: 3960
+  - Attributes Dim: (3960,)
+[*] Edge Type: interaction -> rev_has_interaction -> news
+  - Num Edges: 3960
+  - Attributes Dim: (3960,)
+[*] Edge Type: news -> similar_to -> news
+  - Num Edges: 2400
+  - Attributes Dim: (2400, 1)
+[*] Edge Type: news -> similar_to_sub1 -> news
+  - Num Edges: 1980
+  - Attributes Dim: (1980, 1)
+[*] Edge Type: news -> similar_to_sub2 -> news
+  - Num Edges: 1980
+  - Attributes Dim: (1980, 1)
+[*] Edge Type: news -> similar_to_sub3 -> news
+  - Num Edges: 1980
+  - Attributes Dim: (1980, 1)
+
+Total Edges (all types): 16260
+
+--- Analysis for ALL news-news Edges (merged) ---
+  - Merged news-news graph has 198 nodes and 1510 edges.
+  - Avg Degree: 15.25
+  - Isolated News Nodes: 0 (0.0%)
+  - Density: 0.0774
+  - Avg Clustering Coefficient: 0.5247
+  - Connected Components: 1
+
+============================================================
+      End of Analysis Report
+============================================================
