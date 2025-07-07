@@ -1,0 +1,8 @@
+# Data files - these can be regenerated
+data_genfend/*.pt
+
+# Model checkpoints - these can be regenerated
+results_genfend/*.pt
+
+# Cache directories
+dataset/
