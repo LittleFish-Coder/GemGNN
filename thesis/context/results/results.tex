@@ -145,7 +145,7 @@ Table~\ref{tab:ablation_components} presents systematic ablation results demonst
 
 \begin{table}[htbp]
 \centering
-\caption{Ablation study on PolitiFact dataset (8-shot setting). Each row removes one component.}
+\caption{Ablation study on 8-shot PolitiFact. Each row removes one component.}
 \label{tab:ablation_components}
 \begin{tabular}{lccc}
 \toprule
@@ -177,7 +177,7 @@ We conduct detailed analysis of how different interaction tones affect model per
 
 \begin{table}[htbp]
 \centering
-\caption{Impact of different interaction tones on performance (PolitiFact).}
+\caption{Impact of different interaction tones on 8-shot PolitiFact.}
 \label{tab:ablation_tones_politifact}
 \begin{tabular}{lccc}
 \toprule
@@ -200,20 +200,20 @@ Skeptical Only (5) & \textbf{0.8598} & \textbf{+0.0216} \\
 4N + 2A + 2S & 0.8347 & -0.0035 \\
 6N + 3A + 3S & 0.8523 & +0.0141 \\
 \midrule
-2 Neutreal & 0.8278 & -0.0102 \\
-4 Neutreal & 0.8212 & -0.0068 \\
-8 Neutreal & 0.8174 & -0.0036 \\ 
+2 Neutral     & 0.8278 & -0.0102 \\
+4 Neutral     & 0.8212 & -0.0068 \\
+8 Neutral     & 0.8174 & -0.0036 \\ 
 2 Affirmative & 0.7833 & -0.0349 \\
 4 Affirmative & 0.7578 & -0.0704 \\
-2 Skeptical & \textbf{0.8451} & \textbf{+0.0069} \\
-4 Skeptical & \textbf{0.8661} & \textbf{+0.0279} \\
+2 Skeptical   & \textbf{0.8451} & \textbf{+0.0069} \\
+4 Skeptical   & \textbf{0.8661} & \textbf{+0.0279} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{table}[htbp]
 \centering
-\caption{Impact of different interaction tones on performance (GossipCop).}
+\caption{Impact of different interaction tones on 8-shot GossipCop}
 \label{tab:ablation_tones_gossipcop}
 \begin{tabular}{lccc}
 \toprule
@@ -236,9 +236,9 @@ Skeptical Only (5) & \textbf{0.5958} & \textbf{+0.0034} \\
 4N + 2A + 2S & 0.5823 & -0.0003 \\
 6N + 3A + 3S & 0.5819 & -0.0007 \\
 \midrule
-2 Neutreal & 0.5611 & -0.0215 \\
-4 Neutreal & 0.5761 & -0.0065 \\
-8 Neutreal & 0.5786 & -0.0040 \\ 
+2 Neutral & 0.5611 & -0.0215 \\
+4 Neutral & 0.5761 & -0.0065 \\
+8 Neutral & 0.5786 & -0.0040 \\ 
 2 Affirmative & 0.5576 & -0.0250 \\
 4 Affirmative & 0.5693 & -0.0133 \\
 2 Skeptical & \textbf{0.6053} & \textbf{+0.0227} \\
@@ -259,7 +259,7 @@ Table~\ref{tab:interaction_count_scaling} demonstrates how detection performance
 
 \begin{table}[htbp]
 \centering
-\caption{Performance scaling with total interaction count (PolitiFact dataset, 8-shot setting).}
+\caption{Performance scaling with total interaction count (8-shot PolitiFact).}
 \label{tab:interaction_count_scaling}
 \begin{tabular}{lccc}
 \toprule
@@ -288,7 +288,7 @@ Table~\ref{tab:comprehensive_tone_analysis} provides detailed analysis of indivi
 
 \begin{table}[htbp]
 \centering
-\caption{Comprehensive tone analysis across PolitiFact and GossipCop datasets (8-shot setting).}
+\caption{Comprehensive tone analysis across 8-shot PolitiFact and GossipCop.}
 \label{tab:comprehensive_tone_analysis}
 \begin{tabular}{lccccc}
 \toprule
@@ -313,6 +313,17 @@ Skeptical Only (5) & \textbf{0.8598} & \textbf{+0.0216} & \textbf{0.5958} & \tex
 2N + 1A + 1S & 0.8450 & +0.0068 & 0.5717 & \-0.0109 \\
 1N + 2A + 1S & 0.8277 & \-0.0105 & 0.5729 & \-0.0097 \\
 1N + 1A + 2S & 0.8293 & \-0.0089 & 0.5746 & \-0.0080 \\
+4N + 2A + 2S & 0.8347 & -0.0035 & 0.5823 & -0.0003 \\
+6N + 3A + 3S & 0.8523 & +0.0141 & 0.5819 & -0.0007 \\
+\midrule
+\multicolumn{5}{l}{\textit{Single-Tone Count Analysis}} \\
+2 Neutral     & 0.8278 & -0.0102 & 0.5611 & -0.0215 \\
+4 Neutral     & 0.8212 & -0.0068 & 0.5761 & -0.0065 \\
+8 Neutral     & 0.8174 & -0.0036 & 0.5786 & -0.0040 \\ 
+2 Affirmative & 0.7833 & -0.0349 & 0.5576 & -0.0250 \\
+4 Affirmative & 0.7578 & -0.0704 & 0.5693 & -0.0133 \\
+2 Skeptical   & \textbf{0.8451} & \textbf{+0.0069} & \textbf{0.6053} & \textbf{+0.0227} \\
+4 Skeptical   & \textbf{0.8661} & \textbf{+0.0279} & \textbf{0.6157} & \textbf{+0.0331} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -333,36 +344,36 @@ Building on our baseline multi-tone analysis, we conduct systematic exploration 
 
 \subsection{K-Neighbors Analysis}
 
-Table~\ref{tab:hyperparameter_k_neighbors_politifact} shows how varying the number of K-neighbors affects performance on PolitiFact.
+Table~\ref{tab:hyperparameter_k_neighbors_politifact} shows how varying the number of K-neighbors affects 8-shot PolitiFact performance.
 
 \begin{table}[htbp]
 \centering
-\caption{Impact of different K-neighbors on performance (PolitiFact).}
+\caption{Impact of different K-neighbors on 8-shot PolitiFact}
 \label{tab:hyperparameter_k_neighbors_politifact}
 \begin{tabular}{lccc}
 \toprule
-\textbf{K-Neighbors} & \textbf{Average F1-Score} & \textbf{Δ Performance} \\
+\textbf{K-Neighbors} & \textbf{F1-Score} & \textbf{Δ Performance} \\
 \midrule
-3 & 0.83 & -0.01 \\
-5 & 0.84 & \textbf{Best} \\
-7 & 0.83 & -0.01 \\
+3 & 0.8246 & -0.0136 \\
+5 & \textbf{0.8382} & -- \\
+7 & 0.8111 & -0.0271 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 
-Table~\ref{tab:hyperparameter_k_neighbors_gossipcop} shows how varying the number of K-neighbors affects performance on GossipCop.
+Table~\ref{tab:hyperparameter_k_neighbors_gossipcop} shows how varying the number of K-neighbors affects 8-shot GossipCop performance.
 
 \begin{table}[htbp]
 \centering
-\caption{Impact of different K-neighbors on performance (GossipCop).}
+\caption{Impact of different K-neighbors on 8-shot GossipCop}
 \label{tab:hyperparameter_k_neighbors_gossipcop}
 \begin{tabular}{lccc}
 \toprule
-\textbf{K-Neighbors} & \textbf{Average F1-Score} & \textbf{Δ Performance} \\
+\textbf{K-Neighbors} & \textbf{F1-Score} & \textbf{Δ Performance} \\
 \midrule
-3 & 0.5806 & -0.052 \\
-5 & 0.5928 & \textbf{Best} \\
+3 & 0.5806 & -0.0122 \\
+5 & \textbf{0.5928} & -- \\
 7 & 0.5925 & -0.0003 \\
 \bottomrule
 \end{tabular}
@@ -370,45 +381,51 @@ Table~\ref{tab:hyperparameter_k_neighbors_gossipcop} shows how varying the numbe
 
 \subsection{Multi-View Configuration Analysis}
 
-Our systematic evaluation of multi-view learning across five key configurations (0, 3, 6, 9, 11 views) reveals important insights about the trade-offs between semantic granularity and partition coherence. These configurations were specifically selected to span single-view baseline, optimal multi-view performance, and increasingly fine-grained analysis.
+Our systematic evaluation of multi-view learning across five key configurations (0, 2, 3, 6, 8, 12 views) reveals important insights about the trade-offs between semantic granularity and partition coherence.
 
-Table~\ref{tab:hyperparameter_multi_view_politifact} demonstrates the impact of different multi-view configurations on PolitiFact performance.
+Table~\ref{tab:hyperparameter_multi_view_politifact} demonstrates the impact of different multi-view configurations on 8-shot PolitiFact performance.
 
 \begin{table}[htbp]
 \centering
-\caption{Impact of different multi-view configurations on performance (PolitiFact).}
+\caption{Impact of different multi-view configurations on 8-shot PolitiFact}
 \label{tab:hyperparameter_multi_view_politifact}
-\begin{tabular}{lcccc}
+\begin{tabular}{lccc}
 \toprule
 \textbf{Multi-View} & \textbf{Partition Size} & \textbf{F1-Score} & \textbf{Δ Performance} \\
 \midrule
-0 (Single-view) & 768 dims & 0.7832 & \- \\
-3 (Optimal) & 256 dims × 3 & 0.7729 & -0.0103 \\
-6 (Fine-grained) & 128 dims × 6 & 0.7722 & -0.0110 \\
-9 (Ultra-fine) & 85 dims × 9 & \textit{TBD} & \textit{TBD} \\
-11 (Extreme-fine) & 70 dims × 11 & \textit{TBD} & \textit{TBD} \\
+0  & 768 dims & 0.8111 & -- \\
+2  & 384 dims~$\times$~2 & 0.8111 & +0.0000 \\
+3  & 256 dims~$\times$~3 & \textcolor{red}{\textbf{0.8382}} & \textcolor{red}{\textbf{+0.0271}} \\
+4  & 192 dims~$\times$~4 & 0.8146 & +0.0035 \\
+6  & 128 dims~$\times$~6 & 0.8306 & +0.0195 \\
+8  & 96 dims~$\times$~8  & 0.8314 & +0.0203 \\ 
+12 & 64 dims~$\times$~12 & 0.8314 & +0.0203 \\
 \bottomrule
 \end{tabular}
 \end{table}
+    
 
-Table~\ref{tab:hyperparameter_multi_view_gossipcop} shows corresponding results for GossipCop, revealing different patterns across datasets.
+Table~\ref{tab:hyperparameter_multi_view_gossipcop} shows corresponding results for 8-shot GossipCop, revealing different patterns across datasets.
 
 \begin{table}[htbp]
 \centering
-\caption{Impact of different multi-view configurations on performance (GossipCop).}
+\caption{Impact of different multi-view configurations on 8-shot GossipCop}
 \label{tab:hyperparameter_multi_view_gossipcop}
-\begin{tabular}{lcccc}
+\begin{tabular}{lccc}
 \toprule
 \textbf{Multi-View} & \textbf{Partition Size} & \textbf{F1-Score} & \textbf{Δ Performance} \\
 \midrule
-0 (Single-view) & 768 dims & 0.5901 & \- \\
-3 (Optimal) & 256 dims × 3 & \textbf{0.5928} & \textbf{+0.0027} \\
-6 (Fine-grained) & 128 dims × 6 & 0.5749 & -0.0152 \\
-9 (Ultra-fine) & 85 dims × 9 & \textit{TBD} & \textit{TBD} \\
-11 (Extreme-fine) & 70 dims × 11 & \textit{TBD} & \textit{TBD} \\
+0  & 768 dims & 0.5796 & -- \\
+2  & 384 dims~$\times$~2 & 0.5803 & +0.0007 \\
+3  & 256 dims~$\times$~3 & \underline{0.5826} & \underline{+0.0030} \\
+4  & 192 dims~$\times$~4 & 0.5748 & -0.0048 \\
+6  & 128 dims~$\times$~6 & 0.5709 & -0.0087 \\
+8  & 96 dims~$\times$~8  & \textcolor{red}{\textbf{0.5833}} & \textcolor{red}{\textbf{+0.0037}} \\ 
+12 & 64 dims~$\times$~12 & 0.5799 & +0.0003 \\
 \bottomrule
 \end{tabular}
 \end{table}
+    
 
 \textbf{Critical Multi-View Learning Insights:}
 
@@ -426,15 +443,17 @@ We conduct comprehensive ablation studies comparing different graph neural netwo
 
 \begin{table}[htbp]
 \centering
-\caption{Base model architecture comparison on PolitiFact dataset (8-shot setting).}
+\caption{Base model architecture comparison on 8-shot PolitiFact.}
 \label{tab:base_model_ablation}
 \begin{tabular}{lccc}
 \toprule
-\textbf{Model Architecture} & \textbf{F1-Score} & \textbf{Δ Performance} & \textbf{Parameters} \\
+\textbf{Model Architecture} & \textbf{F1-Score} & \textbf{Δ Performance} \\
 \midrule
-HAN (Hierarchical Attention) & \textbf{0.838} & \textbf{Baseline} & \textit{TBD} \\
-HGT (Heterogeneous Graph Transformer) & \textit{TBD} & \textit{TBD} & \textit{TBD} \\
-HeteroGAT (Heterogeneous Graph Attention) & \textit{TBD} & \textit{TBD} & \textit{TBD} \\
+HAN (Hetero Graph Attention Network) & \textbf{0.8382} & \textbf{Baseline} \\
+HGT (Heterogeneous Graph Transformer) & 0.8277 & -0.0105 \\
+RGCN (Relational Graph Convolutional Network) & 0.8111 & -0.0271 \\
+GATv2 (Graph Attention Network) & 0.6521 & -0.1861 \\ 
+HeteroGATv2 (Heterogeneous GAT) & 0.8179 & -0.0203 \\
 \bottomrule
 \end{tabular}
 \end{table}
