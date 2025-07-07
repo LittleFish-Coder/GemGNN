@@ -2,6 +2,9 @@
 \StartChapter{Related Work}{chapter:related-work}
 % ------------------------------------------------
 
+\definecolor{TableHeaderGray}{gray}{0.95}
+
+
 This chapter reviews existing approaches to fake news detection, with emphasis on methods relevant to few-shot learning scenarios. We organize the literature according to the evolution of detection paradigms and identify key limitations that motivate our research.
 
 \section{Few-Shot Learning Fundamentals}
@@ -54,7 +57,7 @@ However, BREAK faces significant limitations in few-shot scenarios: (1) the dual
 
 \subsection{Node Classification Methods without Social Propagation}
 
-\textbf{Less4FD - Entity-Aware Content-Based Detection:} Less4FD addresses few-shot fake news detection through entity-aware heterogeneous graph construction that focuses purely on content-based relationships without relying on social propagation patterns \cite{zhang2023less4fd}. The method treats fake news detection as a node classification task where individual news articles (nodes) are classified based on their content and entity relationships.
+\textbf{LESS4FD - Entity-Aware Content-Based Detection:} Less4FD addresses few-shot fake news detection through entity-aware heterogeneous graph construction that focuses purely on content-based relationships without relying on social propagation patterns \cite{zhang2023less4fd}. The method treats fake news detection as a node classification task where individual news articles (nodes) are classified based on their content and entity relationships.
 
 The core innovation lies in entity-aware graph construction where named entities serve as bridge nodes connecting semantically related news content. This approach constructs graphs using content similarity and entity co-occurrence patterns, enabling the model to capture relationships beyond simple text similarity. The method is particularly valuable for detecting misinformation involving factual manipulation where entity relationships provide crucial signals.
 
@@ -89,6 +92,40 @@ Our comprehensive review reveals fundamental limitations that motivate our resea
 \textbf{Limited Structural Modeling:} Content-based approaches treat documents independently, missing important structural relationships between related articles that could provide valuable detection signals.
 
 These limitations highlight the need for approaches that achieve strong few-shot performance while maintaining realistic evaluation protocols and avoiding dependency on user behavior data. Our GemGNN framework directly addresses these challenges through content-based heterogeneous graph neural networks enhanced with synthetic interaction generation and rigorous test isolation protocols.
+
+\begin{table}[h]
+\centering
+\caption{Comparison of Related Work in Fake News Detection}
+\label{tab:related_work_comparison}
+
+\begin{tabular}{lccccccc}
+\toprule
+\rowcolor{TableHeaderGray}
+\textbf{Method} & \textbf{News} & \textbf{Topic} & \textbf{Entity} & \textbf{\makecell{User \\ Prop.}} & \textbf{\makecell{Few \\ Shot}} & \textbf{\makecell{LLM \\ Gen.}} & \textbf{\makecell{Graph \\ based}} \\
+\midrule
+
+Language Models & $\checkmark$ & $\times$ & $\times$ & $\times$ & $\times$ & $\times$ & $\times$ \\
+
+LLMs & $\checkmark$ & $\times$ & $\times$ & $\times$ & $\checkmark$ & $\times$ & $\times$ \\
+
+GenFEND~\cite{nan2024let} & $\checkmark$ & $\times$ & $\times$ & $\times$ & $\checkmark$ & $\checkmark$ & $\times$ \\
+
+\midrule % Adding a rule to visually separate method types
+
+BREAK~\cite{yin2025graph} & $\checkmark$ & $\times$ & $\times$ & $\times$ & $\times$ & $\times$ & $\checkmark$ \\
+
+DECOR~\cite{wu2023decor} & $\checkmark$ & $\times$ & $\times$ & $\checkmark$ & $\times$ & $\times$ & $\checkmark$ \\
+
+HeteroSGT~\cite{zhang2024heterogeneous} & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\times$ & $\times$ & $\times$ & $\checkmark$ \\
+
+LESS4FD~\cite{ma2024fake} & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\times$ & $\times$ & $\checkmark$ & $\checkmark$ \\
+\midrule
+
+\textbf{Ours(GemGNN)} & \textbf{$\checkmark$} & \textbf{$\times$} & \textbf{$\times$} & \textbf{$\times$} & \textbf{$\checkmark$} & \textbf{$\checkmark$} & \textbf{$\checkmark$} \\
+
+\bottomrule
+\end{tabular}
+\end{table}
 
 % ------------------------------------------------
 \EndChapter
