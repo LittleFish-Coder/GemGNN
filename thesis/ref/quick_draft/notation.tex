@@ -1,0 +1,42 @@
+\documentclass{article}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\begin{document}
+
+\begin{table}[h]
+\centering
+\caption{GemGNN Framework: Key Notations}
+\begin{tabular}{@{}cl@{}}
+\toprule
+\textbf{Symbol} & \textbf{Description} \\
+\midrule
+\multicolumn{2}{l}{\textbf{Problem Formulation}} \\
+$\mathcal{L}$ & Labeled training set: $\mathcal{L} = \{(x_i, y_i)\}_{i=1}^{2K}$ \\
+$\mathcal{U}$ & Unlabeled training set: $\mathcal{U} = \{x_j\}_{j=1}^{M}$ \\
+$\mathcal{T}$ & Test set: $\mathcal{T} = \{x_k\}_{k=1}^{N}$ \\
+$K$ & Number of labeled examples per class (few-shot) \\
+\addlinespace
+\multicolumn{2}{l}{\textbf{Graph Structure}} \\
+$G$ & Heterogeneous graph: $G = (V, E, \mathcal{A}, \mathcal{R})$ \\
+$V_n$ & News nodes: $V_n = \{n_1, n_2, \ldots, n_{|\mathcal{L}|+|\mathcal{U}|+|\mathcal{T}|}\}$ \\
+$V_i$ & Interaction nodes: $V_i = \{i_1, i_2, \ldots, i_{20 \times |V_n|}\}$ \\
+$I_i$ & Generated interactions for news article $i$ \\
+\addlinespace
+\multicolumn{2}{l}{\textbf{Node Features}} \\
+$\mathbf{x}_v$ & Node feature vector: $\mathbf{x}_v \in \mathbb{R}^{768}$ (DeBERTa) \\
+$\mathbf{h}_i^{(v)}$ & Node representation for view $v$ \\
+$\alpha_{ij}^{\phi}$ & Node-level attention weight for edge type $\phi$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}

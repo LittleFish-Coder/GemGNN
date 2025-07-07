@@ -1,0 +1,59 @@
+% --- notation.tex ---
+% A curated notation table for the GemGNN presentation.
+% This table is designed to be concise, precise, and logically structured.
+\documentclass{article}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\begin{document}
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.5} % Increases vertical spacing for readability
+\begin{tabular}{l p{0.7\textwidth}}
+\toprule
+\textbf{Notation} & \textbf{Description} \\
+\midrule
+
+% --- Group 1: Problem Formulation ---
+% These symbols define the core machine learning task.
+\multicolumn{2}{l}{\textit{Problem Formulation}} \\
+\addlinespace[0.3em] % Adds a small vertical space after the heading
+$\mathcal{L}, \mathcal{U}, \mathcal{T}$ & Labeled, unlabeled, and test sets of news articles. \\
+$K$ & Number of labeled examples per class (K-shot). \\
+$y_i, \hat{y}_i$ & Ground-truth and predicted label for news node $n_i$. \\
+\addlinespace[0.6em]
+
+% --- Group 2: Graph Representation ---
+% These symbols describe the fundamental data structure used.
+\multicolumn{2}{l}{\textit{Graph Representation}} \\
+\addlinespace[0.3em]
+$G=(V, E)$ & A heterogeneous graph with nodes $V$ and edges $E$. \\
+$V_n, V_i$ & Sets of news nodes and synthetic interaction nodes. \\
+$\mathbf{x}_v \in \mathbb{R}^d$ & Initial $d$-dim feature vector for a node $v$ (DeBERTa). \\
+$\mathbf{h}_v$ & Learned representation (hidden state) of node $v$. \\
+\addlinespace[0.6em]
+
+% --- Group 3: Key GemGNN Concepts ---
+% These symbols highlight the novel contributions of the GemGNN framework.
+\multicolumn{2}{l}{\textit{Key GemGNN Concepts}} \\
+\addlinespace[0.3em]
+$I_i$ & Set of synthetic user interactions for a news node $n_i$. \\
+$k$ & Number of nearest neighbors in KNN graph construction. \\
+$\mathcal{V}$ & Number of views in the multi-view architecture. \\
+$\mathbf{h}_v^{(\nu)}$ & Node $v$'s representation in the $\nu$-th view. \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\end{document}

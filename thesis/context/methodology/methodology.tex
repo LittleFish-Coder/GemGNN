@@ -2,6 +2,39 @@
 \StartChapter{Methodology: GemGNN Framework}{chapter:methodology}
 % ------------------------------------------------
 
+\section{Notation}
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Notation} & \textbf{Description} \\
+\midrule
+
+% --- Group 1: Problem Formulation & Data ---
+\multicolumn{2}{l}{\emph{Problem Formulation \& Data}} \\
+$\mathcal{L}, \mathcal{U}, \mathcal{T}$ & Sets of labeled, unlabeled, and test news articles. \\
+$K$ & Number of labeled examples per class (K-shot setting). \\
+$y_i, \hat{y}_i$ & Ground-truth and predicted label for a news article. \\
+
+% --- Group 2: Heterogeneous Graph Structure ---
+\multicolumn{2}{l}{\emph{Heterogeneous Graph Structure}} \\
+$G=(V, E)$ & A heterogeneous graph with nodes $V$ and edges $E$. \\
+$V_n, V_i$ & The sets of news nodes and synthetic interaction nodes. \\
+$\mathbf{x}_v, \mathbf{h}_v$ & Initial features and learned representation for a node $v$. \\
+
+% --- Group 3: Key GemGNN Contributions ---
+% Highlighting the symbols that represent the core innovations.
+\multicolumn{2}{l}{\emph{Key GemGNN Contributions}} \\
+$I_i$ & Set of \textbf{synthetic user interactions} for a news article $n_i$. \\
+$k$ & Number of neighbors for \textbf{Test-Isolated KNN} construction. \\
+$\mathcal{V}$ & Number of views in the \textbf{Multi-View architecture}. \\
+$\mathbf{h}_v^{(\nu)}$ & Representation of node $v$ in the $\nu$-th view. \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
 \section{Framework Overview}
 
 The GemGNN (Generative Multi-view Interaction Graph Neural Networks) framework addresses the fundamental challenges of few-shot fake news detection through a novel heterogeneous graph-based approach that eliminates dependency on user propagation data while maintaining the benefits of social context modeling. Our architecture represents a systematic solution to three critical limitations in existing approaches: (1) the unavailability of real user interaction data due to privacy constraints, (2) the poor performance of existing methods in few-shot scenarios, and (3) the lack of rigorous evaluation protocols that prevent information leakage between training and test sets.

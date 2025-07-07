@@ -145,7 +145,7 @@ Table~\ref{tab:ablation_components} presents systematic ablation results demonst
 
 \begin{table}[htbp]
 \centering
-\caption{Ablation study on 8-shot PolitiFact. Each row removes one component.}
+\caption{Module ablation study on 8-shot PolitiFact}
 \label{tab:ablation_components}
 \begin{tabular}{lccc}
 \toprule
@@ -173,76 +173,44 @@ w/o Multi-View Construction & 0.81 & -0.03 \\
 
 \subsection{Impact of Generative User Interactions}
 
-We conduct detailed analysis of how different interaction tones affect model performance, as shown in Table~\ref{tab:ablation_tones_politifact} and Table~\ref{tab:ablation_tones_gossipcop}.
+We conduct detailed analysis of how different interaction tones affect model performance, as shown in Table~\ref{tab:comprehensive_tone_analysis}.
 
 \begin{table}[htbp]
 \centering
-\caption{Impact of different interaction tones on 8-shot PolitiFact.}
-\label{tab:ablation_tones_politifact}
-\begin{tabular}{lccc}
+\caption{Comprehensive tone analysis across 8-shot PolitiFact and GossipCop.}
+\label{tab:comprehensive_tone_analysis}
+\begin{tabular}{lccccc}
 \toprule
-\textbf{Interaction Combinations} & \textbf{F1-Score} & \textbf{Δ Performance} \\
+& \multicolumn{2}{c}{\textbf{PolitiFact}} & \multicolumn{2}{c}{\textbf{GossipCop}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+\textbf{Configuration} & \textbf{F1-Score} & \textbf{Δ Perf.} & \textbf{F1-Score} & \textbf{Δ Perf.} \\
 \midrule
-All Tones (8N + 7A + 5S) & 0.8382 & \- \\
+\multicolumn{5}{l}{\textit{Complete Configuration}} \\
+All Tones (8N + 7A + 5S) & \underline{0.8382} & -- & \underline{0.5826} & -- \\
 \midrule
-Neutral Only (8) & 0.7277 & -0.1105 \\
-Affirmative Only (7) & 0.7481 & -0.0901 \\
-Skeptical Only (5) & \textbf{0.8598} & \textbf{+0.0216} \\
+\multicolumn{5}{l}{\textit{Single-Tone Analysis}} \\
+Neutral Only (8) & 0.7277 & -0.1105 & 0.5783 & -0.0043 \\
+Affirmative Only (7) & 0.7481 & -0.0901 & 0.5726 & -0.0100 \\
+Skeptical Only (5) & \textbf{0.8598} & \textbf{+0.0216} & \textbf{0.5958} & \textbf{+0.0132} \\
 \midrule
-8 Neutral + 7 Affirmative & 0.8133 & -0.0249 \\
-8 Neutral + 5 Skeptical & \textbf{0.8417} & \textbf{+0.0035} \\
-7 Affirmative + 5 Skeptical & 0.8343 & -0.0039 \\
+\multicolumn{5}{l}{\textit{Pairwise Combinations}} \\
+8 Neutral + 7 Affirmative & 0.8133 & -0.0249 & 0.5792 & -0.0034 \\
+8 Neutral + 5 Skeptical & \textbf{0.8417} & \textbf{+0.0035} & \textbf{0.5845} & \textbf{+0.0019} \\
+7 Affirmative + 5 Skeptical & 0.8343 & -0.0039 & 0.5851 & +0.0025 \\
 \midrule
-2N + 1A + 1S & 0.8450 & +0.0068 \\
-1N + 2A + 1S & 0.8277 & -0.0173 \\
-1N + 1A + 2S & 0.8507 & +0.0125 \\
+\multicolumn{5}{l}{\textit{Balanced Smaller Configurations}} \\
+2N + 1A + 1S & 0.8450 & +0.0068 & 0.5717 & -0.0109 \\
+1N + 2A + 1S & 0.8277 & -0.0105 & 0.5729 & -0.0097 \\
+1N + 1A + 2S & 0.8293 & -0.0089 & 0.5746 & -0.0080 \\
 \midrule
-4N + 2A + 2S & 0.8347 & -0.0035 \\
-6N + 3A + 3S & 0.8523 & +0.0141 \\
-\midrule
-2 Neutral     & 0.8278 & -0.0102 \\
-4 Neutral     & 0.8212 & -0.0068 \\
-8 Neutral     & 0.8174 & -0.0036 \\ 
-2 Affirmative & 0.7833 & -0.0349 \\
-4 Affirmative & 0.7578 & -0.0704 \\
-2 Skeptical   & \textbf{0.8451} & \textbf{+0.0069} \\
-4 Skeptical   & \textbf{0.8661} & \textbf{+0.0279} \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[htbp]
-\centering
-\caption{Impact of different interaction tones on 8-shot GossipCop}
-\label{tab:ablation_tones_gossipcop}
-\begin{tabular}{lccc}
-\toprule
-\textbf{Interaction Combinations} & \textbf{F1-Score} & \textbf{Δ Performance} \\
-\midrule
-All Tones (8N + 7A + 5S) & 0.5826 & \- \\
-\midrule
-Neutral Only (8) & 0.5783 & -0.0043 \\
-Affirmative Only (7) & 0.5726 & -0.0100 \\
-Skeptical Only (5) & \textbf{0.5958} & \textbf{+0.0034} \\
-\midrule
-8 Neutral + 7 Affirmative & 0.5792 & -0.0043 \\
-8 Neutral + 5 Skeptical & \textbf{0.5845} & \textbf{+0.0019} \\
-7 Affirmative + 5 Skeptical & \textbf{0.5851} & \textbf{-0.0025} \\
-\midrule
-2N + 1A + 1S & 0.5717 & -0.0109 \\
-1N + 2A + 1S & 0.5729 & -0.0097 \\
-1N + 1A + 2S & 0.5746 & -0.0080 \\
-\midrule
-4N + 2A + 2S & 0.5823 & -0.0003 \\
-6N + 3A + 3S & 0.5819 & -0.0007 \\
-\midrule
-2 Neutral & 0.5611 & -0.0215 \\
-4 Neutral & 0.5761 & -0.0065 \\
-8 Neutral & 0.5786 & -0.0040 \\ 
-2 Affirmative & 0.5576 & -0.0250 \\
-4 Affirmative & 0.5693 & -0.0133 \\
-2 Skeptical & \textbf{0.6053} & \textbf{+0.0227} \\
-4 Skeptical & \textbf{0.6157} & \textbf{+0.0331} \\
+\multicolumn{5}{l}{\textit{Single-Tone Count Analysis}} \\
+2 Neutral     & 0.8278 & -0.0104 & 0.5611 & -0.0215 \\
+4 Neutral     & 0.8212 & -0.0170 & 0.5761 & -0.0065 \\
+8 Neutral     & 0.8174 & -0.0208 & 0.5786 & -0.0040 \\ 
+2 Affirmative & 0.7833 & -0.0549 & 0.5576 & -0.0250 \\
+4 Affirmative & 0.7578 & -0.0804 & 0.5693 & -0.0133 \\
+2 Skeptical   & \textbf{0.8451} & \textbf{+0.0069} & \textbf{0.6053} & \textbf{+0.0227} \\
+4 Skeptical   & \textbf{0.8661} & \textbf{+0.0279} & \textbf{0.6157} & \textbf{+0.0331} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -259,18 +227,18 @@ Table~\ref{tab:interaction_count_scaling} demonstrates how detection performance
 
 \begin{table}[htbp]
 \centering
-\caption{Performance scaling with total interaction count (8-shot PolitiFact).}
+\caption{Impact of total interaction count on 8-shot PolitiFact}
 \label{tab:interaction_count_scaling}
 \begin{tabular}{lccc}
 \toprule
 \textbf{Total Interactions} & \textbf{Distribution} & \textbf{F1-Score} & \textbf{Δ Performance} \\
 \midrule
-0 & No interactions & 0.7123 & \-0.1259 \\
-4 & 2N + 1A + 1S & 0.8277 & \-0.0105 \\
-8 & 4N + 2A + 2S & 0.8341 & \-0.0041 \\
-12 & 6N + 3A + 3S & 0.8356 & \-0.0026 \\
-16 & 8N + 4A + 4S & 0.8375 & \-0.0007 \\
-20 & 8N + 7A + 5S & \textbf{0.8382} & \textbf{Baseline} \\
+0 & No interactions & 0.5932 & -0.2450 \\
+4 & 2N + 1A + 1S & 0.8450 & +0.0068 \\
+8 & 4N + 2A + 2S & 0.8347 & -0.0035 \\
+12 & 6N + 3A + 3S & \textbf{0.8523} & \textbf{+0.0141} \\
+16 & 8N + 4A + 4S & 0.8246 & -0.0136 \\
+20 & 8N + 7A + 5S & \underline{0.8382} & \underline{Baseline} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -286,48 +254,6 @@ Table~\ref{tab:interaction_count_scaling} demonstrates how detection performance
 
 Table~\ref{tab:comprehensive_tone_analysis} provides detailed analysis of individual tone contributions and their combinations across both datasets.
 
-\begin{table}[htbp]
-\centering
-\caption{Comprehensive tone analysis across 8-shot PolitiFact and GossipCop.}
-\label{tab:comprehensive_tone_analysis}
-\begin{tabular}{lccccc}
-\toprule
-& \multicolumn{2}{c}{\textbf{PolitiFact}} & \multicolumn{2}{c}{\textbf{GossipCop}} \\
-\cmidrule(lr){2-3} \cmidrule(lr){4-5}
-\textbf{Configuration} & \textbf{F1-Score} & \textbf{Δ Perf.} & \textbf{F1-Score} & \textbf{Δ Perf.} \\
-\midrule
-\multicolumn{5}{l}{\textit{Complete Configuration}} \\
-All Tones (8N + 7A + 5S) & \textbf{0.8382} & \- & \textbf{0.5826} & \- \\
-\midrule
-\multicolumn{5}{l}{\textit{Single-Tone Analysis}} \\
-Neutral Only (8) & 0.7277 & \-0.1105 & 0.5783 & \-0.0043 \\
-Affirmative Only (7) & 0.7481 & \-0.0901 & 0.5726 & \-0.0100 \\
-Skeptical Only (5) & \textbf{0.8598} & \textbf{+0.0216} & \textbf{0.5958} & \textbf{+0.0132} \\
-\midrule
-\multicolumn{5}{l}{\textit{Pairwise Combinations}} \\
-8 Neutral + 7 Affirmative & 0.8133 & \-0.0249 & 0.5792 & \-0.0034 \\
-8 Neutral + 5 Skeptical & \textbf{0.8417} & \textbf{+0.0035} & \textbf{0.5845} & \textbf{+0.0019} \\
-7 Affirmative + 5 Skeptical & 0.8343 & \-0.0039 & 0.5851 & +0.0025 \\
-\midrule
-\multicolumn{5}{l}{\textit{Balanced Smaller Configurations}} \\
-2N + 1A + 1S & 0.8450 & +0.0068 & 0.5717 & \-0.0109 \\
-1N + 2A + 1S & 0.8277 & \-0.0105 & 0.5729 & \-0.0097 \\
-1N + 1A + 2S & 0.8293 & \-0.0089 & 0.5746 & \-0.0080 \\
-4N + 2A + 2S & 0.8347 & -0.0035 & 0.5823 & -0.0003 \\
-6N + 3A + 3S & 0.8523 & +0.0141 & 0.5819 & -0.0007 \\
-\midrule
-\multicolumn{5}{l}{\textit{Single-Tone Count Analysis}} \\
-2 Neutral     & 0.8278 & -0.0102 & 0.5611 & -0.0215 \\
-4 Neutral     & 0.8212 & -0.0068 & 0.5761 & -0.0065 \\
-8 Neutral     & 0.8174 & -0.0036 & 0.5786 & -0.0040 \\ 
-2 Affirmative & 0.7833 & -0.0349 & 0.5576 & -0.0250 \\
-4 Affirmative & 0.7578 & -0.0704 & 0.5693 & -0.0133 \\
-2 Skeptical   & \textbf{0.8451} & \textbf{+0.0069} & \textbf{0.6053} & \textbf{+0.0227} \\
-4 Skeptical   & \textbf{0.8661} & \textbf{+0.0279} & \textbf{0.6157} & \textbf{+0.0331} \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 \textbf{Critical Insights from Comprehensive Tone Analysis:}
 
 \textbf{Skeptical Dominance:} Skeptical interactions consistently provide the strongest individual signal across both datasets, even outperforming the complete configuration in some cases. This finding validates the hypothesis that user skepticism serves as a reliable indicator of potential misinformation.
@@ -338,13 +264,9 @@ Skeptical Only (5) & \textbf{0.8598} & \textbf{+0.0216} & \textbf{0.5958} & \tex
 
 \textbf{Optimal Resource Allocation:} The 8:7:5 distribution emerges as optimal through systematic evaluation, but smaller configurations (2:1:1) can achieve competitive performance with 80\% fewer computational resources.
 
-\subsection{Systematic Interaction Count and Balance Analysis}
-
-Building on our baseline multi-tone analysis, we conduct systematic exploration of how interaction count and balance affect performance across different resource constraints.
-
 \subsection{K-Neighbors Analysis}
 
-Table~\ref{tab:hyperparameter_k_neighbors_politifact} shows how varying the number of K-neighbors affects 8-shot PolitiFact performance.
+Table~\ref{tab:hyperparameter_k_neighbors_politifact} and Table~\ref{tab:hyperparameter_k_neighbors_gossipcop} show how varying the number of K-neighbors affects 8-shot PolitiFact and GossipCop.
 
 \begin{table}[htbp]
 \centering
@@ -360,9 +282,6 @@ Table~\ref{tab:hyperparameter_k_neighbors_politifact} shows how varying the numb
 \bottomrule
 \end{tabular}
 \end{table}
-
-
-Table~\ref{tab:hyperparameter_k_neighbors_gossipcop} shows how varying the number of K-neighbors affects 8-shot GossipCop performance.
 
 \begin{table}[htbp]
 \centering
@@ -383,7 +302,7 @@ Table~\ref{tab:hyperparameter_k_neighbors_gossipcop} shows how varying the numbe
 
 Our systematic evaluation of multi-view learning across five key configurations (0, 2, 3, 6, 8, 12 views) reveals important insights about the trade-offs between semantic granularity and partition coherence.
 
-Table~\ref{tab:hyperparameter_multi_view_politifact} demonstrates the impact of different multi-view configurations on 8-shot PolitiFact performance.
+Table~\ref{tab:hyperparameter_multi_view_politifact} and Table~\ref{tab:hyperparameter_multi_view_gossipcop}    demonstrate the impact of different multi-view configurations on 8-shot PolitiFact and GossipCop.
 
 \begin{table}[htbp]
 \centering
@@ -403,9 +322,6 @@ Table~\ref{tab:hyperparameter_multi_view_politifact} demonstrates the impact of 
 \bottomrule
 \end{tabular}
 \end{table}
-    
-
-Table~\ref{tab:hyperparameter_multi_view_gossipcop} shows corresponding results for 8-shot GossipCop, revealing different patterns across datasets.
 
 \begin{table}[htbp]
 \centering
