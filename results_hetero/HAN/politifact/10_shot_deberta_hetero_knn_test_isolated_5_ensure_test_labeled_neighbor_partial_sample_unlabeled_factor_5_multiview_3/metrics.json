@@ -32,7 +32,7 @@
         "best_val_f1": 1.0,
         "best_epoch": 119,
         "total_epochs_run": 119,
-        "training_time_seconds": 8.6846284866333
+        "training_time_seconds": 9.778528690338135
     },
     "final_test_metrics_on_target_node": {
         "accuracy": 0.8823529411764706,

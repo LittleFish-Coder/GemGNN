@@ -23,30 +23,30 @@
     },
     "model_name": "HAN_gossipcop_9_shot_deberta_hetero_knn_test_isolated_5_ensure_test_labeled_neighbor_partial_sample_unlabeled_factor_5_multiview_6",
     "training_history": {
-        "final_train_loss": 0.307997465133667,
+        "final_train_loss": 0.30827417969703674,
         "final_train_acc": 1.0,
         "final_train_f1": 1.0,
-        "final_val_loss": 0.29990166425704956,
+        "final_val_loss": 0.29801511764526367,
         "final_val_acc": 1.0,
         "final_val_f1": 1.0,
         "best_val_f1": 1.0,
-        "best_epoch": 129,
-        "total_epochs_run": 129,
-        "training_time_seconds": 7.580942630767822
+        "best_epoch": 130,
+        "total_epochs_run": 130,
+        "training_time_seconds": 8.200780153274536
     },
     "final_test_metrics_on_target_node": {
-        "accuracy": 0.656437125748503,
-        "precision": 0.5748273855100527,
-        "recall": 0.6127733369263442,
-        "f1_score": 0.5681764407639006,
+        "accuracy": 0.656811377245509,
+        "precision": 0.5754525780841571,
+        "recall": 0.6137673727116324,
+        "f1_score": 0.5688301495670658,
         "confusion_matrix": [
             [
                 1481,
                 688
             ],
             [
-                230,
-                273
+                229,
+                274
             ]
         ]
     }

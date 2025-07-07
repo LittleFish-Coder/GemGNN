@@ -23,16 +23,16 @@
     },
     "model_name": "HAN_gossipcop_3_shot_deberta_hetero_knn_test_isolated_5_ensure_test_labeled_neighbor_partial_sample_unlabeled_factor_5_multiview_6",
     "training_history": {
-        "final_train_loss": 0.3065655827522278,
+        "final_train_loss": 0.3065669536590576,
         "final_train_acc": 1.0,
         "final_train_f1": 1.0,
-        "final_val_loss": 0.29788738489151,
+        "final_val_loss": 0.2978886365890503,
         "final_val_acc": 1.0,
         "final_val_f1": 1.0,
         "best_val_f1": 1.0,
         "best_epoch": 103,
         "total_epochs_run": 103,
-        "training_time_seconds": 6.907407283782959
+        "training_time_seconds": 8.949957370758057
     },
     "final_test_metrics_on_target_node": {
         "accuracy": 0.4805389221556886,

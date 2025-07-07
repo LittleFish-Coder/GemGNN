@@ -23,16 +23,16 @@
     },
     "model_name": "HAN_politifact_16_shot_deberta_hetero_knn_test_isolated_5_ensure_test_labeled_neighbor_partial_sample_unlabeled_factor_5_multiview_3",
     "training_history": {
-        "final_train_loss": 0.3107474446296692,
+        "final_train_loss": 0.31075817346572876,
         "final_train_acc": 1.0,
         "final_train_f1": 1.0,
-        "final_val_loss": 0.29977738857269287,
+        "final_val_loss": 0.2997569739818573,
         "final_val_acc": 1.0,
         "final_val_f1": 1.0,
         "best_val_f1": 1.0,
         "best_epoch": 124,
         "total_epochs_run": 124,
-        "training_time_seconds": 7.577836990356445
+        "training_time_seconds": 8.860588073730469
     },
     "final_test_metrics_on_target_node": {
         "accuracy": 0.8333333333333334,
