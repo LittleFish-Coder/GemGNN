@@ -1,0 +1,40 @@
+{
+  "final_metrics": {
+    "loss": 0.7653012275695801,
+    "accuracy": 0.4,
+    "precision": 0.4087912087912088,
+    "recall": 0.4,
+    "f1": 0.3878787878787879
+  },
+  "training_time": 0.26174426078796387,
+  "model_config": {
+    "text_embed_dim": 768,
+    "demographic_embed_dim": 32,
+    "num_views": 3,
+    "num_demographic_profiles": 30,
+    "hidden_dim": 64,
+    "dropout": 0.3
+  },
+  "training_config": {
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "epochs": 30,
+    "patience": 30
+  },
+  "data_config": {
+    "dataset_name": "gossipcop",
+    "k_shot": 8,
+    "embedding_type": "deberta",
+    "num_demographic_profiles": 30,
+    "num_views": 3,
+    "view_names": [
+      "gender",
+      "age",
+      "education"
+    ],
+    "seed": 42,
+    "total_samples": 70,
+    "train_samples": 50,
+    "test_samples": 20
+  }
+}
