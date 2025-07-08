@@ -365,11 +365,25 @@ We conduct comprehensive ablation studies comparing different graph neural netwo
 \toprule
 \textbf{Model Architecture} & \textbf{F1-Score} & \textbf{Δ Performance} \\
 \midrule
-HAN (Hetero Graph Attention Network) & \textbf{0.8382} & \textbf{Baseline} \\
+HAN (Heterogenous Graph Attention Network) & \textbf{0.8382} & \textbf{Baseline} \\
 HGT (Heterogeneous Graph Transformer) & 0.8277 & -0.0105 \\
 RGCN (Relational Graph Convolutional Network) & 0.8111 & -0.0271 \\
 GATv2 (Graph Attention Network) & 0.6521 & -0.1861 \\ 
 HeteroGATv2 (Heterogeneous GAT) & 0.8179 & -0.0203 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Text encoder ablation study on 8-shot PolitiFact with different K values.}
+\label{tab:text_encoder_ablation}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Text Encoder} & \textbf{K=4} & \textbf{K=6} & \textbf{K=8} & \textbf{K=12} \\
+\midrule
+RoBERTa   & 0.7629 & \textbf{0.7359} & 0.8314 & \textbf{0.8314} \\
+DeBERTa   & \textbf{0.7778} & 0.7077 & \textbf{0.8382} & 0.8174 \\
 \bottomrule
 \end{tabular}
 \end{table}
