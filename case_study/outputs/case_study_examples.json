@@ -1,0 +1,112 @@
+[
+  {
+    "case_id": 292,
+    "dataset": "politifact",
+    "k_shot": 0,
+    "gemgnn_model": "gemgnn_han",
+    "baseline_model": "bert",
+    "gemgnn_performance": {
+      "f1_score": 0.86609380594343,
+      "accuracy": 0.8921568627450981
+    },
+    "baseline_performance": {
+      "f1_score": 0.0,
+      "accuracy": 0.0
+    },
+    "improvements": {
+      "absolute_f1_gain": 0.86609380594343,
+      "absolute_accuracy_gain": 0.8921568627450981,
+      "relative_f1_improvement_percent": 8660938059.4343,
+      "relative_accuracy_improvement_percent": 8921568627.450981
+    },
+    "analysis": "While BERT provides strong semantic understanding, it lacks the structural awareness that GemGNN's heterogeneous graph attention mechanism provides for modeling complex interactions between news content and social features. Political news often contains subtle misinformation requiring deep understanding of factual relationships, which GemGNN's graph structure effectively captures. The 8660938059.4% relative improvement in F1-score demonstrates GemGNN's significant advantage in few-shot scenarios where structural information becomes crucial."
+  },
+  {
+    "case_id": 293,
+    "dataset": "politifact",
+    "k_shot": 0,
+    "gemgnn_model": "gemgnn_han",
+    "baseline_model": "bert",
+    "gemgnn_performance": {
+      "f1_score": 0.86609380594343,
+      "accuracy": 0.8921568627450981
+    },
+    "baseline_performance": {
+      "f1_score": 0.0,
+      "accuracy": 0.0
+    },
+    "improvements": {
+      "absolute_f1_gain": 0.86609380594343,
+      "absolute_accuracy_gain": 0.8921568627450981,
+      "relative_f1_improvement_percent": 8660938059.4343,
+      "relative_accuracy_improvement_percent": 8921568627.450981
+    },
+    "analysis": "While BERT provides strong semantic understanding, it lacks the structural awareness that GemGNN's heterogeneous graph attention mechanism provides for modeling complex interactions between news content and social features. Political news often contains subtle misinformation requiring deep understanding of factual relationships, which GemGNN's graph structure effectively captures. The 8660938059.4% relative improvement in F1-score demonstrates GemGNN's significant advantage in few-shot scenarios where structural information becomes crucial."
+  },
+  {
+    "case_id": 294,
+    "dataset": "politifact",
+    "k_shot": 0,
+    "gemgnn_model": "gemgnn_han",
+    "baseline_model": "bert",
+    "gemgnn_performance": {
+      "f1_score": 0.86609380594343,
+      "accuracy": 0.8921568627450981
+    },
+    "baseline_performance": {
+      "f1_score": 0.0,
+      "accuracy": 0.0
+    },
+    "improvements": {
+      "absolute_f1_gain": 0.86609380594343,
+      "absolute_accuracy_gain": 0.8921568627450981,
+      "relative_f1_improvement_percent": 8660938059.4343,
+      "relative_accuracy_improvement_percent": 8921568627.450981
+    },
+    "analysis": "While BERT provides strong semantic understanding, it lacks the structural awareness that GemGNN's heterogeneous graph attention mechanism provides for modeling complex interactions between news content and social features. Political news often contains subtle misinformation requiring deep understanding of factual relationships, which GemGNN's graph structure effectively captures. The 8660938059.4% relative improvement in F1-score demonstrates GemGNN's significant advantage in few-shot scenarios where structural information becomes crucial."
+  },
+  {
+    "case_id": 295,
+    "dataset": "politifact",
+    "k_shot": 0,
+    "gemgnn_model": "gemgnn_han",
+    "baseline_model": "bert",
+    "gemgnn_performance": {
+      "f1_score": 0.86609380594343,
+      "accuracy": 0.8921568627450981
+    },
+    "baseline_performance": {
+      "f1_score": 0.0,
+      "accuracy": 0.0
+    },
+    "improvements": {
+      "absolute_f1_gain": 0.86609380594343,
+      "absolute_accuracy_gain": 0.8921568627450981,
+      "relative_f1_improvement_percent": 8660938059.4343,
+      "relative_accuracy_improvement_percent": 8921568627.450981
+    },
+    "analysis": "While BERT provides strong semantic understanding, it lacks the structural awareness that GemGNN's heterogeneous graph attention mechanism provides for modeling complex interactions between news content and social features. Political news often contains subtle misinformation requiring deep understanding of factual relationships, which GemGNN's graph structure effectively captures. The 8660938059.4% relative improvement in F1-score demonstrates GemGNN's significant advantage in few-shot scenarios where structural information becomes crucial."
+  },
+  {
+    "case_id": 296,
+    "dataset": "politifact",
+    "k_shot": 0,
+    "gemgnn_model": "gemgnn_han",
+    "baseline_model": "bert",
+    "gemgnn_performance": {
+      "f1_score": 0.86609380594343,
+      "accuracy": 0.8921568627450981
+    },
+    "baseline_performance": {
+      "f1_score": 0.0,
+      "accuracy": 0.0
+    },
+    "improvements": {
+      "absolute_f1_gain": 0.86609380594343,
+      "absolute_accuracy_gain": 0.8921568627450981,
+      "relative_f1_improvement_percent": 8660938059.4343,
+      "relative_accuracy_improvement_percent": 8921568627.450981
+    },
+    "analysis": "While BERT provides strong semantic understanding, it lacks the structural awareness that GemGNN's heterogeneous graph attention mechanism provides for modeling complex interactions between news content and social features. Political news often contains subtle misinformation requiring deep understanding of factual relationships, which GemGNN's graph structure effectively captures. The 8660938059.4% relative improvement in F1-score demonstrates GemGNN's significant advantage in few-shot scenarios where structural information becomes crucial."
+  }
+]
