@@ -257,7 +257,7 @@ def analyze_and_visualize_graph(graph_path: str, output_path: str, layout_type: 
         legend_elements.append(Line2D([0], [0], color=styles['color'], lw=2, linestyle=styles['style'], label=f'Edge: {rel_type}'))
 
     plt.legend(handles=legend_elements, loc='upper right', fontsize='x-large', frameon=True, facecolor='lightgray', framealpha=0.8)
-    plt.title(f"Graph Visualization for {os.path.basename(graph_path)}", fontsize=24)
+    plt.title(f"Graph Visualization", fontsize=24)
     plt.axis('off')
     
     if not output_path:

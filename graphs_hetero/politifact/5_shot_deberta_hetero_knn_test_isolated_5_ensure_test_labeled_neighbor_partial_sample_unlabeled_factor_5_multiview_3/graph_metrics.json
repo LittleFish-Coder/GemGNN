@@ -27,7 +27,7 @@
       "attr_dim": 3240
     },
     "news -> similar_to -> news": {
-      "num_edges": 2424,
+      "num_edges": 2748,
       "attr_dim": 1
     },
     "news -> similar_to_sub1 -> news": {
@@ -43,7 +43,7 @@
       "attr_dim": 1
     }
   },
-  "edges_total": 13764,
-  "avg_degree_news_similar_to": 14.962963104248047,
-  "news_similar_isolated": 6
+  "edges_total": 14088,
+  "avg_degree_news_similar_to": 16.962963104248047,
+  "news_similar_isolated": 0
 }

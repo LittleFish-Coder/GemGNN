@@ -687,7 +687,8 @@ class HeteroGraphBuilder:
         # 1. Train-Train connections: Use mutual KNN (bidirectional, high quality)
         if len(train_all_indices) > 1:
             train_embeddings = news_embeddings[train_all_indices]
-            train_sim_idx, train_sim_attr, _, _ = self._build_mutual_knn_edges(train_embeddings, self.k_neighbors)
+            # train_sim_idx, train_sim_attr, _, _ = self._build_mutual_knn_edges(train_embeddings, self.k_neighbors)
+            train_sim_idx, train_sim_attr, _, _ = self._build_knn_edges(train_embeddings, self.k_neighbors)
             
             if train_sim_idx is not None and train_sim_idx.shape[1] > 0:
                 # Map local indices back to global indices
