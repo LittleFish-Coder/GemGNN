@@ -828,6 +828,98 @@ def final_evaluation(model: nn.Module, data: HeteroData, model_path: str, target
     print(f"F1 Score:  {metrics['f1_score']:.4f}")
     print(f"Confusion Matrix (for target node '{target_node_type}'):\n{metrics['confusion_matrix']}")
     print("--- Heterogeneous Evaluation Finished ---")
+
+    # ===================== START: FINAL CODE FOR FULL NEIGHBOR ANALYSIS (MAIN + SUB-VIEWS) =====================
+    print("\n--- Analyzing Misclassified Samples and Their Neighbors (Main + Sub-Views) for Case Study ---")
+
+    try:
+        # 1. Load the original Hugging Face dataset to get the news text
+        from datasets import load_dataset
+        parts = model_path.split(os.sep)
+        dataset_name = parts[-3]
+        hf_dataset = load_dataset(f"LittleFish-Coder/Fake_News_{dataset_name}", split="test")
+
+        # 2. Find the indices where the prediction was wrong
+        misclassified_indices_relative = np.where(y_true != y_pred)[0]
+
+        print(f"\nFound {len(misclassified_indices_relative)} misclassified samples in the test set.")
+        
+        if len(misclassified_indices_relative) > 0:
+            all_labels = data['news'].y.cpu()
+            num_train_labeled = data['news'].train_labeled_mask.sum().item()
+            num_train_unlabeled = data['news'].train_unlabeled_mask.sum().item()
+
+            # 3. Loop through each misclassified sample for detailed analysis
+            for rel_idx in misclassified_indices_relative:
+                # --- Get Basic Info ---
+                true_label = y_true[rel_idx]
+                pred_label = y_pred[rel_idx]
+                original_text = hf_dataset[int(rel_idx)]['text']
+                true_label_str = f"Real (0)" if true_label == 0 else f"Fake (1)"
+                pred_label_str = f"Real (0)" if pred_label == 0 else f"Fake (1)"
+                
+                print("\n" + "#"*80)
+                print(f"Analyzing Misclassified Sample (Test Index: {rel_idx})")
+                print(f"  - True Label: {true_label_str}, Predicted Label: {pred_label_str}")
+                print(f"  - News Text: '{original_text[:100].replace(chr(10), ' ').strip()}...'")
+                print("#"*80)
+
+                # --- Map to Graph Index ---
+                node_global_idx = rel_idx + num_train_labeled + num_train_unlabeled
+
+                # --- [ANALYSIS 1] Main 'similar_to' Neighbors ---
+                print("  --- Main View ('similar_to') Analysis ---")
+                main_edge_index = data['news', 'similar_to', 'news'].edge_index.cpu()
+                neighbor_mask_src = (main_edge_index[1] == node_global_idx)
+                neighbor_mask_dst = (main_edge_index[0] == node_global_idx)
+                main_neighbor_indices = torch.unique(torch.cat([main_edge_index[0][neighbor_mask_src], main_edge_index[1][neighbor_mask_dst]]))
+
+                if len(main_neighbor_indices) == 0:
+                    print("    - This node has NO 'similar_to' neighbors.")
+                else:
+                    neighbor_labels = all_labels[main_neighbor_indices]
+                    num_real = (neighbor_labels == 0).sum().item()
+                    num_fake = (neighbor_labels == 1).sum().item()
+                    total = len(main_neighbor_indices)
+                    print(f"    - Found {total} neighbors: Real: {num_real} ({num_real/total:.1%}), Fake: {num_fake} ({num_fake/total:.1%})")
+
+                # --- [ANALYSIS 2] Multi-View 'similar_to_subX' Neighbors ---
+                print("  --- Multi-View ('similar_to_subX') Analysis ---")
+                found_sub_views = False
+                # Loop up to a reasonable number of views (e.g., 12, as per your presentation)
+                for i in range(1, 13):
+                    sub_edge_type = ('news', f'similar_to_sub{i}', 'news')
+                    if sub_edge_type in data.edge_types:
+                        found_sub_views = True
+                        sub_edge_index = data[sub_edge_type].edge_index.cpu()
+                        
+                        neighbor_mask_src_sub = (sub_edge_index[1] == node_global_idx)
+                        neighbor_mask_dst_sub = (sub_edge_index[0] == node_global_idx)
+                        sub_neighbor_indices = torch.unique(torch.cat([sub_edge_index[0][neighbor_mask_src_sub], sub_edge_index[1][neighbor_mask_dst_sub]]))
+
+                        if len(sub_neighbor_indices) == 0:
+                            print(f"    - Sub-View {i}: This node has NO neighbors in this view.")
+                        else:
+                            neighbor_labels_sub = all_labels[sub_neighbor_indices]
+                            num_real_sub = (neighbor_labels_sub == 0).sum().item()
+                            num_fake_sub = (neighbor_labels_sub == 1).sum().item()
+                            total_sub = len(sub_neighbor_indices)
+                            print(f"    - Sub-View {i}: Found {total_sub} neighbors. Real: {num_real_sub} ({num_real_sub/total_sub:.1%}), Fake: {num_fake_sub} ({num_fake_sub/total_sub:.1%})")
+                
+                if not found_sub_views:
+                    print("    - No sub-view edges ('similar_to_subX') found in this graph.")
+                
+                print("#"*80)
+
+    except Exception as e:
+        import traceback
+        print(f"\n[Case Study Warning] An unexpected error occurred during full neighbor analysis: {e}")
+        traceback.print_exc()
+
+    print("\n--- Case Study Analysis Finished ---")
+    # ====================== END: FINAL CODE FOR FULL NEIGHBOR ANALYSIS (MAIN + SUB-VIEWS) ======================
+
+
     return metrics
 
 def save_results(history: dict, final_metrics: dict, args: ArgumentParser, output_dir: str, model_name_fs: str) -> None:
