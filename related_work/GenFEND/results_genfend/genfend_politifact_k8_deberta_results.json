@@ -1,18 +1,18 @@
 {
   "final_metrics": {
-    "loss": 0.9271247982978821,
-    "accuracy": 0.28431372549019607,
-    "precision": 0.08083429450211456,
-    "recall": 0.28431372549019607,
-    "f1": 0.12587935937733874
+    "loss": 0.6596546769142151,
+    "accuracy": 0.6568627450980392,
+    "precision": 0.5800108932461874,
+    "recall": 0.6568627450980392,
+    "f1": 0.6036181942476228
   },
-  "training_time": 1.5177931785583496,
+  "training_time": 2.3206987380981445,
   "model_config": {
     "text_embed_dim": 768,
     "demographic_embed_dim": 32,
     "num_views": 3,
     "num_demographic_profiles": 30,
-    "hidden_dim": 128,
+    "hidden_dim": 96,
     "dropout": 0.3
   },
   "training_config": {

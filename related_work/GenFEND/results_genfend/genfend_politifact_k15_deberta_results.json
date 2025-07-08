@@ -1,12 +1,12 @@
 {
   "final_metrics": {
-    "loss": 0.6247317790985107,
-    "accuracy": 0.7156862745098039,
-    "precision": 0.5122068435217224,
-    "recall": 0.7156862745098039,
-    "f1": 0.5970868347338936
+    "loss": 0.6715021133422852,
+    "accuracy": 0.6176470588235294,
+    "precision": 0.552624829001368,
+    "recall": 0.6176470588235294,
+    "f1": 0.5780490812677272
   },
-  "training_time": 1.7898640632629395,
+  "training_time": 1.7178401947021484,
   "model_config": {
     "text_embed_dim": 768,
     "demographic_embed_dim": 32,
@@ -23,7 +23,7 @@
   },
   "data_config": {
     "dataset_name": "politifact",
-    "k_shot": 5,
+    "k_shot": 15,
     "embedding_type": "deberta",
     "num_demographic_profiles": 30,
     "num_views": 3,

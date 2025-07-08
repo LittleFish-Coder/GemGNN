@@ -1,12 +1,12 @@
 {
   "final_metrics": {
-    "loss": 0.6247317790985107,
-    "accuracy": 0.7156862745098039,
-    "precision": 0.5122068435217224,
-    "recall": 0.7156862745098039,
-    "f1": 0.5970868347338936
+    "loss": 0.5989164710044861,
+    "accuracy": 0.7406437125748503,
+    "precision": 0.6971054639153647,
+    "recall": 0.7406437125748503,
+    "f1": 0.716058727560465
   },
-  "training_time": 1.7898640632629395,
+  "training_time": 1.966243028640747,
   "model_config": {
     "text_embed_dim": 768,
     "demographic_embed_dim": 32,
@@ -22,8 +22,8 @@
     "patience": 30
   },
   "data_config": {
-    "dataset_name": "politifact",
-    "k_shot": 5,
+    "dataset_name": "gossipcop",
+    "k_shot": 12,
     "embedding_type": "deberta",
     "num_demographic_profiles": 30,
     "num_views": 3,
@@ -33,8 +33,8 @@
       "education"
     ],
     "seed": 42,
-    "total_samples": 483,
-    "train_samples": 381,
-    "test_samples": 102
+    "total_samples": 12660,
+    "train_samples": 9988,
+    "test_samples": 2672
   }
 }
