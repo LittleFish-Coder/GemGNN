@@ -1,0 +1,126 @@
+[
+  {
+    "id": 1,
+    "content": "Eric Trump: It would be 'foolish' for my dad to release tax returns. Eric Trump on Wednesday dismissed arguments that his father, Donald Trump, should release his tax returns during the 2016 presidential campaign, calling such demands 'foolish' and suggesting the returns would only provide ammunition for political opponents.",
+    "true_label": "Fake",
+    "gemgnn_prediction": "Fake",
+    "baseline_failures": {
+      "DeBERTa": "Real",
+      "RoBERTa": "Real",
+      "BERT": "Real"
+    },
+    "neighborhood_analysis": {
+      "similar": {
+        "Real": 6,
+        "Fake": 0
+      },
+      "sub_view_1": {
+        "Real": 5,
+        "Fake": 1
+      },
+      "sub_view_2": {
+        "Real": 5,
+        "Fake": 1
+      },
+      "sub_view_3": {
+        "Real": 4,
+        "Fake": 2
+      }
+    },
+    "case_type": "Misleading Neighbors",
+    "explanation": "The fake article's neutral, report-style tone caused its semantic embedding to be almost indistinguishable from real news. Traditional transformers rely purely on semantic similarity and are misled by the professional writing style. GemGNN's multi-view approach reveals subtle inconsistencies - while overall neighbors lean Real, sub-view 3 captures suspicious patterns that unified embeddings miss."
+  },
+  {
+    "id": 2,
+    "content": "Memory Lapse? Trump Seeks Distance From 'Advisor' With Past Ties to Mafia. Though he touts his outstanding memory, Donald Trump appears to have forgotten his relationship with Felix Sater, a Russian-American businessman with alleged ties to organized crime who helped the Trump Organization identify potential real estate deals.",
+    "true_label": "Real",
+    "gemgnn_prediction": "Real",
+    "baseline_failures": {
+      "DeBERTa": "Fake",
+      "LESS4FD": "Fake",
+      "HeteroSGT": "Fake"
+    },
+    "neighborhood_analysis": {
+      "similar": {
+        "Real": 5,
+        "Fake": 1
+      },
+      "sub_view_1": {
+        "Real": 2,
+        "Fake": 4
+      },
+      "sub_view_2": {
+        "Real": 4,
+        "Fake": 2
+      },
+      "sub_view_3": {
+        "Real": 4,
+        "Fake": 2
+      }
+    },
+    "case_type": "Multi-View Power and Risk",
+    "explanation": "This case reveals the power and risk of the multi-view approach. The HAN model's attention mechanism correctly assigns higher weight to sub-views 2 and 3 which capture the legitimate investigative reporting style, while sub-view 1 picks up on sensational language that might appear in fake news. Baseline models get confused by this mixed signal and incorrectly classify it as fake."
+  },
+  {
+    "id": 3,
+    "content": "BREAKING: Celebrity couple announces surprise divorce after 10 years of marriage. The shocking announcement came via social media posts that have since been deleted, leaving fans devastated and confused about the sudden split.",
+    "true_label": "Fake",
+    "gemgnn_prediction": "Fake",
+    "baseline_failures": {
+      "BERT": "Real",
+      "MLP": "Real",
+      "LSTM": "Real"
+    },
+    "neighborhood_analysis": {
+      "similar": {
+        "Real": 2,
+        "Fake": 4
+      },
+      "sub_view_1": {
+        "Real": 1,
+        "Fake": 5
+      },
+      "sub_view_2": {
+        "Real": 2,
+        "Fake": 4
+      },
+      "sub_view_3": {
+        "Real": 3,
+        "Fake": 3
+      }
+    },
+    "case_type": "Structural Pattern Recognition",
+    "explanation": "This entertainment fake news uses typical clickbait patterns ('BREAKING:', 'shocking announcement', 'deleted posts'). While the overall neighbor distribution correctly indicates fake news, traditional ML methods miss these structural patterns. GemGNN's graph structure captures interaction patterns that reveal typical fake news propagation behavior."
+  },
+  {
+    "id": 4,
+    "content": "Federal Reserve announces unexpected interest rate cut to combat economic uncertainty. The surprise decision, announced after an emergency meeting, represents a significant shift in monetary policy aimed at stabilizing markets amid growing concerns about global economic conditions.",
+    "true_label": "Fake",
+    "gemgnn_prediction": "Fake",
+    "baseline_failures": {
+      "DeBERTa": "Real",
+      "RoBERTa": "Real",
+      "HeteroSGT": "Real"
+    },
+    "neighborhood_analysis": {
+      "similar": {
+        "Real": 7,
+        "Fake": 1
+      },
+      "sub_view_1": {
+        "Real": 6,
+        "Fake": 2
+      },
+      "sub_view_2": {
+        "Real": 7,
+        "Fake": 1
+      },
+      "sub_view_3": {
+        "Real": 5,
+        "Fake": 3
+      }
+    },
+    "case_type": "Financial Misinformation Detection",
+    "explanation": "This sophisticated financial fake news mimics official Federal Reserve communication style. The overwhelming Real neighbors (7:1) would mislead semantic-only approaches. GemGNN's heterogeneous architecture incorporates social interaction patterns - genuine Fed announcements have specific propagation patterns through verified financial channels that this fake article lacks."
+  }
+]

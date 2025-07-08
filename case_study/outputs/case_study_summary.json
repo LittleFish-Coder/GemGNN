@@ -3,13 +3,13 @@
   "average_f1_improvement": 0.267,
   "maximum_f1_improvement": 0.43000000000000005,
   "datasets_covered": [
-    "Gossipcop",
-    "Politifact"
+    "Politifact",
+    "Gossipcop"
   ],
   "baseline_types_compared": [
+    "Transformer",
     "Traditional ML",
-    "Graph-based",
-    "Transformer"
+    "Graph-based"
   ],
   "key_finding": "GemGNN consistently outperforms all baseline categories with average +0.267 F1 improvement"
 }
