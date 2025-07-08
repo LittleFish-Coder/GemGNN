@@ -128,8 +128,12 @@ def extract_f1_scores(results_dir="results_genfend"):
     for dataset in df['dataset'].unique():
         print(f"\n{dataset.upper()}:")
         dataset_df = df[df['dataset'] == dataset]
+
+        record_k_shot = []
         for _, row in dataset_df.sort_values('k_shot').iterrows():
-                print(f"    k={row['k_shot']:2d}: F1={row['f1']:.4f}, Acc={row['accuracy']:.4f}")
+            record_k_shot.append(row['f1'])
+            print(f"    k={row['k_shot']:2d}: F1={row['f1']:.4f}, Acc={row['accuracy']:.4f}")
+        print(record_k_shot)
     
     # Save to CSV
     csv_file = os.path.join(results_dir, "f1_scores_summary.csv")
