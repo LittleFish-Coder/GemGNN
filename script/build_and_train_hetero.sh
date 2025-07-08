@@ -1,6 +1,6 @@
 #!/bin/bash
 
-K_SHOTS=(4 5 6 7 8 9 10 11 12 13 14)
+K_SHOTS=(3 15 16)
 DATASETS=("politifact")
 EMBEDDINGS=("roberta")
 EDGE_POLICIES=("knn_test_isolated")

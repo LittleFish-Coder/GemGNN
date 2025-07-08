@@ -1,12 +1,12 @@
 {
   "final_metrics": {
-    "loss": 0.6446224451065063,
-    "accuracy": 0.696078431372549,
-    "precision": 0.5822829131652661,
-    "recall": 0.696078431372549,
-    "f1": 0.6031731140090273
+    "loss": 0.6355634927749634,
+    "accuracy": 0.6764705882352942,
+    "precision": 0.4375,
+    "recall": 0.482994803967879,
+    "f1": 0.430938292476754
   },
-  "training_time": 1.852071762084961,
+  "training_time": 3.0020062923431396,
   "model_config": {
     "text_embed_dim": 768,
     "demographic_embed_dim": 32,
