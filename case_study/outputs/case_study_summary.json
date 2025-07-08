@@ -8,8 +8,8 @@
   ],
   "baseline_types_compared": [
     "Traditional ML",
-    "Graph-based",
-    "Transformer"
+    "Transformer",
+    "Graph-based"
   ],
   "key_finding": "GemGNN consistently outperforms all baseline categories with average +0.267 F1 improvement"
 }
