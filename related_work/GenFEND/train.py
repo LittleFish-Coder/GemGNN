@@ -443,7 +443,7 @@ def main():
     """Main training function."""
     parser = ArgumentParser(description="Train GenFEND model")
     parser.add_argument("--data_path", required=True, help="Path to prepared GenFEND data")
-    parser.add_argument("--hidden_dim", type=int, default=128, help="Hidden dimension")
+    parser.add_argument("--hidden_dim", type=int, default=96, help="Hidden dimension")
     parser.add_argument("--dropout", type=float, default=0.3, help="Dropout rate")
     parser.add_argument("--learning_rate", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--weight_decay", type=float, default=1e-4, help="Weight decay")
