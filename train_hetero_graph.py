@@ -8,11 +8,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
+import pandas as pd
 from argparse import ArgumentParser
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 from torch.optim import Adam
 from torch_geometric.data import HeteroData
 from torch_geometric.nn import HGTConv, HANConv, Linear, SAGEConv, GATv2Conv, to_hetero, RGCNConv, HeteroConv
+from datasets import load_dataset
 
 # Constants
 DEFAULT_MODEL = "HAN"   # HGT, HAN, HANv2, SAGE, GATv2
@@ -830,6 +832,72 @@ def final_evaluation(model: nn.Module, data: HeteroData, model_path: str, target
     print("--- Heterogeneous Evaluation Finished ---")
     return metrics
 
+
+def export_test_predictions(model: nn.Module, data: HeteroData, model_path: str, target_node_type: str, model_name: str = "gemgnn") -> str:
+    """Export test predictions in the required CSV format."""
+    
+    # Extract dataset info from model path
+    parts = model_path.split(os.sep)
+    dataset_name = parts[-3] if len(parts) >= 3 else "politifact"
+    
+    # Load original dataset to get test text
+    hf_dataset = load_dataset(f"LittleFish-Coder/Fake_News_{dataset_name}", split="test")
+    
+    # Load best model weights
+    try:
+        model.load_state_dict(torch.load(model_path, map_location=data[target_node_type].x.device, weights_only=False))
+        print(f"Loaded best model weights from {model_path}")
+    except FileNotFoundError:
+        print(f"Warning: Best model file not found at {model_path}. Using current model state.")
+    except Exception as e:
+        print(f"Warning: Could not load best model weights from {model_path}. Using current model state. Error: {e}")
+    
+    model.eval()
+    with torch.no_grad():
+        out = model(data.x_dict, data.edge_index_dict)
+        mask = data[target_node_type].test_mask
+        if isinstance(out, dict):
+            out_target = out[target_node_type]
+        else:
+            out_target = out
+        
+        # Get predictions and confidence scores
+        probabilities = F.softmax(out_target[mask], dim=1)
+        predictions = out_target[mask].argmax(dim=1)
+        confidence_scores = torch.max(probabilities, dim=1)[0]
+        
+        # Get ground truth
+        y_true = data[target_node_type].y[mask].cpu().numpy()
+        y_pred = predictions.cpu().numpy()
+        confidence = confidence_scores.cpu().numpy()
+    
+    # Create prediction DataFrame
+    prediction_data = []
+    for i in range(len(y_true)):
+        prediction_data.append({
+            'news_id': i,
+            'news_text': hf_dataset[i]['text'],
+            'ground_truth': y_true[i],
+            'prediction': y_pred[i],
+            'confidence': confidence[i]
+        })
+    
+    # Create DataFrame and save
+    df = pd.DataFrame(prediction_data)
+    
+    # Create output directory
+    output_dir = "prediction"
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Save predictions
+    filename = f"{model_name}_8_shot_{dataset_name}_predictions.csv"
+    output_path = os.path.join(output_dir, filename)
+    df.to_csv(output_path, index=False)
+    
+    print(f"Test predictions exported to {output_path}")
+    return output_path
+
+
 def save_results(history: dict, final_metrics: dict, args: ArgumentParser, output_dir: str, model_name_fs: str) -> None:
     """Save training history, final metrics, and plots."""
     os.makedirs(output_dir, exist_ok=True)
@@ -1009,6 +1077,9 @@ def main() -> None:
     
     model_path = os.path.join(output_dir, f"graph_best.pt")
     final_metrics = final_evaluation(model, data, model_path, args.target_node_type)
+    
+    # Export test predictions
+    export_test_predictions(model, data, model_path, args.target_node_type, model_name="gemgnn")
     
     save_results(training_history, final_metrics, args, output_dir, model_name_fs)
 

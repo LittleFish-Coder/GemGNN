@@ -14,10 +14,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
+import pandas as pd
 from argparse import ArgumentParser
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 from torch.optim import Adam
 from typing import Dict, Optional, Tuple
+from datasets import load_dataset
 
 
 def set_seed(seed: int = 42) -> None:
@@ -439,6 +441,81 @@ def plot_training_curves(history: Dict, output_path: str):
     print(f"Training curves saved to {output_path}")
 
 
+def export_test_predictions(trainer, data, model_name="genfend", device="cuda"):
+    """Export test predictions in the required CSV format."""
+    
+    # Get dataset info
+    dataset_name = data["metadata"]["dataset_name"]
+    k_shot = data["metadata"]["k_shot"]
+    
+    # Load original dataset to get test text
+    hf_dataset = load_dataset(f"LittleFish-Coder/Fake_News_{dataset_name}", split="test")
+    
+    # Prepare data for prediction
+    text_embeddings = torch.tensor(data["text_embeddings"]).to(device)
+    demographic_features = {
+        view: torch.tensor(feat).to(device) 
+        for view, feat in data["demographic_features"].items()
+    }
+    diversity_signals = torch.tensor(data["diversity_signals"]).to(device)
+    labels = torch.tensor(data["labels"]).to(device)
+    view_names = data["metadata"]["view_names"]
+    
+    # Create test mask
+    total_samples = len(labels)
+    test_mask = torch.zeros(total_samples, dtype=torch.bool)
+    test_mask[data["test_indices"]] = True
+    
+    # Get test data
+    test_indices = torch.where(test_mask)[0]
+    test_text = text_embeddings[test_indices]
+    test_demo = {view: demo[test_indices] for view, demo in demographic_features.items()}
+    test_div = diversity_signals[test_indices]
+    test_labels = labels[test_indices]
+    
+    # Make predictions
+    trainer.model.eval()
+    with torch.no_grad():
+        logits, gate_weights = trainer.model(test_text, test_demo, test_div, view_names)
+        probabilities = F.softmax(logits, dim=1)
+        predictions = torch.argmax(logits, dim=1)
+        
+        # Get confidence scores (max probability)
+        confidence_scores = torch.max(probabilities, dim=1)[0]
+        
+        # Convert to numpy
+        y_true = test_labels.cpu().numpy()
+        y_pred = predictions.cpu().numpy()
+        confidence = confidence_scores.cpu().numpy()
+    
+    # Create prediction DataFrame
+    prediction_data = []
+    for i in range(len(y_true)):
+        
+        prediction_data.append({
+            'news_id': i,
+            'news_text': hf_dataset[i]['text'],
+            'ground_truth': y_true[i],
+            'prediction': y_pred[i],
+            'confidence': confidence[i]
+        })
+    
+    # Create DataFrame and save
+    df = pd.DataFrame(prediction_data)
+    
+    # Create output directory
+    output_dir = "../../prediction"
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Save predictions
+    filename = f"{model_name}_{k_shot}_shot_{dataset_name}_predictions.csv"
+    output_path = os.path.join(output_dir, filename)
+    df.to_csv(output_path, index=False)
+    
+    print(f"Test predictions exported to {output_path}")
+    return output_path
+
+
 def main():
     """Main training function."""
     parser = ArgumentParser(description="Train GenFEND model")
@@ -546,6 +623,10 @@ def main():
     model_path = os.path.join(args.output_dir, model_filename)
     torch.save(model.state_dict(), model_path)
     print(f"Model saved to {model_path}")
+    
+    # Export test predictions
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    export_test_predictions(trainer, data, model_name="genfend", device=device)
     
     print(f"\nTraining completed in {training_time:.2f} seconds")
     print(f"Final F1 Score: {final_metrics['f1']:.4f}")

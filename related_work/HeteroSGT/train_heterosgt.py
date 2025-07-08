@@ -14,11 +14,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
+import pandas as pd
 from argparse import ArgumentParser
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 from torch.optim import Adam
 from torch_geometric.nn import Linear, HGTConv, HANConv, GATv2Conv
 from typing import Dict, Optional, List, Tuple
+from datasets import load_dataset
 
 # Copy necessary utilities
 def set_seed(seed: int = 42) -> None:
@@ -709,6 +711,93 @@ class HeteroSGTTrainer:
         plt.close()
         
         print(f"Training curves saved to: {plot_path}")
+    
+    def export_test_predictions(self, model_name="heterosgt") -> str:
+        """Export test predictions in the required CSV format."""
+        
+        # Extract dataset info from graph path
+        # Expected format: graphs_heterosgt/heterosgt_politifact_k8_deberta.pt
+        graph_filename = os.path.basename(self.graph_path).replace('.pt', '')
+        parts = graph_filename.split('_')
+        
+        if len(parts) >= 3:
+            dataset_name = parts[1]  # politifact or gossipcop (parts[0] is 'heterosgt')
+            k_shot = parts[2].replace('k', '')  # Extract k from k8
+        else:
+            dataset_name = "politifact"
+            k_shot = "8"
+        
+        # Load original dataset to get test text
+        hf_dataset = load_dataset(f"LittleFish-Coder/Fake_News_{dataset_name}", split="test")
+        
+        # Get test mask and make predictions
+        test_mask = self.graph['news'].test_mask
+        test_indices = torch.where(test_mask)[0]
+        
+        # Make predictions
+        self.model.eval()
+        with torch.no_grad():
+            # Get graph components
+            distance_matrix = getattr(self.graph, 'distance_matrix', None)
+            subgraphs = getattr(self.graph, 'subgraphs', {})
+            
+            # Forward pass
+            if distance_matrix is not None and self.model_type == "SGT":
+                out = self.model(
+                    self.graph.x_dict, 
+                    self.graph.edge_index_dict,
+                    distance_matrix,
+                    subgraphs
+                )
+            else:
+                # Fallback for non-SGT models
+                out = self.model(
+                    self.graph.x_dict, 
+                    self.graph.edge_index_dict,
+                    torch.zeros(0, 0),  # Dummy distance matrix
+                    {}  # Empty subgraphs
+                )
+            
+            test_out = out[test_mask]
+            probabilities = F.softmax(test_out, dim=1)
+            predictions = torch.argmax(test_out, dim=1)
+            
+            # Get confidence scores (max probability)
+            confidence_scores = torch.max(probabilities, dim=1)[0]
+            
+            # Get ground truth
+            ground_truth = self.graph['news'].y[test_mask]
+            
+            # Convert to numpy
+            y_true = ground_truth.cpu().numpy()
+            y_pred = predictions.cpu().numpy()
+            confidence = confidence_scores.cpu().numpy()
+        
+        # Create prediction DataFrame
+        prediction_data = []
+        for i in range(len(y_true)):
+            prediction_data.append({
+                'news_id': i,
+                'news_text': hf_dataset[i]['text'],
+                'ground_truth': y_true[i],
+                'prediction': y_pred[i],
+                'confidence': confidence[i]
+            })
+        
+        # Create DataFrame and save
+        df = pd.DataFrame(prediction_data)
+        
+        # Create output directory
+        output_dir = "../../prediction"
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Save predictions
+        filename = f"{model_name}_{k_shot}_shot_{dataset_name}_predictions.csv"
+        output_path = os.path.join(output_dir, filename)
+        df.to_csv(output_path, index=False)
+        
+        print(f"Test predictions exported to {output_path}")
+        return output_path
 
 
 def main():
@@ -765,6 +854,9 @@ def main():
     
     # Save results
     trainer.save_results(results, args.output_dir)
+    
+    # Export test predictions
+    trainer.export_test_predictions(model_name="heterosgt")
     
     print(f"\nHeteroSGT training completed!")
 

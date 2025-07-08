@@ -1,103 +1,265 @@
 news_id,news_text,ground_truth,prediction,confidence
-0,Political news article 0: This is a sample news article for case study analysis.,0,0,0.5
-1,Political news article 1: This is a sample news article for case study analysis.,0,0,0.95
-2,Political news article 2: This is a sample news article for case study analysis.,1,0,0.95
-3,Political news article 3: This is a sample news article for case study analysis.,0,0,0.95
-4,Political news article 4: This is a sample news article for case study analysis.,0,0,0.95
-5,Political news article 5: This is a sample news article for case study analysis.,1,0,0.95
-6,Political news article 6: This is a sample news article for case study analysis.,1,1,0.95
-7,Political news article 7: This is a sample news article for case study analysis.,0,0,0.95
-8,Political news article 8: This is a sample news article for case study analysis.,0,0,0.95
-9,Political news article 9: This is a sample news article for case study analysis.,0,0,0.95
-10,Political news article 10: This is a sample news article for case study analysis.,0,0,0.95
-11,Political news article 11: This is a sample news article for case study analysis.,0,0,0.95
-12,Political news article 12: This is a sample news article for case study analysis.,0,0,0.5
-13,Political news article 13: This is a sample news article for case study analysis.,0,0,0.95
-14,Political news article 14: This is a sample news article for case study analysis.,1,1,0.95
-15,Political news article 15: This is a sample news article for case study analysis.,0,0,0.95
-16,Political news article 16: This is a sample news article for case study analysis.,0,0,0.95
-17,Political news article 17: This is a sample news article for case study analysis.,0,0,0.95
-18,Political news article 18: This is a sample news article for case study analysis.,1,0,0.95
-19,Political news article 19: This is a sample news article for case study analysis.,0,0,0.95
-20,Political news article 20: This is a sample news article for case study analysis.,0,0,0.95
-21,Political news article 21: This is a sample news article for case study analysis.,0,0,0.95
-22,Political news article 22: This is a sample news article for case study analysis.,1,1,0.95
-23,Political news article 23: This is a sample news article for case study analysis.,0,0,0.95
-24,Political news article 24: This is a sample news article for case study analysis.,0,0,0.95
-25,Political news article 25: This is a sample news article for case study analysis.,1,0,0.95
-26,Political news article 26: This is a sample news article for case study analysis.,0,0,0.95
-27,Political news article 27: This is a sample news article for case study analysis.,1,1,0.95
-28,Political news article 28: This is a sample news article for case study analysis.,1,1,0.95
-29,Political news article 29: This is a sample news article for case study analysis.,0,0,0.95
-30,Political news article 30: This is a sample news article for case study analysis.,0,0,0.95
-31,Political news article 31: This is a sample news article for case study analysis.,0,0,0.95
-32,Political news article 32: This is a sample news article for case study analysis.,0,1,0.95
-33,Political news article 33: This is a sample news article for case study analysis.,0,0,0.5
-34,Political news article 34: This is a sample news article for case study analysis.,0,0,0.95
-35,Political news article 35: This is a sample news article for case study analysis.,0,0,0.95
-36,Political news article 36: This is a sample news article for case study analysis.,0,0,0.95
-37,Political news article 37: This is a sample news article for case study analysis.,0,0,0.95
-38,Political news article 38: This is a sample news article for case study analysis.,0,0,0.95
-39,Political news article 39: This is a sample news article for case study analysis.,1,1,0.95
-40,Political news article 40: This is a sample news article for case study analysis.,0,0,0.95
-41,Political news article 41: This is a sample news article for case study analysis.,0,0,0.95
-42,Political news article 42: This is a sample news article for case study analysis.,0,0,0.95
-43,Political news article 43: This is a sample news article for case study analysis.,0,0,0.95
-44,Political news article 44: This is a sample news article for case study analysis.,1,1,0.95
-45,Political news article 45: This is a sample news article for case study analysis.,1,0,0.95
-46,Political news article 46: This is a sample news article for case study analysis.,1,0,0.95
-47,Political news article 47: This is a sample news article for case study analysis.,1,1,0.95
-48,Political news article 48: This is a sample news article for case study analysis.,0,1,0.95
-49,Political news article 49: This is a sample news article for case study analysis.,1,0,0.95
-50,Political news article 50: This is a sample news article for case study analysis.,0,0,0.95
-51,Political news article 51: This is a sample news article for case study analysis.,1,1,0.95
-52,Political news article 52: This is a sample news article for case study analysis.,0,0,0.95
-53,Political news article 53: This is a sample news article for case study analysis.,0,0,0.95
-54,Political news article 54: This is a sample news article for case study analysis.,1,1,0.95
-55,Political news article 55: This is a sample news article for case study analysis.,1,0,0.95
-56,Political news article 56: This is a sample news article for case study analysis.,0,0,0.95
-57,Political news article 57: This is a sample news article for case study analysis.,0,0,0.95
-58,Political news article 58: This is a sample news article for case study analysis.,0,0,0.95
-59,Political news article 59: This is a sample news article for case study analysis.,0,0,0.95
-60,Political news article 60: This is a sample news article for case study analysis.,0,0,0.95
-61,Political news article 61: This is a sample news article for case study analysis.,0,0,0.95
-62,Political news article 62: This is a sample news article for case study analysis.,0,0,0.95
-63,Political news article 63: This is a sample news article for case study analysis.,0,0,0.95
-64,Political news article 64: This is a sample news article for case study analysis.,1,0,0.95
-65,Political news article 65: This is a sample news article for case study analysis.,0,0,0.95
-66,Political news article 66: This is a sample news article for case study analysis.,0,0,0.95
-67,Political news article 67: This is a sample news article for case study analysis.,1,1,0.95
-68,Political news article 68: This is a sample news article for case study analysis.,0,0,0.95
-69,Political news article 69: This is a sample news article for case study analysis.,0,0,0.95
-70,Political news article 70: This is a sample news article for case study analysis.,1,0,0.95
-71,Political news article 71: This is a sample news article for case study analysis.,0,0,0.95
-72,Political news article 72: This is a sample news article for case study analysis.,0,0,0.95
-73,Political news article 73: This is a sample news article for case study analysis.,0,0,0.95
-74,Political news article 74: This is a sample news article for case study analysis.,1,1,0.95
-75,Political news article 75: This is a sample news article for case study analysis.,0,0,0.95
-76,Political news article 76: This is a sample news article for case study analysis.,0,0,0.95
-77,Political news article 77: This is a sample news article for case study analysis.,0,0,0.95
-78,Political news article 78: This is a sample news article for case study analysis.,0,0,0.95
-79,Political news article 79: This is a sample news article for case study analysis.,0,0,0.95
-80,Political news article 80: This is a sample news article for case study analysis.,0,0,0.95
-81,Political news article 81: This is a sample news article for case study analysis.,1,0,0.95
-82,Political news article 82: This is a sample news article for case study analysis.,0,0,0.95
-83,Political news article 83: This is a sample news article for case study analysis.,0,0,0.95
-84,Political news article 84: This is a sample news article for case study analysis.,0,0,0.95
-85,Political news article 85: This is a sample news article for case study analysis.,0,0,0.95
-86,Political news article 86: This is a sample news article for case study analysis.,0,1,0.95
-87,Political news article 87: This is a sample news article for case study analysis.,1,1,0.95
-88,Political news article 88: This is a sample news article for case study analysis.,1,0,0.95
-89,Political news article 89: This is a sample news article for case study analysis.,0,0,0.95
-90,Political news article 90: This is a sample news article for case study analysis.,0,0,0.95
-91,Political news article 91: This is a sample news article for case study analysis.,0,0,0.95
-92,Political news article 92: This is a sample news article for case study analysis.,0,0,0.95
-93,Political news article 93: This is a sample news article for case study analysis.,0,0,0.95
-94,Political news article 94: This is a sample news article for case study analysis.,0,1,0.95
-95,Political news article 95: This is a sample news article for case study analysis.,0,0,0.95
-96,Political news article 96: This is a sample news article for case study analysis.,1,0,0.95
-97,Political news article 97: This is a sample news article for case study analysis.,0,0,0.5
-98,Political news article 98: This is a sample news article for case study analysis.,0,0,0.95
-99,Political news article 99: This is a sample news article for case study analysis.,1,0,0.95
-100,Political news article 100: This is a sample news article for case study analysis.,1,1,0.95
-101,Political news article 101: This is a sample news article for case study analysis.,1,1,0.95
+0,"'This Week' Transcript: Geithner TAPPER: Secretary Geithner thanks for joining us. Good to see you.
+
+So, the administration has had a number of successes after big battles, stimulus, health care legis...",0,0,0.5
+1,"At Trump hotel site, immigrant workers wary Workers leave the site of the future Trump International Hotel, which is at the site of the Old Post Office Pavilion in Washington. (Matt McClain/The Washin...",0,0,0.95
+2,"Man pardoned by Obama ‘executed’ by masked men at halfway house SAGINAW, Mich. — A man recently pardoned by former President Barack Obama was shot and killed by two men with assault-style rifles.
+
+It ...",1,0,0.95
+3,"Country of Origin Labeling (COOL) Country of Origin Labeling (COOL) is a labeling law that requires retailers, such as full-line grocery stores, supermarkets and club warehouse stores, to notify their...",0,0,0.95
+4,"President Trump in Moon Township, Pennsylvania March 10, 2018
+
+2018-03-10T22:31:03-05:00
+
+https://images.c-span.org/Files/da4/20180310223751001_hd.jpg
+
+President Trump campaigned in the Pittsburgh are...",0,0,0.95
+5,"Statement from FDA Commissioner Scott Gottlieb, M.D., on FDA’s ongoing efforts to help improve effectiveness of influenza vaccines Statement from FDA Commissioner Scott Gottlieb, M.D., on FDA’s ongoin...",1,0,0.95
+6,"SPECIAL REPORT: GEORGIA BECOMES FIRST STATE TO BAN MUSLIM CULTURE IN HISTORIC MOVE TO RESTORE WESTERN VALUES! Share
+
+tweet
+
+
+
+
+
+When Donald Trump proposed in 2015 that we place a temporary ban on Musl...",1,1,0.95
+7,"Earmark reform? 2009 spending bill contains 9,000 of them WASHINGTON — During the 2008 presidential campaign, candidates Barack Obama and John McCain fought vigorously over who would be toughest on co...",0,0,0.95
+8,"The Committee on Energy and Commerce Barton: Medicare Drug Program Drawing Participants by the Thousands WASHINGTON - U.S. Rep. Joe Barton, R-Texas, chairman of the House Energy and Commerce Committee...",0,0,0.95
+9,"Power & Renewable Energy Analysis Our powers combined
+
+Power is set to play a feature role in the global energy transition as renewables make the grid cleaner and new industries electrify.
+
+We’re on t...",0,0,0.95
+10,"Ralph Nader on Barack Obama: ""It is Quite Clear He is a Corporate Candidate from A to Z"" Democracy Now! has been selected as an Official Honoree at the 12th Annual Webby Awards in three categories: Ne...",0,0,0.95
+11,"Rand Paul: Will Donald Trump betray voters by hiring John Bolton? By Sen. Rand Paul
+
+Rumors are that Donald Trump might pick John Bolton for Secretary of State. Heaven forbid.
+
+One of the things I occ...",0,0,0.95
+12,"'This Week' Transcript: Odierno and Chiarelli AMANPOUR: Good morning. I'm Christiane Amanpour, and at the top of the news this week, ending the war in Iraq.
+
+(BEGIN VIDEO CLIP)
+
+PRESIDENT BARACK OBAMA...",0,0,0.5
+13,"Obama’s Health Care Speech to Congress I am not the first President to take up this cause, but I am determined to be the last. It has now been nearly a century since Theodore Roosevelt first called fo...",0,0,0.95
+14,"Singer Tina Turner: “This Thanksgiving Is The First Time in 8 Years That I am Thankful For Our President, God Bless Him And His Supporters.” Do You Support To Tina ? – American President Donald J. Tru...",1,1,0.95
+15,"McDonnell Letter Urges No Delay in Virginia Offshore Energy Exploration and Development McDonnell Letter Urges No Delay in Virginia Offshore Energy Exploration and Development
+
+Governor-elect writes S...",0,0,0.95
+16,"Estonia Might Have The Most Efficient Tax Filing System In The World Wikimedia Commons It's true.
+
+It turns out that one reason why Estonia has been the lone feel-good story amidst the Eurozone crisis...",0,0,0.95
+17,"Hannity says Obama won't even use the term ""war on terrorism"" On Sean Hannity's Fox News show on Nov. 9, 2009, the topic was what the government knew about Fort Hood psychiatrist Nidal Malik Hasan, an...",0,0,0.95
+18,9 celebrities who say they'll move to Canada if Donald Trump becomes president Bryan Cranston and Donald Trump. Ilya S. Savenok; Gary Gershoff/Getty With Election Day close and a Donald Trump presiden...,1,0,0.95
+19,"As Dems’ “Stimulus” Anniversary Nears, Americans Ask: “Where are the Jobs?” As Dems’ “Stimulus” Anniversary Nears, Americans Ask: “Where are the Jobs?”
+
+Washington, Feb 12 - As the one year anniversar...",0,0,0.95
+20,"Rule by Rentiers Of course, that’s not the way what I call the Pain Caucus makes its case. Instead, the argument against helping the unemployed is framed in terms of economic risks: Do anything to cre...",0,0,0.95
+21,"Philando Castile Had Been Stopped 52 Times By Police – WCCO 
+
+
+
+— When Philando Castile saw the flashing lights in his rearview mirror the night he got shot, it wasn’t unusual. He had been pulled over...",0,0,0.95
+22,Debbie Wasserman Schultz Aide Arrested Trying to Flee the Country Debbie Wasserman Schultz Aide Arrested Trying to Flee the Country,1,1,0.95
+23,"Congressman Pence Discusses House Republican Energy Bill on MSNBC's Morning Joe Transcript below:
+
+
+
+MIKA BRZEZINSKI: With us now Republican Representative from Indiana and Chairman of the House Repub...",0,0,0.95
+24,"RACE FOR CITY HALL: The Republican Candidate; A Mercurial Mayor's Confident Journey This makes for a strange set of paradoxes, for some of Mr. Giuliani's strengths are his weaknesses as well. The adep...",0,0,0.95
+25,FBI uncovered Russian bribery plot before Obama administration approved controversial nuclear deal with Moscow Before the Obama administration approved a controversial deal in 2010 giving Moscow contr...,1,0,0.95
+26,"""Face the Nation"" transcripts, August 26, 2012: Rubio, Priebus, Barbour, Blackburn (CBS News) Below is a transcript of ""Face the Nation"" on August 26, 2012, hosted by CBS News' Bob Schieffer. Guests i...",0,0,0.95
+27,"U.N. Official 'Accidentally' Crushes Own Throat Right Before Testifying Against Hillary Clinton Submitted by Mac Slavo via SHTFPlan.com,
+
+Call it conspiracy theory, coincidence or just bad luck, but a...",1,1,0.95
+28,"Russian source behind Trump dossier killed in Russian plane crash, Rosatom CFO also dead. : conspiracy 856k 1.6k Online
+
+**The conspiracy subreddit is a thinking ground. Above all else, we respect eve...",1,1,0.95
+29,"Pelosi urges minimum-wage hike House Minority Leader Nancy Pelosi on Thursday urged Congress to hike the hourly minimum wage dramatically.
+
+
+
+Noting that Wall Street this week is trading at record-hig...",0,0,0.95
+30,"Transcript: The Democratic debate in Milwaukee, annotated Bernie Sanders and Hillary Clinton are debating in Milwaukee tonight, their second one-on-one debate. It's started at 9 p.m. The Fix team and ...",0,0,0.95
+31,"Pastors To Protest IRS Rules on Political Advocacy On Sept. 28, pastors from 20 states will give politically based sermons from the pulpit as part of a protest organized by the Alliance Defense Fund, ...",0,0,0.95
+32,Say What YouTube をでご覧いただいています。 この設定は下で変更 できます。,0,1,0.95
+33,"'This Week' Transcript: Biden JAKE TAPPER, HOST: I know that there are some in the White House who feel Wall Street reform, health care legislation, stimulus, and yet the public still overwhelmingly t...",0,0,0.5
+34,"Letter to the Honorable John Boehner providing an estimate for H.R. 6079, the Repeal of Obamacare Act CBO and the staff of the Joint Committee on Taxation (JCT) have estimated the direct spending and ...",0,0,0.95
+35,Why the Public Option Isn't the Only Answer to Health-Care Reform A dangerous sentiment on the left threatens to derail what could be the biggest progressive achievement in half a century. It's the vi...,0,0,0.95
+36,"3rd Democratic debate transcript, annotated: Who said what and what it meant Three Democratic candidates participated in tonight's ABC presidential primary debate at St. Anselm College in New Hampshir...",0,0,0.95
+37,"The Colbert Report About the Show
+
+The Colbert Report
+
+As America's most fearless purveyor of ""truthiness,"" Stephen Colbert shines a light on ego-driven punditry, moral hypocrisy and government incomp...",0,0,0.95
+38,YouTube YouTube をでご覧いただいています。 この設定は下で変更 できます。,0,0,0.95
+39,"Facebook 移動:
+
+このメニューを開くには、 alt と / を同時に押してください",1,1,0.95
+40,Should ISIS' gains lead to more U.S. troops in Iraq? The territorial gains of the Islamic State of Iraq and Syria (ISIS) in the Middle East over the past week have prompted a fresh look at what the U....,0,0,0.95
+41,"U.S. Senate: U.S. Senate Roll Call Votes 108th Congress Use this guide to help you find the full text of recent bills and resolutions on the Web, or order them from the Senate or House Document Rooms,...",0,0,0.95
+42,"Summing Summertime: Part 4 October 19, 2007 | Check back periodically for new additions to this digest. President John Doe (10/19/07, 5:30 pm)
+
+President John H. Cox? President Dal Lamagna? These name...",0,0,0.95
+43,"Joint DHS and ODNI Election Security Statement Joint DHS and ODNI Election Security Statement
+
+Friday, October 07, 2016
+
+DIRECTOR OF NATIONAL INTELLIGENCE
+
+WASHINGTON, DC 20511
+
+
+
+October 07, 2016
+
+
+
+...",0,0,0.95
+44,"BREAKING: President Trump Just Told Paul Ryan ‘You’re Fired’ Paul Ryan may be the Speaker of the House and he may be third in the line of succession for the presidency, but he will no longer be welcom...",1,1,0.95
+45,"Food Stamp Enrollment Drops by Four Million in One Month Four million people dropped off the food stamp rolls in one month, according to the latest numbers on food stamp enrollment from the U.S. Depar...",1,0,0.95
+46,"LISTEN: Curious Robocall Seeks 'Damaging' Information on Moore LISTEN: Curious Robocall Seeks 'Damaging' Information on Moore Copyright by WKRG - All rights reserved Video
+
+Bill Riales -
+
+UPDATE 3:31 ...",1,0,0.95
+47,"FOX Network Picks Up ‘Roseanne,’ Saying It Has No Problem With Occasional Racism – The Newly Press News Network – POTUS Press Network After ABC cancels Roseanne Barr’s hit show in response to her stun...",1,1,0.95
+48,Harry Reid YouTube をでご覧いただいています。 この設定は下で変更 できます。,0,1,0.95
+49,"InShapeToday Fleas, ants, and roaches are one of the most common and most annoying pests. Although there are various products on the market which are said to kill them off, most",1,0,0.95
+50,"Change We Can Believe In Remarks of Senator Barack Obama: Apostolic Church of God
+
+Chicago, IL | June 15, 2008
+
+Good morning. It's good to be home on this Father's Day with my girls, and it's an honor...",0,0,0.95
+51,"Babysitter on Crystal Meth Eats 3-Month-Old Baby 9.6k SHARES Share Tweet Share
+
+De Soto, Missouri – Parents of a three-month old baby were horrified to discover their babysitter had turned into a crys...",1,1,0.95
+52,"Krugman calls Senate health care bill similar to law in Massachusetts The recent Massachusetts Senate election captivated Americans far beyond the Bay State. In that contest, Republican Scott Brown pi...",0,0,0.95
+53,"McCain Campaigns In Nashville NASHVILLE, Tenn. - Republican presidential candidate John McCain held a town hall meeting at Nashville's Ryman Auditorium Monday.
+
+The Arizona senator gave a 25-minute st...",0,0,0.95
+54,Laguna Beach Antifa 22m David Hogg Didn't Attend Parkland High School I Went to School With Him at Redondo Shores High School in California and He Graduated in 2015 Here He Is in Our Yearbook From 201...,1,1,0.95
+55,"The pro-Russia, pro-weed, pro-Assange GOP congressman who will be tough to beat COSTA MESA, Orange County — It was a surreal visit to Rep. Dana Rohrabacher’s Orange County home. The 15-term Republican...",1,0,0.95
+56,"Family Policy Alliance Speak Up
+
+We have the right, privilege and obligation to speak into every aspect of our government. Our Action Center makes it easy for you to do that.",0,0,0.95
+57,"H1N1 vaccinations to be offered to Guantanamo Bay detainees Washington (CNN) -- The Pentagon will offer the H1N1 vaccination to detainees at the U.S. facility at Guantanamo Bay, officials there said F...",0,0,0.95
+58,"Carolyn B. Maloneyさんのツイート: ""Women's health & wellbeing don’t seem to count in the math of the GOP's merciless #PayMoreForLess healthcare bill. We must not defund @PPFA!… https: 位置情報付きでツイート
+
+ウェブサイトやサード...",0,0,0.95
+59,"Obama: Gitmo inspires jihadists About This Show
+
+From the country’s major political and policy issues to diplomacy on the global stage, State of the Union with Candy Crowley brings in the world’s top ...",0,0,0.95
+60,Florida Democrats Ask HHS to Protect Floridians from High Insurance Premiums in Marketplace Florida Democrats Ask HHS to Protect Floridians from High Insurance Premiums in Marketplace f t # e Washingt...,0,0,0.95
+61,"Care Without Coverage: Too Little, Too Late × Close Downloading and Using eBooks from NAP
+
+What is an eBook?
+
+An ebook is one of two file formats that are intended to be used with e-reader devices and...",0,0,0.95
+62,"Democratic National Convention Wednesday, August 27, 2008 at 08:20 PM
+
+Beau, I love you. I am so proud of you. Proud of the son you are. Proud of the father you’ve become. And I’m so proud of my son H...",0,0,0.95
+63,"China's Space Threat: How Missiles Could Target U.S. Satellites At 5:28 PM EST on Jan. 11, 2007, a satellite arced over southern China. It was small—just 6 ft. long—a tiny object in the heavens, stead...",0,0,0.95
+64,Who is affected by the government shutdown? Thousands of government workers are unsure whether or not they will be heading to work on Monday amid uncertainty about how long a government shutdown will ...,1,0,0.95
+65,"Interest Group Ratings Budget, Spending and Taxes
+
+2001 On the votes that the Americans for Tax Reform considered to be the most important in 2001, Thompson voted their preferred position 90 percent o...",0,0,0.95
+66,"State of the Union 2013 The State of the Union 2012
+
+“We can either settle for a country where a shrinking number of people do really well while a growing number of Americans barely get by, or we can ...",0,0,0.95
+67,"Trump Nation 移動:
+
+このメニューを開くには、 alt と / を同時に押してください",1,1,0.95
+68,"International Energy Statistics Projects published on Beta are not final and may contain programming errors. They are for public testing and comment only. We welcome your feedback. For final products,...",0,0,0.95
+69,"Memory Lapse? Trump Seeks Distance From 'Advisor' With Past Ties to Mafia Though he touts his outstanding memory, when Donald Trump was asked under oath about his dealings with a twice-convicted Russi...",0,0,0.95
+70,"Puerto Rico Mayor Facing Fraud Charges Over Millions In Gov’t Funds Miguel G. Ortiz-Vélez, a Democrat-alligned Puerto Rico mayor, is facing fraud charges relating to the conspiracy to steal millions i...",1,0,0.95
+71,"Donald Trump, Billy Bush: Interview Scrambles Race The bombshell dropped on the Washington Post’s website just after 4 p.m.: a video of Donald Trump, in 2005, using extremely vulgar language to descri...",0,0,0.95
+72,"To young people who are undocumented: This is your country, too. To young people who are undocumented: This is your country, too.
+
+Hillary Clinton Blocked Unblock Follow Following Aug 15, 2016
+
+Today ...",0,0,0.95
+73,"Full Interview Transcript: President Barack Obama This is a transcript of the interview ABC News’ chief anchor George Stephanopoulos conducted with President Barack Obama on November 12, 2015 at the W...",0,0,0.95
+74,McCain Blamed For Sabotaging Trump Senator John McCain should be supporting President Donald Trump and his Congressional peers in order to make America safe again but he obviously felt the need to go ...,1,1,0.95
+75,"Sarah Palinさんのツイート: ""Obama lied to the American people. Again. He said it wasn't a tax. Obama lies; freedom dies."" 位置情報付きでツイート
+
+ウェブサイトやサードパーティアプリケーションから、都市や正確な現在地などの位置情報をツイートに追加できます。ツイートの位置情報履歴はいつでも削除...",0,0,0.95
+76,"Illinois General Assembly ×
+
+The Illinois General Assembly offers the Google Translate™ service for visitor convenience. In no way should it be considered accurate as to the translation of any content...",0,0,0.95
+77,"Remarks on counterterrorism at Stanford University In the aftermath of the terrorist attack in Brussels, Hillary Clinton highlighted that now is a time for steady leadership, when we must stand in sol...",0,0,0.95
+78,"Writers May Have Pact. Huckabee Crosses Picket Line—Again SEARCH keyword:
+
+Writers May Have Pact. Huckabee Crosses Picket Line—Again
+
+by Mike Hall, Feb 8, 2008
+
+Television and movie writers who have b...",0,0,0.95
+79,"Remarks of Senator Obama: The War We Need to Win Remarks of Senator Obama: The War We Need to Win
+
+Washington, DC | August 01, 2007
+
+Senator Barack Obama presents his comprehensive five part plan for ...",0,0,0.95
+80,Debt Day: A Symbol of Washington’s Arrogant Culture of Borrowing and Spending (Boehner Op-Ed on Townhall.com) Debt Day: A Symbol of Washington’s Arrogant Culture of Borrowing and Spending (Boehner Op-...,0,0,0.95
+81,"Eric Trump: It would be 'foolish' for my dad to release tax returns Eric Trump on Wednesday dismissed arguments that his father, Donald Trump Donald John TrumpOnly one way with Huawei — don't let it c...",1,0,0.95
+82,"Washington Post: Breaking News, World, US, DC News & Analysis It was the last day of classes for the school year, one that many students had expected to finish off with a concert. Instead, it ended wi...",0,0,0.95
+83,"Background Briefing on GM Restructuring, May 31, 2009 THE WHITE HOUSE
+
+
+
+Office of the Press Secretary
+
+
+
+__________________________________________________
+
+FOR IMMEDIATE RELEASE June 1, 2009
+
+
+
+BACK...",0,0,0.95
+84,"Arizona Department of Public Safety Crime in Arizona Reports
+
+An Annual Report compiled by Access Integrity Unit of the Arizona Department of Public Safety.
+
+The Arizona Department of Public Safety is...",0,0,0.95
+85,"Planned Parenthood® Action Center John McCain In His Own Words
+
+McCain has voted consistently against women's health, and he supports overturning the landmark U.S. Supreme Court ruling, Roe v. Wade. T...",0,0,0.95
+86,"Percent change from preceding period 17.76 KB View/Download File
+
+Why the extra step? This page can be bookmarked, the file cannot.",0,1,0.95
+87,"BREAKING: Malia Obama SUSPENDED After Racist Anti-White Attack Goes Viral BREAKING: Malia Obama SUSPENDED After Racist Anti-White Attack Goes Viral
+
+A few days ago, a student at Harvard leaked the con...",1,1,0.95
+88,"Lance Armstrong's defiant Twitter photo shows him relaxing with seven yellow jerseys Lance Armstrong's defiant Twitter photo shows him relaxing with seven yellow jerseys
+
+Lance Armstrong relaxes on a ...",1,0,0.95
+89,"Senator Biden’s Remarks in Springfield, Ill. In all my time in the United States Senate, and I want you to know there's only four senators senior to me, but Barack, there's still 44 older than me. I w...",0,0,0.95
+90,"What OFA Has Accomplished, And The Fight Ahead What OFA Has Accomplished, And The Fight Ahead
+
+All On The Line Blocked Unblock Follow Following Apr 22
+
+By Katie Hogan, Executive Director, Organizing f...",0,0,0.95
+91,"Hillary Clinton Transcript: Building the ‘Growth and Fairness Economy’ Democratic presidential hopeful Hillary Clinton, laying out her economic vision, said Monday that government must do more to rein...",0,0,0.95
+92,"PWNED: House GOP Dominates Twitter, YouTube, Social Media in Congress PWNED: House GOP Dominates Twitter, YouTube, Social Media in Congress
+
+Democrats Innovate by Finding New Places to Ignore the Will...",0,0,0.95
+93,"Rick Perry says he switched to GOP at a younger age than Reagan did ""I became a Republican sooner in my life than"" Ronald Reagan did in his.
+
+On his Aug. 30 radio program, conservative commentator Sea...",0,0,0.95
+94,"Sen. Barack Obama's answer to meeting energy demands 自動再生 自動再生を有効にすると、関連動画が自動的に再生されます。
+
+次の動画",0,1,0.95
+95,"Who We Are Our History
+
+Bright Horizons has been changing the way the world works for 30 years. Way back in 1986, our founders saw that child care was an enormous obstacle for working parents. Providi...",0,0,0.95
+96,"ICE Detainer Issued for Suspected Wine Country Arsonist in Sonoma Jail UPDATE: Consistent with our subsequent coverage of the California wildfires, this story has been updated to clarify that Jesus Fa...",1,0,0.95
+97,"A comprehensive investigation of voter impersonation finds 31 credible incidents out of one billion ballots cast 
+
+A Madison, Miss., precinct worker offers a voter a ""I voted"" sticker after voting in ...",0,0,0.5
+98,"Terror Suspects Are Buying Guns - and the FBI Can't Stop Them It's amazing but true: we can prevent terror suspects from boarding an airplane, but the FBI doesn't have the power to block them from buy...",0,0,0.95
+99,"Bill Murray Had This to Say About Rochester, New Hampshire Residents – News Daily 12 ROCHESTER, New Hampshire – During a radio interview this morning, Hollywood actor Bill Murray took a moment to prai...",1,0,0.95
+100,"John Hagee Calls For “Prosecuting Women Who Say God’s Name During Intercourse” “One of the things that the Bible has consistently denounced is the taking of the Lord’s name in vain. In fact, one of th...",1,1,0.95
+101,Actress Sandra Bullock to Hillary Clinton if You Don't Like Our President You Can Leave and Never Come Back Again You Are One Jealous Woman Who Ls Nothing to Compare With Trump I Hope He Will Arrest Y...,1,1,0.95
