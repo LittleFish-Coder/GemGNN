@@ -1,6 +1,6 @@
 {
     "args": {
-        "graph_path": "graphs_hetero/politifact/8_shot_roberta_hetero_knn_test_isolated_5_ensure_test_labeled_neighbor_partial_sample_unlabeled_factor_5_multiview_3/graph.pt",
+        "graph_path": "graphs_hetero/politifact/11_shot_roberta_hetero_knn_test_isolated_5_ensure_test_labeled_neighbor_partial_sample_unlabeled_factor_5_multiview_3/graph.pt",
         "model": "HAN",
         "loss_fn": "ce",
         "target_node_type": "news",
@@ -21,32 +21,32 @@
         "bootstrap_n_bootstraps": 15,
         "analyze_confidence": false
     },
-    "model_name": "HAN_politifact_8_shot_roberta_hetero_knn_test_isolated_5_ensure_test_labeled_neighbor_partial_sample_unlabeled_factor_5_multiview_3",
+    "model_name": "HAN_politifact_11_shot_roberta_hetero_knn_test_isolated_5_ensure_test_labeled_neighbor_partial_sample_unlabeled_factor_5_multiview_3",
     "training_history": {
-        "final_train_loss": 0.31030648946762085,
+        "final_train_loss": 0.30222445726394653,
         "final_train_acc": 1.0,
         "final_train_f1": 1.0,
-        "final_val_loss": 0.2981850504875183,
+        "final_val_loss": 0.2977466881275177,
         "final_val_acc": 1.0,
         "final_val_f1": 1.0,
         "best_val_f1": 1.0,
-        "best_epoch": 111,
-        "total_epochs_run": 111,
-        "training_time_seconds": 4.299426555633545
+        "best_epoch": 110,
+        "total_epochs_run": 110,
+        "training_time_seconds": 4.417024374008179
     },
     "final_test_metrics_on_target_node": {
-        "accuracy": 0.8627450980392157,
-        "precision": 0.831365139348134,
-        "recall": 0.831365139348134,
-        "f1_score": 0.831365139348134,
+        "accuracy": 0.8725490196078431,
+        "precision": 0.8392857142857143,
+        "recall": 0.8589985829003306,
+        "f1_score": 0.8479880774962743,
         "confusion_matrix": [
             [
-                66,
-                7
+                65,
+                8
             ],
             [
-                7,
-                22
+                5,
+                24
             ]
         ]
     }
