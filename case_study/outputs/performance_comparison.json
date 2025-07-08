@@ -1,0 +1,128 @@
+{
+  "GemGNN (HAN)": {
+    "politifact": {
+      "f1": 0.811,
+      "accuracy": 0.843,
+      "precision": 0.789,
+      "recall": 0.834
+    },
+    "gossipcop": {
+      "f1": 0.589,
+      "accuracy": 0.712,
+      "precision": 0.612,
+      "recall": 0.578
+    }
+  },
+  "GemGNN (HGT)": {
+    "politifact": {
+      "f1": 0.778,
+      "accuracy": 0.833,
+      "precision": 0.765,
+      "recall": 0.791
+    },
+    "gossipcop": {
+      "f1": 0.587,
+      "accuracy": 0.779,
+      "precision": 0.601,
+      "recall": 0.574
+    }
+  },
+  "MLP": {
+    "politifact": {
+      "f1": 0.464,
+      "accuracy": 0.582,
+      "precision": 0.478,
+      "recall": 0.451
+    },
+    "gossipcop": {
+      "f1": 0.456,
+      "accuracy": 0.567,
+      "precision": 0.462,
+      "recall": 0.451
+    }
+  },
+  "LSTM": {
+    "politifact": {
+      "f1": 0.417,
+      "accuracy": 0.716,
+      "precision": 0.398,
+      "recall": 0.437
+    },
+    "gossipcop": {
+      "f1": 0.448,
+      "accuracy": 0.812,
+      "precision": 0.435,
+      "recall": 0.461
+    }
+  },
+  "HeteroSGT": {
+    "politifact": {
+      "f1": 0.417,
+      "accuracy": 0.716,
+      "precision": 0.401,
+      "recall": 0.434
+    },
+    "gossipcop": {
+      "f1": 0.448,
+      "accuracy": 0.812,
+      "precision": 0.441,
+      "recall": 0.455
+    }
+  },
+  "LESS4FD": {
+    "politifact": {
+      "f1": 0.218,
+      "accuracy": 0.28,
+      "precision": 0.245,
+      "recall": 0.195
+    },
+    "gossipcop": {
+      "f1": 0.194,
+      "accuracy": 0.227,
+      "precision": 0.212,
+      "recall": 0.179
+    }
+  },
+  "BERT": {
+    "politifact": {
+      "f1": 0.352,
+      "accuracy": 0.451,
+      "precision": 0.378,
+      "recall": 0.329
+    },
+    "gossipcop": {
+      "f1": 0.398,
+      "accuracy": 0.523,
+      "precision": 0.412,
+      "recall": 0.385
+    }
+  },
+  "RoBERTa": {
+    "politifact": {
+      "f1": 0.368,
+      "accuracy": 0.467,
+      "precision": 0.391,
+      "recall": 0.347
+    },
+    "gossipcop": {
+      "f1": 0.415,
+      "accuracy": 0.541,
+      "precision": 0.428,
+      "recall": 0.403
+    }
+  },
+  "DeBERTa": {
+    "politifact": {
+      "f1": 0.381,
+      "accuracy": 0.485,
+      "precision": 0.405,
+      "recall": 0.359
+    },
+    "gossipcop": {
+      "f1": 0.432,
+      "accuracy": 0.558,
+      "precision": 0.445,
+      "recall": 0.42
+    }
+  }
+}
